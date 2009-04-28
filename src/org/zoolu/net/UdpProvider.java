@@ -147,6 +147,7 @@ public class UdpProvider extends Thread
    /** Stops running */
    public void halt()
    {  stop=true;
+      socket.close();
    }
 
 

@@ -36,7 +36,7 @@ public class MultipleHeader
    /** The header type */
    protected String name;
    /** Vector of header values (as Strings) */
-   protected Vector values;
+   protected Vector<String> values;
    /** whether to be rapresented with a comma-separated(compact) header line or multiple header lines */
    protected boolean compact;
 
@@ -54,14 +54,14 @@ public class MultipleHeader
    }
 
    /** Costructs a MultipleHeader named <i>hname</i> from a Vector of header values (as Strings). */
-   public MultipleHeader(String hname, Vector hvalues)
+   public MultipleHeader(String hname, Vector<String> hvalues)
    {  name=hname;
       values=hvalues;
       compact=true;
    }
    
    /** Costructs a MultipleHeader from a Vector of Headers. Each Header can be a single header or a multiple-comma-separated header. */
-   public MultipleHeader(Vector headers)
+   public MultipleHeader(Vector<Header> headers)
    {  name=((Header)headers.elementAt(0)).getName();
       values=new Vector(headers.size());
       for (int i=0; i<headers.size(); i++)
@@ -136,17 +136,17 @@ public class MultipleHeader
    }
 
    /** Gets a vector of header values */
-   public Vector getValues()
+   public Vector<String> getValues()
    {  return values;
    }
 
    /** Sets header values */
-   public void setValues(Vector v)
+   public void setValues(Vector<String> v)
    {  values=v; 
    }
    
    /** Gets a vector of headers */
-   public Vector getHeaders()
+   public Vector<Header> getHeaders()
    {  Vector v=new Vector(values.size());
       for (int i=0; i<values.size(); i++)
       {  Header h=new Header(name,(String)values.elementAt(i));
@@ -156,7 +156,7 @@ public class MultipleHeader
    }   
 
    /** Sets header values */
-   public void setHeaders(Vector hdv)
+   public void setHeaders(Vector<Header> hdv)
    {  values=new Vector(hdv.size());
       for (int i=0; i<hdv.size(); i++)
       {  values.addElement(((Header)hdv.elementAt(i)).getValue());
@@ -218,8 +218,8 @@ public class MultipleHeader
    /** Gets an Header containing the comma-separated(compact) representation. */
    public Header toHeader()
    {  String str="";
-      for (int i=0; i<values.size()-1; i++) str+=values.elementAt(i)+", ";
-      if (values.size()>0) str+=values.elementAt(values.size()-1);
+      for (int i=0; i<values.size()-1; i++) str+=(String)values.elementAt(i)+", ";
+      if (values.size()>0) str+=(String)values.elementAt(values.size()-1);
       return new Header(name,str);
    }
 
@@ -231,13 +231,13 @@ public class MultipleHeader
    public String toString()
    {  if (compact)
       {  String str=name+": ";
-         for (int i=0; i<values.size()-1; i++) str+=values.elementAt(i)+", ";
-         if (values.size()>0) str+=values.elementAt(values.size()-1);
+         for (int i=0; i<values.size()-1; i++) str+=(String)values.elementAt(i)+", ";
+         if (values.size()>0) str+=(String)values.elementAt(values.size()-1);
          return str+"\r\n";
       }
       else 
       {  String str="";
-         for (int i=0; i<values.size(); i++) str+=name+": "+values.elementAt(i)+"\r\n";
+         for (int i=0; i<values.size(); i++) str+=name+": "+(String)values.elementAt(i)+"\r\n";
          return str;
       }
    }

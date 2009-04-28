@@ -31,7 +31,7 @@ import java.util.Vector;
   */
 public class HashSet
 {
-   Vector set;
+   Vector<Object> set;
 
    public HashSet()
    {  set=new Vector();

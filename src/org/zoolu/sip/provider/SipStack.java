@@ -89,11 +89,11 @@ public class SipStack extends Configure
    /** default max-forwards value (RFC3261 recommends value 70) */
    public static int max_forwards=70;
    /** starting retransmission timeout (milliseconds); called T1 in RFC2361; they suggest T1=500ms */
-   public static long retransmission_timeout=500;  
+   public static long retransmission_timeout=2000;  
    /** maximum retransmission timeout (milliseconds); called T2 in RFC2361; they suggest T2=4sec */
-   public static long max_retransmission_timeout=4000;   
+   public static long max_retransmission_timeout=16000;   
    /** transaction timeout (milliseconds); RFC2361 suggests 64*T1=32000ms */
-   public static long transaction_timeout=32000;    
+   public static long transaction_timeout=128000;    
    /** clearing timeout (milliseconds); T4 in RFC2361; they suggest T4=5sec */
    public static long clearing_timeout=5000;
        

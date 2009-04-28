@@ -31,10 +31,10 @@ import java.util.Vector;
   */
 public class Iterator
 {
-   Vector v;
+   Vector<Object> v;
    int i;
 
-   public Iterator(Vector vector)
+   public Iterator(Vector<Object> vector)
    {  v=vector;
       i=-1;
    }  

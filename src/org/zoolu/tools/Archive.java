@@ -27,11 +27,6 @@ package org.zoolu.tools;
 import java.io.*;
 import java.net.URL;
 //import java.net.URI;
-import java.awt.Image;
-import java.awt.Toolkit;
-import javax.swing.ImageIcon;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
 
 
 /** Collection of static methods for handling files and jar archives.
@@ -75,7 +70,7 @@ public class Archive
 
 
    /** Gets an Image from file */
-   public static Image getImage(String file_name)
+   /* public static Image getImage(String file_name)
    {  if (file_name==null) return null;
       //else      
       Toolkit toolkit=Toolkit.getDefaultToolkit();
@@ -87,11 +82,11 @@ public class Archive
          for (int i=0; i<4 && image.getWidth(null)<0; i++) try { Thread.sleep(80); } catch (Exception e) {}
       }
       return image;
-   }
+   } */
    
    
    /** Gets an Image from a URL. */
-   public static Image getImage(URL url)
+   /* public static Image getImage(URL url)
    {  if (url==null) return null;
       //else        
       Toolkit toolkit=Toolkit.getDefaultToolkit();
@@ -106,18 +101,18 @@ public class Archive
       {  System.err.println("ERROR: can't read the file "+url.toString());
       } 
       return image;
-   }
+   } */
 
 
    /** Gets an ImageIcon from file */
-   public static ImageIcon getImageIcon(String file_name)
+   /* public static ImageIcon getImageIcon(String file_name)
    {  file_name=BASE_PATH+"/"+file_name;
       return new ImageIcon(file_name);
-   }
+   } */
 
 
    /** Gets an ImageIcon from an URL */
-   public static ImageIcon getImageIcon(URL url)
+   /* public static ImageIcon getImageIcon(URL url)
    {  if (url==null) return null;
       //else        
       ImageIcon icon=null;      
@@ -129,7 +124,7 @@ public class Archive
       {  System.err.println("ERROR: can't read the file "+url.toString());
       } 
       return icon;
-   }
+   } */
 
 
    /** Gets an InputStream from an URL */
@@ -148,6 +143,7 @@ public class Archive
    
    
    /** Gets an AudioInputStream from an URL */
+   /*
    public static AudioInputStream getAudioInputStream(URL url) throws javax.sound.sampled.UnsupportedAudioFileException
    {  if (url==null) return null;
       //else         
@@ -160,5 +156,6 @@ public class Archive
       } 
       return in;
    }
+   */
 
 }

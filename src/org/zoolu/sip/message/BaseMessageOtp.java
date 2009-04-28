@@ -43,7 +43,7 @@ public abstract class BaseMessageOtp extends BaseMessage
    protected RequestLine request_line;
    protected StatusLine status_line;
 
-   protected Vector headers;
+   protected Vector<Header> headers;
    protected String body;
 
 
@@ -231,7 +231,7 @@ public abstract class BaseMessageOtp extends BaseMessage
    }
 
    /** Gets a Vector of all Headers of specified name (Returns empty Vector if no Header is found) */
-   public Vector getHeaders(String hname)
+   public Vector<Header> getHeaders(String hname)
    {  Vector v=new Vector();
       for (int i=0; i<headers.size(); i++)
       {  Header h=(Header)headers.elementAt(i);
@@ -247,7 +247,7 @@ public abstract class BaseMessageOtp extends BaseMessage
    }
    
    /** Adds a Vector of Headers at the top/bottom */
-   public void addHeaders(Vector headers, boolean top) 
+   public void addHeaders(Vector<Header> headers, boolean top) 
    {  for (int i=0; i<headers.size(); i++)
          if (top) this.headers.insertElementAt(headers.elementAt(i),i);
          else this.headers.addElement(headers.elementAt(i));
@@ -274,7 +274,7 @@ public abstract class BaseMessageOtp extends BaseMessage
       else
       {  int index=indexOfHeader(refer_hname);
          if (index<0) index=0;
-         Vector hs=mheader.getHeaders();
+         Vector<Header> hs=mheader.getHeaders();
          for (int k=0; k<hs.size(); k++) headers.insertElementAt(hs.elementAt(k),index+k);
       }
    }
@@ -294,7 +294,7 @@ public abstract class BaseMessageOtp extends BaseMessage
       else
       {  int index=indexOfHeader(refer_hname);
          if (index>=0) index++; else index=headers.size();
-         Vector hs=mheader.getHeaders();
+         Vector<Header> hs=mheader.getHeaders();
          for (int k=0; k<hs.size(); k++) headers.insertElementAt(hs.elementAt(k),index+k);
       }
    }
@@ -361,7 +361,7 @@ public abstract class BaseMessageOtp extends BaseMessage
             if (hname.equalsIgnoreCase(h.getName()))
             {  if (first)
                {  // replace it
-                  Vector hs=mheader.getHeaders();
+                  Vector<Header> hs=mheader.getHeaders();
                   for (int k=0; k<hs.size(); k++) headers.insertElementAt(hs.elementAt(k),i+k);
                   first=false;
                   i+=hs.size()-1;

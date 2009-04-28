@@ -331,7 +331,7 @@ public class SipParser extends Parser
       
    /** Gets a String Vector of parameter names.
      * <BR> Returns null if no parameter is present */
-   public Vector getParameters() 
+   public Vector<String> getParameters() 
    {  String name;
       Vector params=new Vector();
       while (hasMore())

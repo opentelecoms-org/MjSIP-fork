@@ -56,7 +56,7 @@ public class IpAddress
 
    /** Gets the InetAddress */
    InetAddress getInetAddress()
-   {  if (inet_address==null) try { inet_address=InetAddress.getByName(address); } catch (java.net.UnknownHostException e) {}
+   {  if (inet_address==null) try { inet_address=InetAddress.getByName(address); } catch (java.net.UnknownHostException e) { inet_address = null; }
       return inet_address;
    }
 

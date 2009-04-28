@@ -40,7 +40,7 @@ public abstract class ListHeader extends Header
    }
 
    /** Gets list of tokens (as Vector of Strings). */
-   public Vector getElements()
+   public Vector<String> getElements()
    {  Vector elements=new Vector();
       Parser par=new Parser(value);
       char[] delim={ ',' };
@@ -53,7 +53,7 @@ public abstract class ListHeader extends Header
    }
 
    /** Sets the list of tokens. */
-   public void setElements(Vector elements)
+   public void setElements(Vector<String> elements)
    {  StringBuffer sb=new StringBuffer();
       for (int i=0; i<elements.size(); i++)
       {  if (i>0) sb.append(", "); 

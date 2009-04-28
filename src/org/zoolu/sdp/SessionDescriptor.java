@@ -62,10 +62,10 @@ public class SessionDescriptor
    TimeField t;
    
    /** Vector of session attributes (as Vector of SdpFields). */
-   Vector av;
+   Vector<AttributeField> av;
 
    /** Vector of MediaDescriptors. */
-   Vector media;
+   Vector<MediaDescriptor> media;
       
    /*private void init(String owner, String session, String connection, String time)
    {  v=new SdpField('v',"0");
@@ -240,7 +240,7 @@ public class SessionDescriptor
      * @param media the MediaField
      * @param attributes Vector of AttributeField
      * @return this SessionDescriptor */
-   public SessionDescriptor addMedia(MediaField media, Vector attributes)
+   public SessionDescriptor addMedia(MediaField media, Vector<AttributeField> attributes)
    {  //printlog("DEBUG: media: "+media,5);
       //printlog("DEBUG: attribute: "+attributes,5);
       addMediaDescriptor(new MediaDescriptor(media,null,attributes));
@@ -259,14 +259,14 @@ public class SessionDescriptor
    /** Adds a Vector of MediaDescriptors
      * @param media_descs Vector if MediaDescriptor 
      * @return this SessionDescriptor */
-   public SessionDescriptor addMediaDescriptors(Vector media_descs)
+   public SessionDescriptor addMediaDescriptors(Vector<MediaDescriptor> media_descs)
    {  //media.addAll(media_descs); // not supported by J2ME..
       for (int i=0; i<media_descs.size(); i++) media.addElement(media_descs.elementAt(i));
       return this;
    }
 
    /** Gets all MediaDescriptors */
-   public Vector getMediaDescriptors()
+   public Vector<MediaDescriptor> getMediaDescriptors()
    {  return media;
    }
 
@@ -299,7 +299,7 @@ public class SessionDescriptor
    /** Adds a Vector of session attributes.
      * @param attribute_fields Vector of AttributeFields
      * @return this SessionDescriptor */
-   public SessionDescriptor addAttributes(Vector attribute_fields)
+   public SessionDescriptor addAttributes(Vector<AttributeField> attribute_fields)
    {  for (int i=0; i<attribute_fields.size(); i++) addAttribute((AttributeField)attribute_fields.elementAt(i));
       return this;
    }
@@ -320,7 +320,7 @@ public class SessionDescriptor
 
    /** Gets a Vector of attribute values.
      * @return a Vector of AttributeField */
-   public Vector getAttributes()
+   public Vector<AttributeField> getAttributes()
    {  Vector v=new Vector(av.size());
       for (int i=0; i<av.size(); i++)
          v.addElement((AttributeField)av.elementAt(i));
@@ -351,7 +351,7 @@ public class SessionDescriptor
    /** Gets a Vector of attribute values of a particular attribute name.
      * @param a_name the attribute name
      * @return a Vector of AttributeField */
-   public Vector getAttributes(String attribute_name)
+   public Vector<AttributeField> getAttributes(String attribute_name)
    {  Vector v=new Vector(av.size());
       for (int i=0; i<av.size(); i++)
       {  AttributeField a=(AttributeField)av.elementAt(i);

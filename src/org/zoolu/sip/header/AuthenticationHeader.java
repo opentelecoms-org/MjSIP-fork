@@ -66,7 +66,7 @@ public abstract class AuthenticationHeader extends Header
    /** Creates a new AuthenticationHeader.
      * specifing the <i>auth_scheme</i> and the vector of authentication parameters.
      * <p> <i>auth_params</i> is a vector of String of the form <i>parm_name</i> "=" <i>parm_value</i> */
-   public AuthenticationHeader(String hname, String auth_scheme, Vector auth_params)
+   public AuthenticationHeader(String hname, String auth_scheme, Vector<String> auth_params)
    {  super(hname,auth_scheme);
       if (auth_params.size()>0) value+=" "+(String)auth_params.elementAt(0);
       for (int i=1; i<auth_params.size(); i++) value+=","+LWS_SEPARATOR+(String)auth_params.elementAt(i);
@@ -135,7 +135,7 @@ public abstract class AuthenticationHeader extends Header
  
    /** Gets a String Vector of parameter names.
      * @returns a Vector of String. */
-   public Vector getParameters()
+   public Vector<String> getParameters()
    {  char[] name_separators={'=', ' ', '\t'};
       SipParser par=new SipParser(value);
       par.skipString(); // skip the auth_scheme

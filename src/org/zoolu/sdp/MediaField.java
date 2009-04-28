@@ -51,12 +51,12 @@ public class MediaField extends SdpField
 
    /** Creates a new MediaField.
      * @param formatlist a Vector of media formats (properly a Vector of Strings) */
-   public MediaField(String media, int port, int num, String transport, Vector formatlist)
+   public MediaField(String media, int port, int num, String transport, Vector<String> formatlist)
    {  super('m',null);
       value=media+" "+port;
       if (num>0) value+="/"+num;
       value+=" "+transport;
-      for (int i=0; i<formatlist.size(); i++) value+=" "+formatlist.elementAt(i);
+      for (int i=0; i<formatlist.size(); i++) value+=" "+(String)formatlist.elementAt(i);
    }
 
    /** Creates a new SdpField. */
@@ -87,7 +87,7 @@ public class MediaField extends SdpField
    }  
 
    /** Gets the media formats as a Vector of String. */
-   public Vector getFormatList()
+   public Vector<String> getFormatList()
    {  Vector formatlist=new Vector();
       Parser par=new Parser(value);
       par.skipString().skipString().skipString();

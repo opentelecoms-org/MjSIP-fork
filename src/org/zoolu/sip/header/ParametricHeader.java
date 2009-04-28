@@ -73,7 +73,7 @@ public abstract class ParametricHeader extends Header
     
    /** Gets a String Vector of parameter names.
      * @returns a Vector of String */
-   public Vector getParameterNames() 
+   public Vector<String> getParameterNames() 
    {  int index=indexOfFirstSemi();
       if (index<0) return new Vector();
       return (new SipParser((new Parser(getValue(),index)).skipChar().skipWSP())).getParameters();

@@ -195,7 +195,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    boolean force_rport=false;
 
    /** List of provider listeners */
-   Hashtable listeners=null;
+   Hashtable<Identifier, SipProviderListener> listeners=null;
    
    /** List of exception listeners */
    HashSet exception_listeners=null;
@@ -207,7 +207,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    TcpServer tcp_server=null;
 
    /** Connections */
-   Hashtable connections=null;  
+   Hashtable<ConnectionIdentifier, ConnectedTransport> connections=null;  
    
 
    // *************************** Costructors ***************************
@@ -284,9 +284,9 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
       force_rport=SipStack.force_rport; 
       
       exception_listeners=new HashSet();
-      listeners=new Hashtable();
+      listeners=new Hashtable(10);
 
-      connections=new Hashtable();
+      connections=new Hashtable(10);
    }
 
    
@@ -361,7 +361,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    public void halt()
    {  printLog("halt: SipProvider is going down",LogLevel.MEDIUM);
       stopTrasport();
-      listeners=new Hashtable();
+      listeners=new Hashtable(10);
       exception_listeners=new HashSet();
    }
 
@@ -520,7 +520,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    
 
    /** Returns the list (Hashtable) of active listener_IDs. */ 
-   public Hashtable getListeners()
+   public Hashtable<Identifier, SipProviderListener> getListeners()
    {  return listeners;
    }   
 
@@ -572,11 +572,6 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
          ret=true;
       }
       
-      if (listeners!=null)
-      {  String list="";
-         for (Enumeration e=listeners.keys(); e.hasMoreElements();) list+=e.nextElement()+", ";
-         printLog(listeners.size()+" listeners: "+list,LogLevel.LOW);
-      }
       return ret;
    }
 
@@ -764,7 +759,11 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
 
       // select the transport protocol
       ViaHeader via=msg.getViaHeader();
-      String proto=via.getProtocol().toLowerCase();
+      String proto;
+      if (via != null)
+         proto = via.getProtocol().toLowerCase();
+      else
+         proto = getDefaultTransport().toLowerCase(); // modified
       printLog("using transport "+proto,LogLevel.MEDIUM);
       
       // select the destination address and port
@@ -772,7 +771,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
       int dest_port=0;
       int ttl=0;
       
-      if (msg.isRequest())
+      if (!msg.isResponse()) // modified
       {  // REQUESTS
          if (outbound_proxy!=null)
          {  dest_addr=outbound_proxy.getAddress().toString();
@@ -863,7 +862,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
          {  if (log_all_packets) printLog("NOT a SIP message: discarded\r\n",LogLevel.LOW);
             return;
          }
-         printLog("received new SIP message",LogLevel.HIGH);
+         printLog("received new SIP message "+msg.getRequestLine()+" "+msg.getStatusLine(), LogLevel.HIGH); // modified
          printLog("message:\r\n"+msg.toString(),LogLevel.LOWER);
          
          // if a request, handle "received" and "rport" parameters
@@ -923,7 +922,12 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
          printLog("DEBUG: transaction-id: "+key,LogLevel.MEDIUM);
          if (listeners.containsKey(key))
          {  printLog("message passed to transaction: "+key,LogLevel.MEDIUM);
-            ((SipProviderListener)listeners.get(key)).onReceivedMessage(this,msg);
+            SipProviderListener sip_listener = (SipProviderListener) listeners.get(key);
+            if (sip_listener != null)
+            {
+               sip_listener.onReceivedMessage(
+                    this, msg);
+            }
             return;
          }
          // try to look for a dialog
@@ -1198,6 +1202,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
       {  String provider_id=(host_ipaddr==null)? Integer.toString(host_port) : host_ipaddr.toString()+":"+host_port;
          event_log.println("SipProvider-"+provider_id+": "+str,level+SipStack.LOG_LEVEL_TRANSPORT);  
       }
+      if (level <= LogLevel.HIGH) System.out.println("SipProvider: " + str); // modified
    }
   
    /** Adds a WARNING to the default Log */

@@ -380,7 +380,7 @@ public class Parser
    //********************** Vectors/arrays **********************
 
    /** Gets all string of chars separated by any char belonging to <i>separators</i> */
-   public Vector getWordVector(char[] separators)
+   public Vector<String> getWordVector(char[] separators)
    {  Vector list=new Vector();
       do { list.addElement(getWord(separators)); } while (hasMore());
       return list;
@@ -393,7 +393,7 @@ public class Parser
       return array;
    }
    /** Gets all strings */
-   public Vector getStringVector()
+   public Vector<String> getStringVector()
    {  Vector list=new Vector();
       do { list.addElement(getString()); } while (hasMore());
       return list;

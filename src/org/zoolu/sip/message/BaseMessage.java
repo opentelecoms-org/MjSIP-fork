@@ -387,7 +387,7 @@ public abstract class BaseMessage
    }
 
    /** Gets a Vector of all Headers of specified name (Returns empty Vector if no Header is found) */
-   public Vector getHeaders(String hname)
+   public Vector<Header> getHeaders(String hname)
    {  Vector v=new Vector();
       SipParser par=new SipParser(message);
       Header h;
@@ -404,7 +404,7 @@ public abstract class BaseMessage
    }
 
    /** Adds a Vector of Headers at the top/bottom */
-   public void addHeaders(Vector headers, boolean top) 
+   public void addHeaders(Vector<Header> headers, boolean top) 
    {  String str="";
       for (int i=0; i<headers.size(); i++) str+=((Header)headers.elementAt(i)).toString();
       addHeaders(str,top);
@@ -1218,7 +1218,6 @@ public abstract class BaseMessage
    public void rfc2543RouteAdapt() 
    {  if (hasRouteHeader())
       {  MultipleHeader mrh=getRoutes();
-         RouteHeader rh=new RouteHeader(mrh.getTop());
          if (!(new RouteHeader(mrh.getTop())).getNameAddress().getAddress().hasLr())
          {  // re-format the message according to the RFC2543 Strict Route rule
             SipURL next_hop=(new RouteHeader(mrh.getTop())).getNameAddress().getAddress();

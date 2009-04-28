@@ -38,7 +38,7 @@ import org.zoolu.tools.Iterator;
 public class Timer implements InnerTimerListener
 {
    /** Whether using single thread for all timer instances. */
-   public static boolean SINGLE_THREAD=false; 
+   public static boolean SINGLE_THREAD=true; 
 
    //HashSet listener_list=null;
    TimerListener listener;

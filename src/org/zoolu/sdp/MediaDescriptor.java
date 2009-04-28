@@ -43,7 +43,7 @@ public class MediaDescriptor
    /** Connection field ('c') */
    ConnectionField c;
    /** Vector of attribute fileds ('a') */
-   Vector av;
+   Vector<AttributeField> av;
 
    /** Creates a new MediaDescriptor.
      * @param md the cloned MediaDescriptor */
@@ -84,7 +84,7 @@ public class MediaDescriptor
      * @param connection the ConnectionField, or null if no ConnectionField
      * is present in the MediaDescriptor
      * @param attributes the Vector of AttributeField */
-   public MediaDescriptor(MediaField media, ConnectionField connection, Vector attributes)
+   public MediaDescriptor(MediaField media, ConnectionField connection, Vector<AttributeField> attributes)
    {  m=media;
       c=connection;
       av=new Vector(attributes.size());
@@ -134,7 +134,7 @@ public class MediaDescriptor
 
    /** Gets a Vector of attribute values.
      * @return a Vector of AttributeField */
-   public Vector getAttributes()
+   public Vector<AttributeField> getAttributes()
    {  Vector v=new Vector(av.size());
       for (int i=0; i<av.size(); i++)
          v.addElement((AttributeField)av.elementAt(i));
@@ -173,7 +173,7 @@ public class MediaDescriptor
    /** Gets a Vector of attribute values of a particular attribute name.
      * @param a_name the attribute name
      * @return a Vector of AttributeFields */
-   public Vector getAttributes(String a_name)
+   public Vector<AttributeField> getAttributes(String a_name)
    {  Vector v=new Vector(av.size());
       for (int i=0; i<av.size(); i++)
       {  AttributeField a=(AttributeField)av.elementAt(i);

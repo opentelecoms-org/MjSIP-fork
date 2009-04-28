@@ -82,7 +82,7 @@ public class SubscriberDialog extends Dialog implements TransactionClientListene
    protected static final int D_TERMINATED=9;
 
    /** Gets the dialog state */
-   protected String getStatus()
+   protected String getStatusDescription()
    {  switch (status)
       {  case D_INIT       : return "D_INIT";
          case D_SUBSCRIBING: return "D_SUBSCRIBING";   
@@ -94,6 +94,9 @@ public class SubscriberDialog extends Dialog implements TransactionClientListene
       }
    }
 
+   protected int getStatus() {
+      return status;
+   }
 
    // *************************** Public methods **************************
 

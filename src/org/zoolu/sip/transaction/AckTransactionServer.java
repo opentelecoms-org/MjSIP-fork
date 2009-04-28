@@ -70,7 +70,7 @@ public class AckTransactionServer extends Transaction
    }  
 
    /** Initializes timeouts and listener. */
-   void init(AckTransactionServerListener listener, TransactionIdentifier transaction_id, ConnectionIdentifier connaction_id)
+   void init(AckTransactionServerListener listener, TransactionIdentifier transaction_id, ConnectionIdentifier connection_id)
    {  this.transaction_listener=listener;
       this.transaction_id=transaction_id;
       this.connection_id=connection_id;

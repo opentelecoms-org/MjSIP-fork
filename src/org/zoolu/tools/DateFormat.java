@@ -84,7 +84,6 @@ public class DateFormat
    public static String formatYYYYMMDD(Date date)
    {  Calendar cal=Calendar.getInstance();
       cal.setTime(date);      
-      String weekday=WEEKDAYS[cal.get(Calendar.DAY_OF_WEEK)-1];
       //String month=MONTHS[cal.get(Calendar.MONTH)];
       String year=Integer.toString(cal.get(Calendar.YEAR));
       String day=Integer.toString(cal.get(Calendar.DAY_OF_MONTH));
@@ -145,7 +144,6 @@ public class DateFormat
       Calendar cal=Calendar.getInstance();
       char[] delim={ ' ', ',', ':' };
       Parser par=new Parser(str,index);
-      String EEE=par.getString(); // day of the week
       int day=par.getInt(); // day of the month
       String MMM=par.getString(); // month
       int month=0;

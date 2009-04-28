@@ -39,12 +39,12 @@ public class AllowHeader extends ListHeader
    }
 
    /** Gets list of methods (as Vector of Strings). */
-   public Vector getMethods()
+   public Vector<String> getMethods()
    {  return super.getElements();
    }
 
    /** Sets the list of methods. */
-   public void setMethod(Vector methods)
+   public void setMethod(Vector<String> methods)
    {  super.setElements(methods);
    }
 

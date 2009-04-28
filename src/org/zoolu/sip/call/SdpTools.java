@@ -40,7 +40,7 @@ public class SdpTools
      * @param sdp the given SessionDescriptor
      * @param m_descs Vector of MediaDescriptor with the selecting media types and attributes
      * @return this SessionDescriptor */
-   public static SessionDescriptor sdpMediaProduct(SessionDescriptor sdp, Vector m_descs)
+   public static SessionDescriptor sdpMediaProduct(SessionDescriptor sdp, Vector<MediaDescriptor> m_descs)
    {  Vector new_media=new Vector();
       if (m_descs!=null)
       {  for (Enumeration e=m_descs.elements(); e.hasMoreElements(); )

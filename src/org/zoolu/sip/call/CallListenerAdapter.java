@@ -134,7 +134,7 @@ public abstract class CallListenerAdapter implements ExtendedCallListener
 
    /** Redirects the call when remotly requested.
      * Callback function called when arriving a 3xx (call redirection) */
-   public void onCallRedirection(Call call, String reason, Vector contact_list, Message resp)
+   public void onCallRedirection(Call call, String reason, Vector<String> contact_list, Message resp)
    {  //printLog("REDIRECTION ("+reason+")");
       call.call((String)contact_list.elementAt(0)); 
    }

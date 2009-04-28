@@ -51,7 +51,7 @@ public interface CallListener
    public void onCallRefused(Call call, String reason, Message resp);
 
    /** Callback function called when arriving a 3xx (call redirection) */
-   public void onCallRedirection(Call call, String reason, Vector contact_list, Message resp);
+   public void onCallRedirection(Call call, String reason, Vector<String> contact_list, Message resp);
 
    /** Callback function called when arriving an ACK method (call confirmed) */
    public void onCallConfirmed(Call call, String sdp, Message ack);

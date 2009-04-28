@@ -75,7 +75,7 @@ public class TransactionServer extends Transaction
    }  
 
    /** Initializes timeouts and listener. */
-   void init(TransactionServerListener listener, TransactionIdentifier transaction_id, ConnectionIdentifier connaction_id)
+   void init(TransactionServerListener listener, TransactionIdentifier transaction_id, ConnectionIdentifier connection_id)
    {  this.transaction_listener=listener;
       this.transaction_id=transaction_id;
       this.connection_id=connection_id;

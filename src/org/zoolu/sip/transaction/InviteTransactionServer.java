@@ -103,7 +103,7 @@ public class InviteTransactionServer extends TransactionServer
    }  
 
    /** Initializes timeouts and listener. */
-   void init(InviteTransactionServerListener listener, TransactionIdentifier transaction_id, ConnectionIdentifier connaction_id)
+   void init(InviteTransactionServerListener listener, TransactionIdentifier transaction_id, ConnectionIdentifier connection_id)
    {  this.transaction_listener=listener;
       this.transaction_id=transaction_id;
       this.connection_id=connection_id;

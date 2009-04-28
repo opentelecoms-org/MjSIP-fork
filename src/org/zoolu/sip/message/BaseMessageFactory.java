@@ -33,6 +33,7 @@ import org.zoolu.sip.message.Message;
 import org.zoolu.sip.message.SipMethods;
 import org.zoolu.sip.message.SipResponses;
 
+import java.util.Enumeration;
 import java.util.Vector;
 
 
@@ -189,9 +190,16 @@ public abstract class BaseMessageFactory
       String remote_tag=dialog.getRemoteTag();
       //String branch=SipStack.pickBranch();
       Message req=createRequest(method,request_uri,to,from,contact,proto,via_addr,host_port,rport,call_id,cseq,local_tag,remote_tag,null,body);
-      Vector route=dialog.getRoute();
-      if (route!=null && route.size()>0)
-         req.addRoutes(new MultipleHeader(SipHeaders.Route,route));
+      Vector<NameAddress> route = dialog.getRoute();
+      if (route != null && route.size() > 0) {
+         Vector<String> route_s = new Vector<String>(route.size());
+         for (Enumeration<NameAddress> e = route.elements();
+                         e.hasMoreElements(); ) {
+                 NameAddress elem = e.nextElement();
+                 route_s.add(elem.toString());
+         }
+         req.addRoutes(new MultipleHeader(SipHeaders.Route, route_s));
+      }
       req.rfc2543RouteAdapt();
       return req;
    }
@@ -271,7 +279,7 @@ public abstract class BaseMessageFactory
 
    
    /** Creates a CANCEL request. */
-   public static Message createCancelRequest(Message method)
+   public static Message createCancelRequest(Message method, Dialog dialog)
    {  ToHeader to=method.getToHeader();
       FromHeader from=method.getFromHeader();
       SipURL request_uri=method.getRequestLine().getAddress();
@@ -282,7 +290,14 @@ public abstract class BaseMessageFactory
       boolean rport=via.hasRport();
       String proto=via.getProtocol();
       String branch=method.getViaHeader().getBranch();
-      return createRequest(SipMethods.CANCEL,request_uri,to.getNameAddress(),from.getNameAddress(),contact,proto,host_addr,host_port,rport,method.getCallIdHeader().getCallId(),method.getCSeqHeader().getSequenceNumber(),from.getParameter("tag"),to.getParameter("tag"),branch,"");
+      dialog.incLocalCSeq();
+      long cseq = dialog.getLocalCSeq();
+      return createRequest(SipMethods.CANCEL, request_uri, to
+                      .getNameAddress(), from.getNameAddress(), contact, proto,
+                      host_addr, host_port, rport, method.getCallIdHeader()
+                                      .getCallId(), /* method.getCSeqHeader()
+                                      .getSequenceNumber() */ cseq, from.getParameter("tag"), to // modified
+                                      .getParameter("tag"), branch, "");
    }
 
 

@@ -55,7 +55,7 @@ public class ExtendedInviteDialog extends org.zoolu.sip.dialog.InviteDialog
    ExtendedInviteDialogListener dialog_listener;
    
    /** Acive transactions. */
-   Hashtable transactions;
+   Hashtable<TransactionIdentifier, Transaction> transactions;
  
    
    /** User name. */
@@ -118,6 +118,13 @@ public class ExtendedInviteDialog extends org.zoolu.sip.dialog.InviteDialog
    /** Sends a new REFER within the dialog */
    public void refer(NameAddress refer_to)
    {  refer(refer_to,null);
+   }
+
+   public void info(char c) // modified
+   {
+      Message req = BaseMessageFactory.createRequest(this, SipMethods.INFO, null);
+      req.setBody("application/dtmf-relay","d="+c);
+      request(req);
    }
 
    /** Sends a new REFER within the dialog */

@@ -83,7 +83,7 @@ public class InviteDialog extends Dialog implements TransactionClientListener, I
    protected static final int D_CLOSE=9;
       
    /** Gets the dialog state */
-   protected String getStatus()
+   protected String getStatusDescription()
    {  switch (status)
       {  case D_INIT       : return "D_INIT";
          case D_WAITING    : return "D_WAITING";   
@@ -102,6 +102,11 @@ public class InviteDialog extends Dialog implements TransactionClientListener, I
          case D_CLOSE      : return "D_CLOSE";
          default : return null;
       }
+   }
+
+   protected int getStatus()
+   {
+      return status;
    }
 
    // ************************** Public methods **************************
@@ -426,7 +431,7 @@ public class InviteDialog extends Dialog implements TransactionClientListener, I
    public void cancel()
    {  printLog("inside cancel()",LogLevel.MEDIUM);
       if (statusIs(D_INVITING) || statusIs(D_ReINVITING))
-      {  Message cancel=MessageFactory.createCancelRequest(invite_req);
+      {  Message cancel=MessageFactory.createCancelRequest(invite_req,this); // modified
          cancel(cancel);
       }
       else

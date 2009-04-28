@@ -83,7 +83,7 @@ public class DialogInfo
    long remote_cseq;
 
    /** Route set (Vector of NameAddresses) */
-   Vector route; 
+   Vector<NameAddress> route; 
 
 
    // **************************** Costructors *************************** 
@@ -163,8 +163,8 @@ public class DialogInfo
 
    
    /** Sets the route set */
-   public void setRoute(Vector r) { route=r; }
+   public void setRoute(Vector<NameAddress> r) { route=r; }
    /** Gets the route set */
-   public Vector getRoute() { return route; }
+   public Vector<NameAddress> getRoute() { return route; }
 
 }

@@ -86,7 +86,7 @@ public class NotifierDialog extends Dialog implements TransactionClientListener/
    // ************************* Protected methods ************************
 
    /** Gets the dialog state */
-   protected String getStatus()
+   protected String getStatusDescription()
    {  switch (status)
       {  case D_INIT       : return "D_INIT";
          case D_WAITING    : return "D_WAITING";   
@@ -96,6 +96,10 @@ public class NotifierDialog extends Dialog implements TransactionClientListener/
          case D_TERMINATED : return "D_TERMINATED";   
          default : return null;
       }  
+   }
+
+   protected int getStatus() {
+      return status;
    }
 
    // ************************** Public methods **************************

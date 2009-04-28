@@ -85,7 +85,9 @@ public abstract class Dialog extends DialogInfo implements SipProviderListener
    // ************************* Abstract methods *************************
 
    /** Gets the dialog state */
-   abstract protected String getStatus();
+   abstract protected String getStatusDescription();
+
+   abstract protected int getStatus();
 
    /** Whether the dialog is in "early" state. */
    abstract public boolean isEarly();
@@ -205,7 +207,13 @@ public abstract class Dialog extends DialogInfo implements SipProviderListener
       // update route or record-route
       if (side==UAC)
       {  if (msg.isRequest() && msg.hasRouteHeader() && route==null)
-         {  route=msg.getRoutes().getValues();
+         {  Vector<String> route_s = msg.getRoutes().getValues();
+            route = new Vector<NameAddress>(route_s.size());
+            int size = route_s.size();
+            for (int i = 0; i < size; i++) {
+               route.insertElementAt(
+                  new NameAddress(route_s.elementAt(i)), i);
+               }
          }
          if (side==UAC && msg.isResponse() && msg.hasRecordRouteHeader())
          {  Vector rr=msg.getRecordRoutes().getHeaders();
@@ -217,11 +225,12 @@ public abstract class Dialog extends DialogInfo implements SipProviderListener
       }
       else
       {  if (msg.isRequest() && msg.hasRouteHeader() && route==null)
-         {  Vector reverse_route=msg.getRoutes().getValues();
+         {  Vector<String> reverse_route=msg.getRoutes().getValues();
             int size=reverse_route.size();
             route=new Vector(size);
             for (int i=0; i<size; i++)
-               route.insertElementAt(reverse_route.elementAt(size-1-i),i); 
+               route.insertElementAt(new NameAddress(reverse_route
+                               .elementAt(size - 1 - i)), i);
          }
          if (msg.isRequest() && msg.hasRecordRouteHeader())
          {  Vector rr=msg.getRecordRoutes().getHeaders();
