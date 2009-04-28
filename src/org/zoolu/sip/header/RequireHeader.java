@@ -23,17 +23,13 @@
 
 package org.zoolu.sip.header;
 
-
-
-
 /** SIP Header Require */
-public class RequireHeader extends OptionHeader
-{
-   public RequireHeader(String option)
-   {  super(SipHeaders.Require,option);
-   }
+public class RequireHeader extends OptionHeader {
+	public RequireHeader(String option) {
+		super(SipHeaders.Require, option);
+	}
 
-   public RequireHeader(Header hd)
-   {  super(hd);
-   }
+	public RequireHeader(Header hd) {
+		super(hd);
+	}
 }

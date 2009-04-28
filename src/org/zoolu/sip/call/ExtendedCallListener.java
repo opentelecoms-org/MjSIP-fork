@@ -19,37 +19,52 @@
  * 
  * Author(s):
  * Luca Veltri (luca.veltri@unipr.it)
+ * Nitin Khanna, Hughes Systique Corp. (Reason: Android specific change, optmization, bug fix) 
  */
 
 package org.zoolu.sip.call;
 
-import org.zoolu.sip.call.*;
+/* HSC CHANGES START */
+// import org.zoolu.sip.call.*;
+/* HSC CHANGES END */
 import org.zoolu.sip.message.*;
 import org.zoolu.sip.address.NameAddress;
-import org.zoolu.sdp.*;
-import java.util.Vector;
 
+/* HSC CHANGES START */
+// import org.zoolu.sdp.*;
+// import java.util.Vector;
+/* HSC CHANGES END */
 
-/** Interface ExtendedCallListener can be implemented to manage exteded SIP calls (sipx.call.ExtendedCall).
- *  <p> Objects of class ExtendedCall use ExtendedCallListener callback methods to signal
- *  specific call events.  
+/**
+ * Interface ExtendedCallListener can be implemented to manage exteded SIP calls
+ * (sipx.call.ExtendedCall).
+ * <p>
+ * Objects of class ExtendedCall use ExtendedCallListener callback methods to
+ * signal specific call events.
  */
-public interface ExtendedCallListener extends CallListener
-{  
-   /** Callback function called when arriving a new REFER method (transfer request). */
-   public void onCallTransfer(ExtendedCall call, NameAddress refer_to, NameAddress refered_by, Message refer);
+public interface ExtendedCallListener extends CallListener {
+	/**
+	 * Callback function called when arriving a new REFER method (transfer
+	 * request).
+	 */
+	public void onCallTransfer(ExtendedCall call, NameAddress refer_to,
+			NameAddress refered_by, Message refer);
 
-   /** Callback function called when a call transfer is accepted. */
-   public void onCallTransferAccepted(ExtendedCall call, Message resp);
+	/** Callback function called when a call transfer is accepted. */
+	public void onCallTransferAccepted(ExtendedCall call, Message resp);
 
-   /** Callback function called when a call transfer is refused. */
-   public void onCallTransferRefused(ExtendedCall call, String reason, Message resp);
+	/** Callback function called when a call transfer is refused. */
+	public void onCallTransferRefused(ExtendedCall call, String reason,
+			Message resp);
 
-   /** Callback function called when a call transfer is successfully completed. */
-   public void onCallTransferSuccess(ExtendedCall call, Message notify);
+	/** Callback function called when a call transfer is successfully completed. */
+	public void onCallTransferSuccess(ExtendedCall call, Message notify);
 
-   /** Callback function called when a call transfer is NOT sucessfully completed. */
-   public void onCallTransferFailure(ExtendedCall call, String reason, Message notify);
-   
+	/**
+	 * Callback function called when a call transfer is NOT sucessfully
+	 * completed.
+	 */
+	public void onCallTransferFailure(ExtendedCall call, String reason,
+			Message notify);
+
 }
-

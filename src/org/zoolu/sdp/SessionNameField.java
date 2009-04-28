@@ -19,40 +19,45 @@
  * 
  * Author(s):
  * Luca Veltri (luca.veltri@unipr.it)
+ * Nitin Khanna, Hughes Systique Corp. (Reason: Android specific change, optmization, bug fix) 
  */
 
 package org.zoolu.sdp;
 
+/* HSC CHANGE STARTS */
+// import org.zoolu.tools.Parser;
+/* HSC CHANGES END */
 
-import org.zoolu.tools.Parser;
+/**
+ * SDP session name field.
+ * <p>
+ * <BLOCKQUOTE>
+ * 
+ * <PRE>
+ *    session-name-field = &quot;s=&quot; text CRLF
+ * </PRE>
+ * 
+ * </BLOCKQUOTE>
+ */
+public class SessionNameField extends SdpField {
+	/** Creates a new SessionNameField. */
+	public SessionNameField(String session_name) {
+		super('s', session_name);
+	}
 
+	/** Creates a new void SessionNameField. */
+	public SessionNameField() {
+		super('s', " ");
+	}
 
-/** SDP session name field.
-  * <p>
-  * <BLOCKQUOTE><PRE>
-  *    session-name-field = "s=" text CRLF
-  * </PRE></BLOCKQUOTE>
-  */
-public class SessionNameField extends SdpField
-{  
-   /** Creates a new SessionNameField. */
-   public SessionNameField(String session_name)
-   {  super('s',session_name);
-   }
+	/** Creates a new SessionNameField. */
+	public SessionNameField(SdpField sf) {
+		super(sf);
+	}
 
-   /** Creates a new void SessionNameField. */
-   public SessionNameField()
-   {  super('s'," ");
-   }
-
-   /** Creates a new SessionNameField. */
-   public SessionNameField(SdpField sf)
-   {  super(sf);
-   }
-      
-   /** Gets the session name. */
-   public String getSession()
-   {  return value;
-   }
+	/** Gets the session name. */
+	public String getSession() {
+		return value;
+	}
 
 }

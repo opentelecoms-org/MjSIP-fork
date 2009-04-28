@@ -23,21 +23,18 @@
 
 package org.zoolu.tools;
 
+/**
+ * AssertException is used to indicate that a condition is not met. <br/> It is
+ * thrown by methods isTrue() and isFalse() of class Assert.
+ */
+public class AssertException extends java.lang.RuntimeException {
+	/** Costructs a new AssertException. */
+	public AssertException(String msg) {
+		super(msg);
+	}
 
-
-
-/** AssertException is used to indicate that a condition is not met.
-  * <br/> It is thrown by methods isTrue() and isFalse() of class Assert.
-  */
-public class AssertException extends java.lang.RuntimeException
-{
-   /** Costructs a new AssertException. */
-   public AssertException(String msg)
-   {  super(msg);
-   }
-
-   /** Costructs a new AssertException. */
-   public AssertException()
-   {  super();
-   }
+	/** Costructs a new AssertException. */
+	public AssertException() {
+		super();
+	}
 }

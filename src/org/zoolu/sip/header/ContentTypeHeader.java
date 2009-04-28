@@ -23,36 +23,36 @@
 
 package org.zoolu.sip.header;
 
-
 import org.zoolu.sip.provider.SipParser;
 
-
 /** SIP Header Content-Type */
-public class ContentTypeHeader extends ParametricHeader
-{
-   //public ContentTypeHeader()
-   //{  super(SipHeaders.Content_Type);
-   //}
+public class ContentTypeHeader extends ParametricHeader {
+	// public ContentTypeHeader()
+	// { super(SipHeaders.Content_Type);
+	// }
 
-   public ContentTypeHeader(String hvalue)
-   {  super(SipHeaders.Content_Type,hvalue);
-   }
+	public ContentTypeHeader(String hvalue) {
+		super(SipHeaders.Content_Type, hvalue);
+	}
 
-   public ContentTypeHeader(Header hd)
-   {  super(hd);
-   }
+	public ContentTypeHeader(Header hd) {
+		super(hd);
+	}
 
-   /** Gets content-length of ContentLengthHeader */
-   public String getContentType()
-   {  String str;
-      int end=(new SipParser(value)).indexOf(';');
-      if (end<0) str=value; else str=value.substring(0,end); 
-      return (new SipParser(str)).getString();
-   }
+	/** Gets content-length of ContentLengthHeader */
+	public String getContentType() {
+		String str;
+		int end = (new SipParser(value)).indexOf(';');
+		if (end < 0)
+			str = value;
+		else
+			str = value.substring(0, end);
+		return (new SipParser(str)).getString();
+	}
 
-   /** Sets content-length of ContentLengthHeader */
-   public void setContentType(String cType)
-   {  value=cType;
-   }
+	/** Sets content-length of ContentLengthHeader */
+	public void setContentType(String cType) {
+		value = cType;
+	}
 
 }

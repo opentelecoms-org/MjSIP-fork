@@ -23,60 +23,57 @@
 
 package org.zoolu.tools;
 
+/**
+ * Generic hash/message-digest algorithm.
+ */
+public abstract class MessageDigest {
+	/**
+	 * MessageDigest block update operation. Continues a message-digest
+	 * operation, processing another message block, and updating the context.
+	 */
+	abstract public MessageDigest update(byte[] buffer, int offset, int len);
 
+	/**
+	 * MessageDigest block update operation. Continues a message-digest
+	 * operation, processing another message block, and updating the context.
+	 */
+	public MessageDigest update(String str) {
+		byte[] buf = str.getBytes();
+		return update(buf, 0, buf.length);
+	}
 
-/** Generic hash/message-digest algorithm.
-  */
-public abstract class MessageDigest
-{  
-   /** MessageDigest block update operation.
-     * Continues a message-digest operation,
-     * processing another message block, and updating the context. */
-   abstract public MessageDigest update(byte[] buffer, int offset, int len);
+	/**
+	 * MessageDigest block update operation. Continues a message-digest
+	 * operation, processing another message block, and updating the context.
+	 */
+	public MessageDigest update(byte[] buffer) {
+		return update(buffer, 0, buffer.length);
+	}
 
+	/**
+	 * MessageDigest finalization. Ends a message-digest operation, writing the
+	 * the message digest and zeroizing the context.
+	 */
+	abstract public byte[] doFinal();
 
-   /** MessageDigest block update operation.
-     * Continues a message-digest operation,
-     * processing another message block, and updating the context. */
-   public MessageDigest update(String str)
-   {  byte[] buf=str.getBytes();
-      return update(buf,0,buf.length);
-   }
+	/** Gets the MessageDigest. The same as doFinal(). */
+	public byte[] getDigest() {
+		return doFinal();
+	}
 
+	/** Gets the Message Digest as string of hex values. */
+	public String asHex() {
+		return asHex(doFinal());
+	}
 
-   /** MessageDigest block update operation.
-     * Continues a message-digest operation,
-     * processing another message block, and updating the context. */
-   public MessageDigest update(byte[] buffer)
-   {  return update(buffer,0,buffer.length);
-   }
-
-
-   /** MessageDigest finalization. Ends a message-digest operation, writing the
-     * the message digest and zeroizing the context. */
-   abstract public byte[] doFinal();
-
-
-   /** Gets the MessageDigest. The same as doFinal(). */
-   public byte[] getDigest()
-   {  return doFinal();
-   }
-
-
-   /** Gets the Message Digest as string of hex values. */
-   public String asHex()
-   {   return asHex(doFinal());
-   }
-
-
-   /** Transforms an array of bytes into a string of hex values. */
-   public static String asHex(byte[] buf)
-   {  String str=new String();
-      for (int i=0; i<buf.length; i++)
-      {  str+=Integer.toHexString((buf[i]>>>4)&0x0F);
-         str+=Integer.toHexString(buf[i]&0x0F);
-      }
-      return str;
-   }
+	/** Transforms an array of bytes into a string of hex values. */
+	public static String asHex(byte[] buf) {
+		String str = new String();
+		for (int i = 0; i < buf.length; i++) {
+			str += Integer.toHexString((buf[i] >>> 4) & 0x0F);
+			str += Integer.toHexString(buf[i] & 0x0F);
+		}
+		return str;
+	}
 
 }

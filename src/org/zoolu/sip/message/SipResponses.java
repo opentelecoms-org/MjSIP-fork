@@ -23,40 +23,39 @@
 
 package org.zoolu.sip.message;
 
+/**
+ * Class SipResponses provides all raeson-phrases corrspondent to the various
+ * SIP response codes
+ */
+public class SipResponses extends BaseSipResponses {
+	private static boolean is_init = false;
 
+	public static void init() {
+		if (is_init)
+			return;
+		// else
 
+		BaseSipResponses.init();
 
-/** Class SipResponses provides all raeson-phrases
-  * corrspondent to the various SIP response codes */
-public class SipResponses extends BaseSipResponses
-{   
-   private static boolean is_init=false;
+		// New response codes
+		// reasons[xxx]="This Reason";
+		// reasons[yyy]="A Second Reason";
+		// ..
 
-   public static void init()
-   {  if (is_init) return;
-      //else
-            
-      BaseSipResponses.init();
-      
-      // New response codes
-      //reasons[xxx]="This Reason";
-      //reasons[yyy]="A Second Reason";
-      //..
+		// Success
+		reasons[202] = "Accepted";
 
-      // Success
-      reasons[202]="Accepted";
+		// Failure
+		reasons[489] = "Bad Event";
 
-      // Failure
-      reasons[489]="Bad Event";
+		is_init = true;
+	}
 
-      is_init=true;
-   }
+	/** Gets the reason phrase of a response code */
+	public static String reasonOf(int code) {
+		if (!is_init)
+			init();
+		return BaseSipResponses.reasonOf(code);
+	}
 
-
-   /** Gets the reason phrase of a response code */
-   public static String reasonOf(int code)
-   {  if (!is_init) init();
-      return BaseSipResponses.reasonOf(code);
-   }  
-   
 }

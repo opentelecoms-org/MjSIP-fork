@@ -23,12 +23,11 @@
 
 package org.zoolu.tools;
 
-
-
-/** Configurable is the base interface for classes that can be configurated by a text file.
-  */
-public interface Configurable
-{
-   /** Parses a single text line. */
-   public void parseLine(String line);
+/**
+ * Configurable is the base interface for classes that can be configurated by a
+ * text file.
+ */
+public interface Configurable {
+	/** Parses a single text line. */
+	public void parseLine(String line);
 }

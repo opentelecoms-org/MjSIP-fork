@@ -23,55 +23,58 @@
 
 package org.zoolu.sip.header;
 
-
 import org.zoolu.sip.address.*;
 
+/**
+ * SIP Request-line, i.e. the first line of a request message <BR>
+ * The initial Request-URI of the message SHOULD be set to the value of the URI
+ * in the To field.
+ */
+public class RequestLine {
+	protected String method;
+	protected SipURL url;
 
-/** SIP Request-line, i.e. the first line of a request message
-  * <BR> The initial Request-URI of the message SHOULD be set to the value of
-  * the URI in the To field.
-  */
-public class RequestLine
-{
-   protected String method;
-   protected SipURL url;
+	/** Construct RequestLine <i>request</i> with <i>sipurl</i> as recipient */
+	public RequestLine(String request, String sipUrl) {
+		method = request;
+		url = new SipURL(sipUrl);
+	}
 
-   /** Construct RequestLine <i>request</i> with <i>sipurl</i> as recipient */
-   public RequestLine(String request, String sipUrl)
-   {  method=request;
-      url=new SipURL(sipUrl);
-   }
+	public RequestLine(String request, SipURL sipUrl) {
+		method = request;
+		url = sipUrl;
+	}
 
-   public RequestLine(String request, SipURL sipUrl)
-   {  method=request;
-      url=sipUrl;
-   }
+	/** Create a new copy of the RequestLine */
+	public Object clone() {
+		return new RequestLine(getMethod(), getAddress());
+	}
 
-   /** Create a new copy of the RequestLine*/
-   public Object clone()
-   {  return new RequestLine(getMethod(),getAddress());
-   }
+	/** Indicates whether some other Object is "equal to" this RequestLine */
+	public boolean equals(Object obj) { // if
+		// (o.getClass().getSuperclass()!=this.getClass().getSuperclass())
+		// return false;
+		try {
+			RequestLine r = (RequestLine) obj;
+			if (r.getMethod().equals(this.getMethod())
+					&& r.getAddress().equals(this.getAddress()))
+				return true;
+			else
+				return false;
+		} catch (Exception e) {
+			return false;
+		}
+	}
 
-   /** Indicates whether some other Object is "equal to" this RequestLine */
-   public boolean equals(Object obj)
-   {  //if (o.getClass().getSuperclass()!=this.getClass().getSuperclass()) return false;
-      try
-      {  RequestLine r=(RequestLine)obj; 
-         if (r.getMethod().equals(this.getMethod()) && r.getAddress().equals(this.getAddress())) return true;
-         else return false;
-      }
-      catch (Exception e) {  return false;  }
-   }
+	public String toString() {
+		return method + " " + url + " SIP/2.0\r\n";
+	}
 
-   public String toString()
-   {  return method+" "+url+" SIP/2.0\r\n";
-   }
+	public String getMethod() {
+		return method;
+	}
 
-   public String getMethod()
-   {  return method;
-   }
-
-   public SipURL getAddress()
-   {  return url;
-   }
+	public SipURL getAddress() {
+		return url;
+	}
 }

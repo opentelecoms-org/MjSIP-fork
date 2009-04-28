@@ -23,37 +23,50 @@
 
 package org.zoolu.tools;
 
+/**
+ * Class Assert provides some static methods to check some inline conditions.
+ * When an assertion fails an AssertionException is throws. <p/> Such a tool
+ * could be helpful for debugging.
+ */
+public class Assert {
+	/**
+	 * Check that <i>exp</i> is true, otherwise an AssertionException is
+	 * thrown.
+	 */
+	public final static void isTrue(boolean exp) {
+		if (!exp)
+			onError("Assertion failed");
+	}
 
+	/**
+	 * Check that <i>exp</i> is false, otherwise an AssertionException is
+	 * thrown.
+	 */
+	public final static void isFalse(boolean exp) {
+		if (exp)
+			onError("Assertion failed");
+	}
 
+	/**
+	 * Check that <i>exp</i> is true, otherwise an AssertionException is
+	 * thrown.
+	 */
+	public final static void isTrue(boolean exp, String msg) {
+		if (!exp)
+			onError("Assertion failed: " + msg);
+	}
 
-/** Class Assert provides some static methods to check some inline conditions.
-  * When an assertion fails an AssertionException is throws.
-  * <p/> Such a tool could be helpful for debugging.
-  */  
-public class Assert
-{
-   /** Check that <i>exp</i> is true, otherwise an AssertionException is thrown.  */
-   public final static void isTrue(boolean exp)
-   {  if(!exp) onError("Assertion failed");
-   }
+	/**
+	 * Check that <i>exp</i> is false, otherwise an AssertionException is
+	 * thrown.
+	 */
+	public final static void isFalse(boolean exp, String msg) {
+		if (exp)
+			onError("Assertion failed: " + msg);
+	}
 
-   /** Check that <i>exp</i> is false, otherwise an AssertionException is thrown.  */
-   public final static void isFalse(boolean exp)
-   {  if(exp) onError("Assertion failed");
-   }
-
-   /** Check that <i>exp</i> is true, otherwise an AssertionException is thrown.  */
-   public final static void isTrue(boolean exp, String msg)
-   {  if(!exp) onError("Assertion failed: "+msg);
-   }
-
-   /** Check that <i>exp</i> is false, otherwise an AssertionException is thrown.  */
-   public final static void isFalse(boolean exp, String msg)
-   {  if(exp) onError("Assertion failed: "+msg);
-   }
-
-   private static void onError(String msg)
-   {  throw new AssertException(msg);
-   }
+	private static void onError(String msg) {
+		throw new AssertException(msg);
+	}
 
 }

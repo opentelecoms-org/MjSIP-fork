@@ -23,27 +23,23 @@
 
 package org.zoolu.sip.header;
 
-
 import java.util.Date;
 
-
 /** SIP Header Date */
-public class DateHeader extends SipDateHeader
-{   
-   //public DateHeader()
-   //{  super(SipHeaders.Date);
-   //}
+public class DateHeader extends SipDateHeader {
+	// public DateHeader()
+	// { super(SipHeaders.Date);
+	// }
 
-   public DateHeader(String hvalue)
-   {  super(SipHeaders.Date,hvalue);
-   }
+	public DateHeader(String hvalue) {
+		super(SipHeaders.Date, hvalue);
+	}
 
-   public DateHeader(Date date)
-   {  super(SipHeaders.Date,date);
-   }
+	public DateHeader(Date date) {
+		super(SipHeaders.Date, date);
+	}
 
-   public DateHeader(Header hd)
-   {  super(hd);
-   }    
+	public DateHeader(Header hd) {
+		super(hd);
+	}
 }
-

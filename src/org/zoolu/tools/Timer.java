@@ -19,115 +19,113 @@
  * 
  * Author(s):
  * Luca Veltri (luca.veltri@unipr.it)
+ * Nitin Khanna, Hughes Systique Corp. (Reason: Android specific change, optmization, bug fix) 
  */
 
 package org.zoolu.tools;
 
+/**
+ * A Timer is a simple object that fires an onTimeout() method to its
+ * TimerListener when the time expires. A Timer have to be started and can be
+ * halted before expired.
+ */
+public class Timer implements InnerTimerListener {
+	/** Whether using single thread for all timer instances. */
+	public static boolean SINGLE_THREAD = true;
 
-//PersonalJava
-//import java.util.HashSet;
-//import java.util.Iterator;
-import org.zoolu.tools.HashSet;
-import org.zoolu.tools.Iterator;
+	// HashSet listener_list=null;
+	TimerListener listener;
+	long time;
+	String label;
+	boolean active;
 
+	void init(long t_msec, String t_label, TimerListener t_listener) { // listener_list=new
+		// HashSet();
+		// if (t_listener!=null) addTimerListener(listener);
+		listener = t_listener;
+		time = t_msec;
+		label = t_label;
+		active = false;
+	}
 
+	/**
+	 * Creates a new Timer of <i>msec</i> milliseconds. The Timer is not
+	 * started. You need to fire the start() method.
+	 */
+	/*
+	 * public Timer(long t_msec) { init(t_msec,null,null); }
+	 */
 
-/** A Timer is a simple object that fires an onTimeout() method to its TimerListener when the time expires.
-  * A Timer have to be started and can be halted before expired.
-  */
-public class Timer implements InnerTimerListener
-{
-   /** Whether using single thread for all timer instances. */
-   public static boolean SINGLE_THREAD=true; 
+	/**
+	 * Creates a new Timer of <i>msec</i> milliseconds, with a label <i>t_event</i>.
+	 * The Timer is not started. You need to fire the start() method.
+	 */
+	/*
+	 * public Timer(long t_msec, String t_label) { init(t_msec,t_label,null); }
+	 */
 
-   //HashSet listener_list=null;
-   TimerListener listener;
-   long time;  
-   String label;
-   boolean active;
+	/**
+	 * Creates a new Timer of <i>msec</i> milliseconds with TimerListener
+	 * <i>listener</i> The Timer is not started. You need to fire the start()
+	 * method.
+	 */
+	public Timer(long t_msec, TimerListener t_listener) {
+		init(t_msec, null, t_listener);
+	}
 
+	/**
+	 * Creates a new Timer of <i>msec</i> milliseconds, with a label <i>t_event</i>,
+	 * and with TimerListener <i>listener</i> The Timer is not started. You
+	 * need to fire the start() method.
+	 */
+	public Timer(long t_msec, String t_label, TimerListener t_listener) {
+		init(t_msec, t_label, t_listener);
+	}
 
-   void init(long t_msec, String t_label, TimerListener t_listener)
-   {  //listener_list=new HashSet();
-      //if (t_listener!=null) addTimerListener(listener);
-      listener=t_listener;
-      time=t_msec;
-      label=t_label;
-      active=false;
-   }  
+	/** Gets the Timer label. */
+	public String getLabel() {
+		return label;
+	}
 
-   /** Creates a new Timer of <i>msec</i> milliseconds.
-     * The Timer is not started. You need to fire the start() method. */
-   /*public Timer(long t_msec)
-   {  init(t_msec,null,null);
-   }*/ 
+	/** Gets the initial time (in milliseconds). */
+	public long getTime() {
+		return time;
+	}
 
-   /** Creates a new Timer of <i>msec</i> milliseconds, with a label <i>t_event</i>.
-     * The Timer is not started. You need to fire the start() method. */
-   /*public Timer(long t_msec, String t_label)
-   {  init(t_msec,t_label,null);
-   }*/  
-   
-   /** Creates a new Timer of <i>msec</i> milliseconds with TimerListener <i>listener</i>
-     * The Timer is not started. You need to fire the start() method. */
-   public Timer(long t_msec, TimerListener t_listener)
-   {  init(t_msec,null,t_listener);
-   }  
+	/** Adds a new listener (TimerListener). */
+	/*
+	 * public void addTimerListener(TimerListener listener) {
+	 * listener_list.add(listener); }
+	 */
 
-   /** Creates a new Timer of <i>msec</i> milliseconds, with a label <i>t_event</i>, and with TimerListener <i>listener</i>
-     * The Timer is not started. You need to fire the start() method. */
-   public Timer(long t_msec, String t_label, TimerListener t_listener)
-   {  init(t_msec,t_label,t_listener);
-   }  
+	/** Removes the specific listener (TimerListener). */
+	/*
+	 * public void removeTimerListener(TimerListener listener) {
+	 * listener_list.remove(listener); }
+	 */
 
-   /** Gets the Timer label. */
-   public String getLabel()
-   {  return label;
-   }
+	/** Stops the Timer. The onTimeout() method will not be fired. */
+	public void halt() {
+		active = false;
+		// (CHANGE-040421) now it can free the link to Timer listeners
+		// listener_list=null;
+		listener = null;
+	}
 
-   /** Gets the initial time (in milliseconds). */
-   public long getTime()
-   {  return time;
-   }
-   
-   /** Adds a new listener (TimerListener). */
-   /*public void addTimerListener(TimerListener listener)
-   {  listener_list.add(listener);
-   }*/
+	/** Starts the timer */
+	public void start() {
+		active = true;
+		if (SINGLE_THREAD)
+			new InnerTimerST(time, this);
+		else
+			new InnerTimer(time, this);
+	}
 
-   /** Removes the specific listener (TimerListener). */
-   /*public void removeTimerListener(TimerListener listener)
-   {  listener_list.remove(listener);
-   }*/
-   
-   /** Stops the Timer. The onTimeout() method will not be fired. */
-   public void halt()
-   {  active=false;
-      // (CHANGE-040421) now it can free the link to Timer listeners
-      //listener_list=null;
-      listener=null;
-   }
-
-   /** Starts the timer */
-   public void start()
-   {  active=true;
-      if (SINGLE_THREAD) new InnerTimerST(time,this);
-      else new InnerTimer(time,this);
-   }   
-
-
-   /** When the Timeout fires */
-   public void onInnerTimeout()
-   {  //if (active && !listener_list.isEmpty())
-      //{  for (Iterator i=listener_list.iterator(); i.hasNext(); )
-      //   {  ((TimerListener)i.next()).onTimeout(this);
-      //   }
-      //}   
-      if (active && listener!=null) listener.onTimeout(this);  
-      // (CHANGE-040421) now it can free the link to Timer listeners
-      //listener_list=null;
-      listener=null;
-      active=false;
-   }   
+	/** When the Timeout fires */
+	public void onInnerTimeout() {
+		if (active && listener != null)
+			listener.onTimeout(this);
+		listener = null;
+		active = false;
+	}
 }
-

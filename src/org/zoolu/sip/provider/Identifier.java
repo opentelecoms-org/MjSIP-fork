@@ -23,47 +23,44 @@
 
 package org.zoolu.sip.provider;
 
+/**
+ * Generic Identifier.
+ */
+public class Identifier {
+	/** The actual id */
+	String id;
 
+	/** Costructs a new void Identifier. */
+	Identifier() {
+	}
 
+	/** Costructs a new Identifier. */
+	Identifier(String id) {
+		this.id = id;
+	}
 
-/** Generic Identifier.
-  */
-public class Identifier
-{
-   /** The actual id */   
-   String id;
-   
-   /** Costructs a new void Identifier. */
-   Identifier()
-   {
-   }
+	/** Costructs a new Identifier. */
+	Identifier(Identifier i) {
+		this.id = i.id;
+	}
 
-   /** Costructs a new Identifier. */
-   Identifier(String id)
-   {  this.id=id;
-   }
+	/** Whether the Identifier equals to <i>obj</i>. */
+	public boolean equals(Object obj) {
+		try {
+			Identifier i = (Identifier) obj;
+			return id.equals(i.id);
+		} catch (Exception e) {
+			return false;
+		}
+	}
 
-   /** Costructs a new Identifier. */
-   Identifier(Identifier i)
-   {  this.id=i.id;
-   }
+	/** Gets an int hashCode for the Identifier. */
+	public int hashCode() {
+		return id.hashCode();
+	}
 
-   /** Whether the Identifier equals to <i>obj</i>. */
-   public boolean equals(Object obj)
-   {  try
-      {  Identifier i=(Identifier)obj;
-         return id.equals(i.id);
-      }
-      catch (Exception e) {  return false;  }
-   }
-
-   /** Gets an int hashCode for the Identifier. */
-   public int hashCode()
-   {  return id.hashCode();
-   }
-
-   /** Gets a String value for the Identifier */ 
-   public String toString()
-   {  return id;
-   }
+	/** Gets a String value for the Identifier */
+	public String toString() {
+		return id;
+	}
 }

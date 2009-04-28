@@ -19,92 +19,106 @@
  * 
  * Author(s):
  * Luca Veltri (luca.veltri@unipr.it)
+ * Nitin Khanna, Hughes Systique Corp. (Reason: Android specific change, optmization, bug fix) 
  */
 
 package org.zoolu.sip.header;
 
-
 import org.zoolu.sip.provider.SipParser;
 import java.util.Vector;
 
-
 /** SIP AuthenticationInfo header */
-public class AuthenticationInfoHeader extends AuthenticationHeader
-{
-   /** Creates a new AuthenticationInfoHeader */
-   public AuthenticationInfoHeader()
-   {  super(SipHeaders.Authentication_Info,"");
-   }
+public class AuthenticationInfoHeader extends AuthenticationHeader {
+	/** Creates a new AuthenticationInfoHeader */
+	public AuthenticationInfoHeader() {
+		super(SipHeaders.Authentication_Info, "");
+	}
 
-   /** Creates a new AuthenticationInfoHeader */
-   public AuthenticationInfoHeader(String hvalue)
-   {  super(SipHeaders.Authentication_Info,hvalue);
-   }
+	/** Creates a new AuthenticationInfoHeader */
+	public AuthenticationInfoHeader(String hvalue) {
+		super(SipHeaders.Authentication_Info, hvalue);
+	}
 
-   /** Creates a new AuthenticationInfoHeader */
-   public AuthenticationInfoHeader(Header hd)
-   {  super(hd);
-   }
-   
-   /** Creates a new AuthenticationInfoHeader
-     * specifing the <i>auth_scheme</i> and the vector of authentication parameters.
-     * <p> <i>auth_param</i> is a vector of String of the form <i>parm_name</i> "=" <i>parm_value</i> */
-   public AuthenticationInfoHeader(Vector<String> auth_params)
-   {  super(SipHeaders.Authentication_Info,"",auth_params);
-   }
-   
-   /** Whether has parameter <i>param_name</i> */
-   public boolean hasParameter(String param_name)
-   {  char[] name_separators={'=',  ' ', '\t', '\r', '\n'};
-      SipParser par=new SipParser(value);
-      //par.skipString(); // skip the auth_scheme
-      par.skipWSPCRLF();
-      while (par.hasMore())
-      {  String name=par.getWord(name_separators);
-         if (name.equals(param_name)) return true;
-         par.goToCommaHeaderSeparator().skipChar().skipWSPCRLF();
-      }
-      return false;
-   }
- 
-   /** Returns the parameter <i>param_name</i>, in case removing quotes. */
-   public String getParameter(String param_name)
-   {  char[] name_separators={'=', ' ', '\t'};
-      SipParser par=new SipParser(value);
-      //par.skipString(); // skip the auth_scheme
-      par.skipWSPCRLF();
-      while (par.hasMore())
-      {  String name=par.getWord(name_separators);
-         if (name.equals(param_name))
-         {  par.goTo('=').skipChar().skipWSP();
-            int comma=par.indexOfCommaHeaderSeparator();
-            if (comma>=0)
-               par=new SipParser(par.getString(comma-par.getPos()));
-            return par.getStringUnquoted();
-         }
-         else par.goToCommaHeaderSeparator().skipChar().skipWSPCRLF();
-      }
-      return null;
-   }
-   
-   /** Gets a String Vector of parameter names.
-     * @returns a Vector of String. */
-   public Vector<String> getParameters()
-   {  char[] name_separators={'=', ' ', '\t'};
-      SipParser par=new SipParser(value);
-      //par.skipString(); // skip the auth_scheme
-      par.skipWSPCRLF();
-      Vector names=new Vector();
-      while (par.hasMore())
-      {  String name=par.getWord(name_separators);
-         names.addElement(name);
-         par.goToCommaHeaderSeparator().skipChar().skipWSPCRLF();
-      }
-      return names;
-   }
+	/** Creates a new AuthenticationInfoHeader */
+	public AuthenticationInfoHeader(Header hd) {
+		super(hd);
+	}
 
-   /** Gets the athentication scheme. Note that for AuthenticationInfoHeader it always return null. */
-   public String getAuthScheme()
-   {  return null;
-   }
+	/**
+	 * Creates a new AuthenticationInfoHeader specifing the <i>auth_scheme</i>
+	 * and the vector of authentication parameters.
+	 * <p>
+	 * <i>auth_param</i> is a vector of String of the form <i>parm_name</i>
+	 * "=" <i>parm_value</i>
+	 */
+	/* HSC CHANGES START */
+	public AuthenticationInfoHeader(Vector<String> auth_params) {
+		/* HSC CHANGES END */
+		super(SipHeaders.Authentication_Info, "", auth_params);
+	}
+
+	/** Whether has parameter <i>param_name</i> */
+	public boolean hasParameter(String param_name) {
+		char[] name_separators = { '=', ' ', '\t', '\r', '\n' };
+		SipParser par = new SipParser(value);
+		// par.skipString(); // skip the auth_scheme
+		par.skipWSPCRLF();
+		while (par.hasMore()) {
+			String name = par.getWord(name_separators);
+			if (name.equals(param_name))
+				return true;
+			par.goToCommaHeaderSeparator().skipChar().skipWSPCRLF();
+		}
+		return false;
+	}
+
+	/** Returns the parameter <i>param_name</i>, in case removing quotes. */
+	public String getParameter(String param_name) {
+		char[] name_separators = { '=', ' ', '\t' };
+		SipParser par = new SipParser(value);
+		// par.skipString(); // skip the auth_scheme
+		par.skipWSPCRLF();
+		while (par.hasMore()) {
+			String name = par.getWord(name_separators);
+			if (name.equals(param_name)) {
+				par.goTo('=').skipChar().skipWSP();
+				int comma = par.indexOfCommaHeaderSeparator();
+				if (comma >= 0)
+					par = new SipParser(par.getString(comma - par.getPos()));
+				return par.getStringUnquoted();
+			} else
+				par.goToCommaHeaderSeparator().skipChar().skipWSPCRLF();
+		}
+		return null;
+	}
+
+	/**
+	 * Gets a String Vector of parameter names.
+	 * 
+	 * @returns a Vector of String.
+	 */
+	/* HSC CHANGES BEGIN */
+	public Vector<String> getParameters() {
+		char[] name_separators = { '=', ' ', '\t' };
+		SipParser par = new SipParser(value);
+		// par.skipString(); // skip the auth_scheme
+		par.skipWSPCRLF();
+		Vector<String> names = new Vector<String>();
+		while (par.hasMore()) {
+			String name = par.getWord(name_separators);
+			names.addElement(name);
+			par.goToCommaHeaderSeparator().skipChar().skipWSPCRLF();
+		}
+		return names;
+	}
+
+	/* HSC CHANGES END */
+
+	/**
+	 * Gets the athentication scheme. Note that for AuthenticationInfoHeader it
+	 * always return null.
+	 */
+	public String getAuthScheme() {
+		return null;
+	}
 }

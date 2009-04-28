@@ -23,49 +23,48 @@
 
 package org.zoolu.sip.header;
 
-
-import org.zoolu.sip.address.*;
 import org.zoolu.tools.Parser;
 
+/**
+ * SIP Event header (RFC 3265).
+ * <p>
+ * Event is a request header field (request-header). It appears in SUBSCRIBE and
+ * NOTIFY requests. It provides a event-package name.
+ */
+public class EventHeader extends ParametricHeader {
+	/** State delimiters. */
+	private static final char[] delim = { ',', ';', ' ', '\t', '\n', '\r' };
 
-/** SIP Event header (RFC 3265).
-  * <p>Event is a request header field (request-header).
-  * It appears in SUBSCRIBE and NOTIFY requests. It provides a event-package name. */
-public class EventHeader extends ParametricHeader
-{
-   /** State delimiters. */
-   private static final char [] delim={',', ';', ' ', '\t', '\n', '\r'};
+	/** Costructs a new EventHeader. */
+	public EventHeader(String event_package) {
+		super(SipHeaders.Event, event_package);
+	}
 
-   /** Costructs a new EventHeader. */
-   public EventHeader(String event_package)
-   {  super(SipHeaders.Event,event_package);
-   }
+	/** Costructs a new EventHeader. */
+	public EventHeader(String event_package, String id) {
+		super(SipHeaders.Event, event_package);
+		if (id != null)
+			this.setParameter("id", id);
+	}
 
-   /** Costructs a new EventHeader. */
-   public EventHeader(String event_package, String id)
-   {  super(SipHeaders.Event,event_package);
-      if (id!=null) this.setParameter("id",id);
-   }
+	/** Costructs a new EventHeader. */
+	public EventHeader(Header hd) {
+		super(hd);
+	}
 
-   /** Costructs a new EventHeader. */
-   public EventHeader(Header hd)
-   {  super(hd);
-   }
+	/** Gets the event name. */
+	public String getEvent() {
+		return new Parser(value).getWord(delim);
+	}
 
-   /** Gets the event name. */
-   public String getEvent()
-   {  return new Parser(value).getWord(delim);
-   }
-   
-   /** Gets 'id' parameter. */
-   public String getId()
-   {  return this.getParameter("id");
-   }
-   
-   /** Whether it has 'id' parameter. */
-   public boolean hasId()
-   {  return this.hasParameter("id");
-   }
+	/** Gets 'id' parameter. */
+	public String getId() {
+		return this.getParameter("id");
+	}
+
+	/** Whether it has 'id' parameter. */
+	public boolean hasId() {
+		return this.hasParameter("id");
+	}
 
 }
-

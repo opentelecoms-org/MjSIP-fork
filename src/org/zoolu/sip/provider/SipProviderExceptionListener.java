@@ -23,13 +23,12 @@
 
 package org.zoolu.sip.provider;
 
-
 import org.zoolu.sip.message.Message;
 
-
-/** A SipProviderExceptionListener listens for SipProvider onMessageException(Message,Exception) events.
-  */
-public interface SipProviderExceptionListener
-{
-   public void onMessageException(Message msg, Exception e);
+/**
+ * A SipProviderExceptionListener listens for SipProvider
+ * onMessageException(Message,Exception) events.
+ */
+public interface SipProviderExceptionListener {
+	public void onMessageException(Message msg, Exception e);
 }

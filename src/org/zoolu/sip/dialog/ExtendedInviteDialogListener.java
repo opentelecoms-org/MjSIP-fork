@@ -26,34 +26,47 @@ package org.zoolu.sip.dialog;
 import org.zoolu.sip.address.NameAddress;
 import org.zoolu.sip.message.Message;
 
+/**
+ * An ExtendedInviteDialogListener listens for ExtendedInviteDialog events. It
+ * extends InviteDialogListener by adding ExtendedInviteDialog-specific callback
+ * functions.
+ */
+public interface ExtendedInviteDialogListener extends
+		org.zoolu.sip.dialog.InviteDialogListener {
 
-/** An ExtendedInviteDialogListener listens for ExtendedInviteDialog events.
-  * It extends InviteDialogListener by adding ExtendedInviteDialog-specific callback functions.
-  */
-public interface ExtendedInviteDialogListener extends org.zoolu.sip.dialog.InviteDialogListener
-{  
+	/** When an incoming REFER request is received within the dialog */
+	public void onDlgRefer(org.zoolu.sip.dialog.InviteDialog dialog,
+			NameAddress refer_to, NameAddress referred_by, Message msg);
 
-   /** When an incoming REFER request is received within the dialog */ 
-   public void onDlgRefer(org.zoolu.sip.dialog.InviteDialog dialog, NameAddress refer_to, NameAddress referred_by, Message msg);
+	/** When a response is received for a REFER request within the dialog */
+	public void onDlgReferResponse(org.zoolu.sip.dialog.InviteDialog dialog,
+			int code, String reason, Message msg);
 
-   /** When a response is received for a REFER request within the dialog */ 
-   public void onDlgReferResponse(org.zoolu.sip.dialog.InviteDialog dialog, int code, String reason, Message msg);
+	/** When an incoming NOTIFY request is received within the dialog */
+	public void onDlgNotify(org.zoolu.sip.dialog.InviteDialog dialog,
+			String event, String sipfragment, Message msg);
 
-   /** When an incoming NOTIFY request is received within the dialog */ 
-   public void onDlgNotify(org.zoolu.sip.dialog.InviteDialog dialog, String event, String sipfragment, Message msg);
+	/** When a response is received for a NOTIFY request within the dialog */
+	// public void onDlgNotifyResponse(org.zoolu.sip.dialog.InviteDialog dialog,
+	// int code, String reason, Message msg);
+	/**
+	 * When an incoming request is received within the dialog different from
+	 * INVITE, CANCEL, ACK, BYE, REFER, NOTIFY
+	 */
+	public void onDlgAltRequest(org.zoolu.sip.dialog.InviteDialog dialog,
+			String method, String body, Message msg);
 
-   /** When a response is received for a NOTIFY request within the dialog */ 
-   //public void onDlgNotifyResponse(org.zoolu.sip.dialog.InviteDialog dialog, int code, String reason, Message msg);
+	/**
+	 * When a response is received for a request within the dialog different
+	 * from INVITE, CANCEL, ACK, BYE, REFER, NOTIFY
+	 */
+	public void onDlgAltResponse(org.zoolu.sip.dialog.InviteDialog dialog,
+			String method, int code, String reason, String body, Message msg);
 
-   /** When an incoming request is received within the dialog
-     * different from INVITE, CANCEL, ACK, BYE, REFER, NOTIFY */ 
-   public void onDlgAltRequest(org.zoolu.sip.dialog.InviteDialog dialog, String method, String body, Message msg);
-
-   /** When a response is received for a request within the dialog 
-     * different from INVITE, CANCEL, ACK, BYE, REFER, NOTIFY */ 
-   public void onDlgAltResponse(org.zoolu.sip.dialog.InviteDialog dialog, String method, int code, String reason, String body, Message msg);
-
-   /** When a request timeout expires within the dialog
-     * different from INVITE, CANCEL, ACK, BYE, REFER, NOTIFY */ 
-   //public void onDlgAltTimeout(org.zoolu.sip.dialog.InviteDialog dialog, String method);
+	/**
+	 * When a request timeout expires within the dialog different from INVITE,
+	 * CANCEL, ACK, BYE, REFER, NOTIFY
+	 */
+	// public void onDlgAltTimeout(org.zoolu.sip.dialog.InviteDialog dialog,
+	// String method);
 }

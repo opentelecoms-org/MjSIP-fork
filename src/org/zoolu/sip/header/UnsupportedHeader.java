@@ -23,16 +23,13 @@
 
 package org.zoolu.sip.header;
 
-
-
 /** SIP Header Unsupported */
-public class UnsupportedHeader extends OptionHeader
-{
-   public UnsupportedHeader(String option)
-   {  super(SipHeaders.Unsupported,option);
-   }
+public class UnsupportedHeader extends OptionHeader {
+	public UnsupportedHeader(String option) {
+		super(SipHeaders.Unsupported, option);
+	}
 
-   public UnsupportedHeader(Header hd)
-   {  super(hd);
-   }
+	public UnsupportedHeader(Header hd) {
+		super(hd);
+	}
 }

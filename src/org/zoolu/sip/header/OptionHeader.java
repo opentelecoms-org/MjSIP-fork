@@ -23,27 +23,23 @@
 
 package org.zoolu.sip.header;
 
-
-
-
 /** SIP Header that carries simply an option-tag */
-public abstract class OptionHeader extends Header
-{
-   public OptionHeader(String header, String option)
-   {  super(header,option);
-   }
+public abstract class OptionHeader extends Header {
+	public OptionHeader(String header, String option) {
+		super(header, option);
+	}
 
-   public OptionHeader(Header hd)
-   {  super(hd);
-   }
+	public OptionHeader(Header hd) {
+		super(hd);
+	}
 
-   /** Gets option */
-   public String getOption()
-   {  return value;
-   }
+	/** Gets option */
+	public String getOption() {
+		return value;
+	}
 
-   /** Sets the option */
-   public void setOption(String option)
-   {  value=option;
-   }
+	/** Sets the option */
+	public void setOption(String option) {
+		value = option;
+	}
 }

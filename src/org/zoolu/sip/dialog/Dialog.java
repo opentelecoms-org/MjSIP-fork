@@ -19,268 +19,304 @@
  * 
  * Author(s):
  * Luca Veltri (luca.veltri@unipr.it)
+ * Nitin Khanna, Hughes Systique Corp. (Reason: Android specific change, optmization, bug fix) 
  */
 
 package org.zoolu.sip.dialog;
 
-
-import org.zoolu.sip.address.*;
-import org.zoolu.sip.message.*;
-import org.zoolu.sip.header.*;
-import org.zoolu.sip.provider.*;
+import java.util.Vector; /* HSC CHANGES START */
+import org.zoolu.sip.address.NameAddress;
+import org.zoolu.sip.header.FromHeader;
+import org.zoolu.sip.header.Header;
+import org.zoolu.sip.header.RecordRouteHeader;
+import org.zoolu.sip.header.ToHeader;
+import org.zoolu.sip.message.Message;
+import org.zoolu.sip.provider.DialogIdentifier;
+import org.zoolu.sip.provider.SipProvider;
+import org.zoolu.sip.provider.SipProviderListener;
+import org.zoolu.sip.provider.SipStack;
 import org.zoolu.tools.Log;
 import org.zoolu.tools.LogLevel;
-import org.zoolu.tools.AssertException;
 
+/* HSC CHANGES END */
 
-import java.util.Vector;
+/**
+ * Class Dialog maintains a complete information status of a generic SIP dialog.
+ * It has the following attributes:
+ * <ul>
+ * <li>sip-provider</li>
+ * <li>call-id</li>
+ * <li>local and remote URLs</li>
+ * <li>local and remote contact URLs</li>
+ * <li>local and remote cseqs</li>
+ * <li>local and remote tags</li>
+ * <li>dialog-id</li>
+ * <li>route set</li>
+ * </ul>
+ */
+public abstract class Dialog extends DialogInfo implements SipProviderListener {
 
+	// ************************ Static attributes *************************
 
-/** Class Dialog maintains a complete information status of a generic SIP dialog.
-  * It has the following attributes:
-  * <ul>
-  * <li>sip-provider</li>
-  * <li>call-id</li>
-  * <li>local and remote URLs</li>
-  * <li>local and remote contact URLs</li>
-  * <li>local and remote cseqs</li>
-  * <li>local and remote tags</li> 
-  * <li>dialog-id</li>
-  * <li>route set</li>
-  * </ul>
-  */
-public abstract class Dialog extends DialogInfo implements SipProviderListener
-{  
-   
-   // ************************ Static attributes *************************
+	/** Dialogs counter */
+	private static int dialog_counter = 0;
 
-    /** Dialogs counter */
-   private static int dialog_counter=0;
+	/** Identifier for the transaction client side of a dialog (UAC). */
+	public final static int UAC = 0;
+	/** Identifier for the transaction server side of a dialog (UAS). */
+	public final static int UAS = 1;
 
+	// *********************** Protected attributes ***********************
 
-   /** Identifier for the transaction client side of a dialog (UAC). */
-   public final static int UAC=0;
-   /** Identifier for the transaction server side of a dialog (UAS). */
-   public final static int UAS=1;
+	/** Dialog sequence number */
+	protected int dialog_sqn;
 
+	/** Event logger. */
+	protected Log log;
 
-   // *********************** Protected attributes ***********************
+	/** SipProvider */
+	protected SipProvider sip_provider;
 
-   /** Dialog sequence number */
-   protected int dialog_sqn;
+	/** Internal dialog state. */
+	protected int status;
 
-   /** Event logger. */
-   protected Log log;
- 
-  /** SipProvider */
-   protected SipProvider sip_provider;
+	/** Dialog identifier */
+	protected DialogIdentifier dialog_id;
 
-   /** Internal dialog state. */
-   protected int status;
-   
-   /** Dialog identifier */
-   protected DialogIdentifier dialog_id;
+	// ************************* Abstract methods *************************
 
+	/** Gets the dialog state */
+	abstract protected String getStatusDescription();
+	
+	abstract protected int getStatus();
 
-   // ************************* Abstract methods *************************
+	/** Whether the dialog is in "early" state. */
+	abstract public boolean isEarly();
 
-   /** Gets the dialog state */
-   abstract protected String getStatusDescription();
+	/** Whether the dialog is in "confirmed" state. */
+	abstract public boolean isConfirmed();
 
-   abstract protected int getStatus();
+	/** Whether the dialog is in "terminated" state. */
+	abstract public boolean isTerminated();
 
-   /** Whether the dialog is in "early" state. */
-   abstract public boolean isEarly();
+	/** When a new Message is received by the SipProvider. */
+	abstract public void onReceivedMessage(SipProvider provider, Message message);
 
-   /** Whether the dialog is in "confirmed" state. */
-   abstract public boolean isConfirmed();
+	// **************************** Costructors ***************************
 
-   /** Whether the dialog is in "terminated" state. */
-   abstract public boolean isTerminated();
+	/** Creates a new empty Dialog */
+	protected Dialog(SipProvider provider) {
+		super();
+		this.sip_provider = provider;
+		this.log = sip_provider.getLog();
+		this.dialog_sqn = dialog_counter++;
+		this.status = 0;
+		this.dialog_id = null;
+	}
 
-   /** When a new Message is received by the SipProvider. */
-   abstract public void onReceivedMessage(SipProvider provider, Message message);
+	// ************************* Protected methods ************************
 
+	/** Changes the internal dialog state */
+	protected void changeStatus(int newstatus) {
+		status = newstatus;
+		printLog("changed dialog state: " + getStatus(), LogLevel.MEDIUM);
 
-   // **************************** Costructors *************************** 
+		// remove the sip_provider listener when going to "terminated" state
+		if (isTerminated()) {
+			if (dialog_id != null
+					&& sip_provider.getListeners().containsKey(dialog_id))
+				sip_provider.removeSipProviderListener(dialog_id);
+		} else
+		// add sip_provider listener when going to "early" or "confirmed" state
+		if (isEarly() || isConfirmed()) {
+			if (dialog_id != null
+					&& !sip_provider.getListeners().containsKey(dialog_id))
+				sip_provider.addSipProviderListener(dialog_id, this);
+		}
+	}
 
-   /** Creates a new empty Dialog */
-   protected Dialog(SipProvider provider)
-   {  super(); 
-      this.sip_provider=provider;
-      this.log=sip_provider.getLog();
-      this.dialog_sqn=dialog_counter++;  
-      this.status=0;
-      this.dialog_id=null;
-   }
- 
+	/** Whether the dialog state is equal to <i>st</i> */
+	protected boolean statusIs(int st) {
+		return status == st;
+	}
 
-   // ************************* Protected methods ************************
+	// ************************** Public methods **************************
 
-   /** Changes the internal dialog state */
-   protected void changeStatus(int newstatus)
-   {  status=newstatus;
-      printLog("changed dialog state: "+getStatus(),LogLevel.MEDIUM);
-      
-      // remove the sip_provider listener when going to "terminated" state
-      if (isTerminated())
-      {  if (dialog_id!=null && sip_provider.getListeners().containsKey(dialog_id)) sip_provider.removeSipProviderListener(dialog_id);
-      }
-      else
-      // add sip_provider listener when going to "early" or "confirmed" state
-      if (isEarly() || isConfirmed())
-      {  if (dialog_id!=null && !sip_provider.getListeners().containsKey(dialog_id)) sip_provider.addSipProviderListener(dialog_id,this);
-      }
-   }
+	/** Gets the SipProvider of this Dialog. */
+	public SipProvider getSipProvider() {
+		return sip_provider;
+	}
 
+	/** Gets the inique Dialog-ID </i> */
+	public DialogIdentifier getDialogID() {
+		return dialog_id;
+	}
 
-   /** Whether the dialog state is equal to <i>st</i> */
-   protected boolean statusIs(int st)
-   {  return status==st;
-   }
+	/**
+	 * Updates empty attributes (tags, route set) and mutable attributes (cseqs,
+	 * contacts), based on a new message.
+	 * 
+	 * @param side
+	 *            indicates whether the Dialog is acting as transaction client
+	 *            or server for the current message (use constant values
+	 *            Dialog.UAC or Dialog.UAS)
+	 * @param msg
+	 *            the message that is used to update the Dialog state
+	 */
+	public void update(int side, Message msg) {
+		if (isTerminated()) {
+			printWarning("trying to update a terminated dialog: do nothing.",
+					LogLevel.HIGH);
+			return;
+		}
+		// else
 
+		// update call_id
+		if (call_id == null)
+			call_id = msg.getCallIdHeader().getCallId();
 
-   // ************************** Public methods **************************
+		// update names and tags
+		if (side == UAC) {
+			if (remote_name == null || remote_tag == null) {
+				ToHeader to = msg.getToHeader();
+				if (remote_name == null)
+					remote_name = to.getNameAddress();
+				if (remote_tag == null)
+					remote_tag = to.getTag();
+			}
+			if (local_name == null || local_tag == null) {
+				FromHeader from = msg.getFromHeader();
+				if (local_name == null)
+					local_name = from.getNameAddress();
+				if (local_tag == null)
+					local_tag = from.getTag();
+			}
+			local_cseq = msg.getCSeqHeader().getSequenceNumber();
+			// if (remote_cseq==-1) remote_cseq=SipProvider.pickInitialCSeq()-1;
+		} else {
+			if (local_name == null || local_tag == null) {
+				ToHeader to = msg.getToHeader();
+				if (local_name == null)
+					local_name = to.getNameAddress();
+				if (local_tag == null)
+					local_tag = to.getTag();
+			}
+			if (remote_name == null || remote_tag == null) {
+				FromHeader from = msg.getFromHeader();
+				if (remote_name == null)
+					remote_name = from.getNameAddress();
+				if (remote_tag == null)
+					remote_tag = from.getTag();
+			}
+			remote_cseq = msg.getCSeqHeader().getSequenceNumber();
+			if (local_cseq == -1)
+				local_cseq = SipProvider.pickInitialCSeq() - 1;
+		}
+		// update contact
+		if (msg.hasContactHeader()) {
+			if ((side == UAC && msg.isRequest())
+					|| (side == UAS && msg.isResponse()))
+				local_contact = msg.getContactHeader().getNameAddress();
+			else
+				remote_contact = msg.getContactHeader().getNameAddress();
+		}
+		// update route or record-route
+		if (side == UAC) {
+			if (msg.isRequest() && msg.hasRouteHeader() && route == null) {
+				/* HSC CHANGES START */
+				Vector<String> route_s = msg.getRoutes().getValues();
+				route = new Vector<NameAddress>(route_s.size());
+				int size = route_s.size();
+				for (int i = 0; i < size; i++) {
+					route.insertElementAt(
+							new NameAddress(route_s.elementAt(i)), i);
+				}
+				/* HSC CHANGES END */
+			}
+			if (side == UAC && msg.isResponse() && msg.hasRecordRouteHeader()) {
+				/* HSC CHANGES START */
+				Vector<Header> rr = msg.getRecordRoutes().getHeaders();
+				int size = rr.size();
+				route = new Vector<NameAddress>(size);
+				/* HSC CHANGES END */
+				for (int i = 0; i < size; i++) {
+					route.insertElementAt((new RecordRouteHeader((Header) rr
+							.elementAt(size - 1 - i))).getNameAddress(), i);
+				}
+			}
+		} else {
+			if (msg.isRequest() && msg.hasRouteHeader() && route == null) {
+				/* HSC CHANGES START */
+				Vector<String> reverse_route = msg.getRoutes().getValues();
+				int size = reverse_route.size();
+				route = new Vector<NameAddress>(size);
+				for (int i = 0; i < size; i++) {
+					route.insertElementAt(new NameAddress(reverse_route
+							.elementAt(size - 1 - i)), i);
+				}
+				/* HSC CHANGES END */
+			}
+			if (msg.isRequest() && msg.hasRecordRouteHeader()) {
+				/* HSC CHANGES START */
+				Vector<Header> rr = msg.getRecordRoutes().getHeaders();
+				int size = rr.size();
+				route = new Vector<NameAddress>(size);
+				for (int i = 0; i < size; i++) {
+					route.insertElementAt((new RecordRouteHeader((Header) rr
+							.elementAt(i))).getNameAddress(), i);
+				}
+				/* HSC CHANGES END */
+			}
+		}
 
-   /** Gets the SipProvider of this Dialog. */
-   public SipProvider getSipProvider()
-   {  return sip_provider;
-   }
+		// update dialog_id and sip_provider listener
+		DialogIdentifier new_id = new DialogIdentifier(call_id, local_tag,
+				remote_tag);
+		if (dialog_id == null || !dialog_id.equals(new_id)) {
+			if (dialog_id != null && sip_provider != null
+					&& sip_provider.getListeners().containsKey(dialog_id))
+				sip_provider.removeSipProviderListener(dialog_id);
+			dialog_id = new_id;
+			printLog("new dialog id: " + dialog_id, LogLevel.HIGH);
+			if (sip_provider != null)
+				sip_provider.addSipProviderListener(dialog_id, this);
+		}
+	}
 
+	// **************************** Logs ****************************/
 
-   /** Gets the inique Dialog-ID </i> */
-   public DialogIdentifier getDialogID()
-   {  return dialog_id;
-   } 
+	/** Adds a new string to the default Log */
+	protected void printLog(String str, int level) {
+		if (log != null)
+			log.println("Dialog#" + dialog_sqn + ": " + str, level
+					+ SipStack.LOG_LEVEL_DIALOG);
+	}
 
+	/** Adds a Warning message to the default Log */
+	protected final void printWarning(String str, int level) {
+		printLog("WARNING: " + str, level);
+	}
 
-   /** Updates empty attributes (tags, route set) and mutable attributes (cseqs, contacts), based on a new message.
-     * @param side indicates whether the Dialog is acting as transaction client or server for the current message (use constant values Dialog.UAC or Dialog.UAS)
-     * @param msg the message that is used to update the Dialog state */
-   public void update(int side, Message msg)
-   {  
-      if (isTerminated())
-      {  printWarning("trying to update a terminated dialog: do nothing.",LogLevel.HIGH);
-         return;
-      }
-      // else
-      
-      // update call_id
-      if (call_id==null) call_id=msg.getCallIdHeader().getCallId();
+	/** Adds the Exception message to the default Log */
+	protected final void printException(Exception e, int level) {
+		if (log != null)
+			log.printException(e, level + SipStack.LOG_LEVEL_DIALOG);
+	}
 
-      // update names and tags
-      if (side==UAC)
-      {  if (remote_name==null || remote_tag==null)
-         {  ToHeader to=msg.getToHeader();
-           if (remote_name==null) remote_name=to.getNameAddress();
-           if (remote_tag==null) remote_tag=to.getTag();
-         }
-         if (local_name==null || local_tag==null)
-         {  FromHeader from=msg.getFromHeader();
-            if (local_name==null) local_name=from.getNameAddress();
-            if (local_tag==null) local_tag=from.getTag();
-         }
-         local_cseq=msg.getCSeqHeader().getSequenceNumber();
-         //if (remote_cseq==-1) remote_cseq=SipProvider.pickInitialCSeq()-1;
-      }
-      else
-      {  if (local_name==null || local_tag==null)
-         {  ToHeader to=msg.getToHeader();
-           if (local_name==null) local_name=to.getNameAddress();
-           if (local_tag==null) local_tag=to.getTag();
-         }
-         if (remote_name==null || remote_tag==null)
-         {  FromHeader from=msg.getFromHeader();
-            if (remote_name==null) remote_name=from.getNameAddress();
-            if (remote_tag==null) remote_tag=from.getTag();
-         }
-         remote_cseq=msg.getCSeqHeader().getSequenceNumber();
-         if (local_cseq==-1) local_cseq=SipProvider.pickInitialCSeq()-1;
-      }
-      // update contact
-      if (msg.hasContactHeader())
-      {  if ((side==UAC && msg.isRequest()) || (side==UAS && msg.isResponse()))
-            local_contact=msg.getContactHeader().getNameAddress();
-         else
-            remote_contact=msg.getContactHeader().getNameAddress();
-      }
-      // update route or record-route
-      if (side==UAC)
-      {  if (msg.isRequest() && msg.hasRouteHeader() && route==null)
-         {  Vector<String> route_s = msg.getRoutes().getValues();
-            route = new Vector<NameAddress>(route_s.size());
-            int size = route_s.size();
-            for (int i = 0; i < size; i++) {
-               route.insertElementAt(
-                  new NameAddress(route_s.elementAt(i)), i);
-               }
-         }
-         if (side==UAC && msg.isResponse() && msg.hasRecordRouteHeader())
-         {  Vector rr=msg.getRecordRoutes().getHeaders();
-            int size=rr.size();
-            route=new Vector(size);
-            for (int i=0; i<size; i++)
-               route.insertElementAt((new RecordRouteHeader((Header)rr.elementAt(size-1-i))).getNameAddress(),i);
-         }
-      }
-      else
-      {  if (msg.isRequest() && msg.hasRouteHeader() && route==null)
-         {  Vector<String> reverse_route=msg.getRoutes().getValues();
-            int size=reverse_route.size();
-            route=new Vector(size);
-            for (int i=0; i<size; i++)
-               route.insertElementAt(new NameAddress(reverse_route
-                               .elementAt(size - 1 - i)), i);
-         }
-         if (msg.isRequest() && msg.hasRecordRouteHeader())
-         {  Vector rr=msg.getRecordRoutes().getHeaders();
-            int size=rr.size();
-            route=new Vector(size);
-            for (int i=0; i<size; i++)
-               route.insertElementAt((new RecordRouteHeader((Header)rr.elementAt(i))).getNameAddress(),i);
-         }
-      }
+	/** Verifies the correct status; if not logs the event. */
+	protected final boolean verifyStatus(boolean expression) {
+		return verifyThat(expression, "dialog state mismatching");
+	}
 
-      // update dialog_id and sip_provider listener
-      DialogIdentifier new_id=new DialogIdentifier(call_id,local_tag,remote_tag);
-      if (dialog_id==null || !dialog_id.equals(new_id))
-      {  if (dialog_id!=null && sip_provider!=null && sip_provider.getListeners().containsKey(dialog_id)) sip_provider.removeSipProviderListener(dialog_id);
-         dialog_id=new_id;
-         printLog("new dialog id: "+dialog_id,LogLevel.HIGH);
-         if (sip_provider!=null) sip_provider.addSipProviderListener(dialog_id,this);
-      }
-   }
-
- 
-   //**************************** Logs ****************************/
-
-   /** Adds a new string to the default Log */
-   protected void printLog(String str, int level)
-   {  if (log!=null) log.println("Dialog#"+dialog_sqn+": "+str,level+SipStack.LOG_LEVEL_DIALOG);  
-   }
-
-   /** Adds a Warning message to the default Log */
-   protected final void printWarning(String str, int level)
-   {  printLog("WARNING: "+str,level); 
-   }
-
-   /** Adds the Exception message to the default Log */
-   protected final void printException(Exception e, int level)
-   {  if (log!=null) log.printException(e,level+SipStack.LOG_LEVEL_DIALOG);
-   }
-
-   /** Verifies the correct status; if not logs the event. */
-   protected final boolean verifyStatus(boolean expression)
-   {  return verifyThat(expression,"dialog state mismatching");
-   }
-
-   /** Verifies an event; if not logs it. */
-   protected final boolean verifyThat(boolean expression, String str)
-   {  if (!expression)
-      {  if (str==null || str.length()==0) printWarning("expression check failed. ",1);
-         else printWarning(str,1);
-      }
-      return expression;
-   }
+	/** Verifies an event; if not logs it. */
+	protected final boolean verifyThat(boolean expression, String str) {
+		if (!expression) {
+			if (str == null || str.length() == 0)
+				printWarning("expression check failed. ", 1);
+			else
+				printWarning(str, 1);
+		}
+		return expression;
+	}
 
 }

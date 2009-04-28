@@ -23,53 +23,51 @@
 
 package org.zoolu.sip.header;
 
-
 import org.zoolu.tools.Parser;
-//import org.zoolu.sip.provider.SipStack;
 
+// import org.zoolu.sip.provider.SipStack;
 
-/** SIP Header Max-Forwards
-  * The Max-Forwards header field serves to limit the number of hops a
-  * request can transit on the way to its destination.  It consists of an
-  * integer that is decremented by one at each hop.  If the Max-Forwards
-  * value reaches 0 before the request reaches its destination, it will
-  * be rejected with a 483(Too Many Hops) error response.
-  * A default Max-Forwards value 70 is used.
-  */
-public class MaxForwardsHeader extends Header
-{
-   /** Creates a MaxForwardsHeader with value=<b>SipStack.max_forwards</b>
-     * (the default value is 70, as recommended in RFC3261) */
-   //public MaxForwardsHeader()
-   //{  super("Max-Forwards",String.valueOf(SipStack.max_forwards));
-   //}
+/**
+ * SIP Header Max-Forwards The Max-Forwards header field serves to limit the
+ * number of hops a request can transit on the way to its destination. It
+ * consists of an integer that is decremented by one at each hop. If the
+ * Max-Forwards value reaches 0 before the request reaches its destination, it
+ * will be rejected with a 483(Too Many Hops) error response. A default
+ * Max-Forwards value 70 is used.
+ */
+public class MaxForwardsHeader extends Header {
+	/**
+	 * Creates a MaxForwardsHeader with value=<b>SipStack.max_forwards</b>
+	 * (the default value is 70, as recommended in RFC3261)
+	 */
+	// public MaxForwardsHeader()
+	// { super("Max-Forwards",String.valueOf(SipStack.max_forwards));
+	// }
+	/** Creates a MaxForwardsHeader with value=<i>n</i> */
+	public MaxForwardsHeader(int n) {
+		super(SipHeaders.Max_Forwards, String.valueOf(n));
+	}
 
-   /** Creates a MaxForwardsHeader with value=<i>n</i> */
-   public MaxForwardsHeader(int n)
-   {  super(SipHeaders.Max_Forwards,String.valueOf(n));
-   }
+	public MaxForwardsHeader(String hvalue) {
+		super(SipHeaders.Max_Forwards, hvalue);
+	}
 
-   public MaxForwardsHeader(String hvalue)
-   {  super(SipHeaders.Max_Forwards,hvalue);
-   }
+	public MaxForwardsHeader(Header hd) {
+		super(hd);
+	}
 
-   public MaxForwardsHeader(Header hd)
-   {  super(hd);
-   }
-   
-   /** Sets Max-Forwards number */
-   public void setNumber(int n)
-   {  value=String.valueOf(n);
-   }
+	/** Sets Max-Forwards number */
+	public void setNumber(int n) {
+		value = String.valueOf(n);
+	}
 
-   /** Gets Max-Forwards number */
-   public int getNumber()
-   {  return (new Parser(value)).getInt();
-   }
+	/** Gets Max-Forwards number */
+	public int getNumber() {
+		return (new Parser(value)).getInt();
+	}
 
-   /** Decrements the Max-Forwards number */
-   public void decrement()
-   {  value=String.valueOf(getNumber()-1);
-   }
+	/** Decrements the Max-Forwards number */
+	public void decrement() {
+		value = String.valueOf(getNumber() - 1);
+	}
 }
-

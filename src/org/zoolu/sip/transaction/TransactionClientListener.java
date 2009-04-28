@@ -23,24 +23,34 @@
 
 package org.zoolu.sip.transaction;
 
-
 import org.zoolu.sip.message.Message;
 
+/**
+ * A TransactionClientListener listens for TransactionClient events. It collects
+ * all TransactionClient callback functions.
+ */
+public interface TransactionClientListener {
+	/**
+	 * When the TransactionClient is (or goes) in "Proceeding" state and
+	 * receives a new 1xx provisional response
+	 */
+	public void onTransProvisionalResponse(TransactionClient tc, Message resp);
 
-/** A TransactionClientListener listens for TransactionClient events.
-  * It collects all TransactionClient callback functions.
-  */
-public interface TransactionClientListener
-{  
-   /** When the TransactionClient is (or goes) in "Proceeding" state and receives a new 1xx provisional response */
-   public void onTransProvisionalResponse(TransactionClient tc, Message resp);
-   
-   /** When the TransactionClient goes into the "Completed" state receiving a 2xx response */
-   public void onTransSuccessResponse(TransactionClient tc, Message resp);
+	/**
+	 * When the TransactionClient goes into the "Completed" state receiving a
+	 * 2xx response
+	 */
+	public void onTransSuccessResponse(TransactionClient tc, Message resp);
 
-   /** When the TransactionClient goes into the "Completed" state receiving a 300-699 response */
-   public void onTransFailureResponse(TransactionClient tc, Message resp);
-   
-   /** When the TransactionClient goes into the "Terminated" state, caused by transaction timeout */
-   public void onTransTimeout(TransactionClient tc); 
+	/**
+	 * When the TransactionClient goes into the "Completed" state receiving a
+	 * 300-699 response
+	 */
+	public void onTransFailureResponse(TransactionClient tc, Message resp);
+
+	/**
+	 * When the TransactionClient goes into the "Terminated" state, caused by
+	 * transaction timeout
+	 */
+	public void onTransTimeout(TransactionClient tc);
 }

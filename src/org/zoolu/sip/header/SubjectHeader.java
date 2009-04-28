@@ -23,31 +23,26 @@
 
 package org.zoolu.sip.header;
 
+/**
+ * SIP Header Subject.
+ */
+public class SubjectHeader extends Header {
+	/** Creates a SubjectHeader */
+	// public SubjectHeader()
+	// { super(SipHeaders.Subject);
+	// }
+	/** Creates a SubjectHeader with value <i>hvalue</i> */
+	public SubjectHeader(String hvalue) {
+		super(SipHeaders.Subject, hvalue);
+	}
 
-import org.zoolu.tools.Parser;
+	/** Creates a new SubjectHeader equal to SubjectHeader <i>hd</i> */
+	public SubjectHeader(Header hd) {
+		super(hd);
+	}
 
-
-/** SIP Header Subject.
-  */
-public class SubjectHeader extends Header
-{
-   /** Creates a SubjectHeader */
-   //public SubjectHeader()
-   //{  super(SipHeaders.Subject);
-   //}
-
-   /** Creates a SubjectHeader with value <i>hvalue</i> */
-   public SubjectHeader(String hvalue)
-   {  super(SipHeaders.Subject,hvalue);
-   }
-
-   /** Creates a new SubjectHeader equal to SubjectHeader <i>hd</i> */
-   public SubjectHeader(Header hd)
-   {  super(hd);
-   }
-
-   /** Gets the subject */
-   public String getSubject()
-   {  return value;
-   }
+	/** Gets the subject */
+	public String getSubject() {
+		return value;
+	}
 }

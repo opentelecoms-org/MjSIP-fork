@@ -23,43 +23,40 @@
 
 package org.zoolu.tools;
 
-
 import java.util.Vector;
 
+/**
+ * HashSet
+ */
+public class HashSet {
+	Vector<Object> set;
 
-/** HashSet
-  */
-public class HashSet
-{
-   Vector<Object> set;
+	public HashSet() {
+		set = new Vector<Object>();
+	}
 
-   public HashSet()
-   {  set=new Vector();
-   }  
+	public int size() {
+		return set.size();
+	}
 
-   public int size()
-   {  return set.size();
-   }
+	public boolean isEmpty() {
+		return set.isEmpty();
+	}
 
-   public boolean isEmpty()
-   {  return set.isEmpty();
-   }
+	public boolean add(Object o) {
+		set.addElement(o);
+		return true;
+	}
 
-   public boolean add(Object o)
-   {  set.addElement(o);
-      return true;
-   }
+	public boolean remove(Object o) {
+		return set.removeElement(o);
+	}
 
-   public boolean remove(Object o)
-   {  return set.removeElement(o);
-   }
+	public boolean contains(Object o) {
+		return set.contains(o);
+	}
 
-   public boolean contains(Object o)
-   {  return set.contains(o);
-   }
-   
-   public Iterator iterator()
-   {  return new Iterator(set);
-   }   
+	public Iterator iterator() {
+		return new Iterator(set);
+	}
 }
-

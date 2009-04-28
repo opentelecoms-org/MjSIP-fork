@@ -23,46 +23,47 @@
 
 package org.zoolu.sip.header;
 
-
-
-
 /** SIP Status-line, i.e. the first line of a response message */
-public class StatusLine
-{
-   protected int code;
-   protected String reason;
+public class StatusLine {
+	protected int code;
+	protected String reason;
 
-   /** Construct StatusLine  */
-   public StatusLine(int c, String r)
-   {  code=c;
-      reason=r;
-   }
+	/** Construct StatusLine */
+	public StatusLine(int c, String r) {
+		code = c;
+		reason = r;
+	}
 
-   /** Create a new copy of the request-line*/
-   public Object clone()
-   {  return new StatusLine(getCode(),getReason());
-   }
+	/** Create a new copy of the request-line */
+	public Object clone() {
+		return new StatusLine(getCode(), getReason());
+	}
 
-   /** Indicates whether some other Object is "equal to" this StatusLine */
-   public boolean equals(Object obj)
-   {  //if (o.getClass().getSuperclass()!=this.getClass().getSuperclass()) return false;
-      try
-      {  StatusLine r=(StatusLine)obj;
-         if (r.getCode()==(this.getCode()) && r.getReason().equals(this.getReason())) return true;
-         else return false;
-      }
-      catch (Exception e) {  return false;  }
-   }
+	/** Indicates whether some other Object is "equal to" this StatusLine */
+	public boolean equals(Object obj) { // if
+		// (o.getClass().getSuperclass()!=this.getClass().getSuperclass())
+		// return false;
+		try {
+			StatusLine r = (StatusLine) obj;
+			if (r.getCode() == (this.getCode())
+					&& r.getReason().equals(this.getReason()))
+				return true;
+			else
+				return false;
+		} catch (Exception e) {
+			return false;
+		}
+	}
 
-   public String toString()
-   {  return "SIP/2.0 "+code+" "+reason+"\r\n";
-   }
+	public String toString() {
+		return "SIP/2.0 " + code + " " + reason + "\r\n";
+	}
 
-   public int getCode()
-   {  return code;
-   }
+	public int getCode() {
+		return code;
+	}
 
-   public String getReason()
-   {  return reason;
-   }
+	public String getReason() {
+		return reason;
+	}
 }

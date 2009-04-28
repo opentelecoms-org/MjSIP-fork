@@ -23,14 +23,13 @@
 
 package org.zoolu.sip.provider;
 
-
 import org.zoolu.sip.message.Message;
 
-
-/** A SipInterfaceListener listens for SipInterface onReceivedMessage(SipInterfaceListener,Message) events.
+/**
+ * A SipInterfaceListener listens for SipInterface
+ * onReceivedMessage(SipInterfaceListener,Message) events.
  */
-public interface SipInterfaceListener
-{
-   /** When a new Message is received by the SipInterface. */
-   public void onReceivedMessage(SipInterface sip, Message message);
+public interface SipInterfaceListener {
+	/** When a new Message is received by the SipInterface. */
+	public void onReceivedMessage(SipInterface sip, Message message);
 }

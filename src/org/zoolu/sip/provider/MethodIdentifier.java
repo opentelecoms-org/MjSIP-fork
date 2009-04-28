@@ -23,20 +23,17 @@
 
 package org.zoolu.sip.provider;
 
+/**
+ * MethodIdentifier is used to address specific methods to the SipProvider.
+ */
+public class MethodIdentifier extends Identifier {
+	/** Costructs a new MethodIdentifier. */
+	public MethodIdentifier(String method) {
+		super(method);
+	}
 
-
-
-/** MethodIdentifier is used to address specific methods to the SipProvider.
-  */
-public class MethodIdentifier extends Identifier
-{
-   /** Costructs a new MethodIdentifier. */
-   public MethodIdentifier(String method)
-   {  super(method);
-   }
-
-   /** Costructs a new MethodIdentifier. */
-   public MethodIdentifier(MethodIdentifier i)
-   {  super(i);
-   }
+	/** Costructs a new MethodIdentifier. */
+	public MethodIdentifier(MethodIdentifier i) {
+		super(i);
+	}
 }

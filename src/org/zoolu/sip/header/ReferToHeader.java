@@ -23,26 +23,25 @@
 
 package org.zoolu.sip.header;
 
-
 import org.zoolu.sip.address.*;
 
+/**
+ * SIP ReferTo header (RFC 3515).
+ * <p>
+ * Refer-To is a request header field (request-header). It appears in REFER
+ * requests. It provides a URL to reference.
+ */
+public class ReferToHeader extends NameAddressHeader {
 
-/** SIP ReferTo header (RFC 3515).
-  * <p>Refer-To is a request header field (request-header).
-  * It appears in REFER requests. It provides a URL to reference. */
-public class ReferToHeader extends NameAddressHeader
-{
+	public ReferToHeader(NameAddress nameaddr) {
+		super(SipHeaders.Refer_To, nameaddr);
+	}
 
-   public ReferToHeader(NameAddress nameaddr)
-   {  super(SipHeaders.Refer_To,nameaddr);
-   }
+	public ReferToHeader(SipURL url) {
+		super(SipHeaders.Refer_To, url);
+	}
 
-   public ReferToHeader(SipURL url)
-   {  super(SipHeaders.Refer_To,url);
-   }
-
-   public ReferToHeader(Header hd)
-   {  super(hd);
-   }
+	public ReferToHeader(Header hd) {
+		super(hd);
+	}
 }
-

@@ -23,21 +23,17 @@
 
 package org.zoolu.sip.provider;
 
+/**
+ * DialogIdentifier is used to address specific dialogs to the SipProvider.
+ */
+public class DialogIdentifier extends Identifier {
+	/** Costructs a new DialogIdentifier based on call-id, local and remote tags. */
+	public DialogIdentifier(String call_id, String local_tag, String remote_tag) {
+		id = call_id + "-" + local_tag + "-" + remote_tag;
+	}
 
-import org.zoolu.sip.message.Message;
-
-
-/** DialogIdentifier is used to address specific dialogs to the SipProvider.
-  */
-public class DialogIdentifier extends Identifier
-{
-   /** Costructs a new DialogIdentifier based on call-id, local and remote tags. */
-   public DialogIdentifier(String call_id, String local_tag, String remote_tag)
-   {  id=call_id+"-"+local_tag+"-"+remote_tag;
-   }
-
-   /** Costructs a new DialogIdentifier. */
-   public DialogIdentifier(DialogIdentifier i)
-   {  super(i);
-   }
+	/** Costructs a new DialogIdentifier. */
+	public DialogIdentifier(DialogIdentifier i) {
+		super(i);
+	}
 }

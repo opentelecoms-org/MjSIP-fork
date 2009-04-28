@@ -19,88 +19,125 @@
  * 
  * Author(s):
  * Luca Veltri (luca.veltri@unipr.it)
+ * Nitin Khanna, Hughes Systique Corp. (Reason: Android specific change, optmization, bug fix) 
  */
 
 package org.zoolu.sip.call;
-
 
 import org.zoolu.sdp.*;
 import java.util.Enumeration;
 import java.util.Vector;
 
+/**
+ * Class SdpTools collects some static methods for managing SDP materials.
+ */
+public class SdpTools {
+	/**
+	 * Costructs a new SessionDescriptor from a given SessionDescriptor with
+	 * olny media types and attribute values specified by a MediaDescriptor
+	 * Vector.
+	 * <p>
+	 * If no attribute is specified for a particular media, all present
+	 * attributes are kept. <br>
+	 * If no attribute is present for a selected media, the media is kept
+	 * (regardless any sepcified attributes).
+	 * 
+	 * @param sdp
+	 *            the given SessionDescriptor
+	 * @param m_descs
+	 *            Vector of MediaDescriptor with the selecting media types and
+	 *            attributes
+	 * @return this SessionDescriptor
+	 */
+	/* HSC CHANGES START */
+	public static SessionDescriptor sdpMediaProduct(SessionDescriptor sdp,
+			Vector<MediaDescriptor> m_descs) {
+		Vector<MediaDescriptor> new_media = new Vector<MediaDescriptor>();
+		if (m_descs != null) {
+			for (Enumeration<MediaDescriptor> e = m_descs.elements(); e
+					.hasMoreElements();) {
+				MediaDescriptor spec_md = e.nextElement();
+				// System.out.print("DEBUG: SDP: sdp_select:
+				// "+spec_md.toString());
+				MediaDescriptor prev_md = sdp.getMediaDescriptor(spec_md
+						.getMedia().getMedia());
+				// System.out.print("DEBUG: SDP: sdp_origin:
+				// "+prev_md.toString());
+				if (prev_md != null) {
+					Vector<AttributeField> spec_attributes = spec_md
+							.getAttributes();
+					Vector<AttributeField> prev_attributes = prev_md
+							.getAttributes();
+					if (spec_attributes.size() == 0
+							|| prev_attributes.size() == 0) {
+						new_media.addElement(prev_md);
+					} else {
+						Vector<AttributeField> new_attributes = new Vector<AttributeField>();
+						for (Enumeration<AttributeField> i = spec_attributes
+								.elements(); i.hasMoreElements();) {
+							AttributeField spec_attr = i.nextElement();
+							String spec_name = spec_attr.getAttributeName();
+							String spec_value = spec_attr.getAttributeValue();
+							for (Enumeration<AttributeField> k = prev_attributes
+									.elements(); k.hasMoreElements();) {
+								AttributeField prev_attr = k.nextElement();
+								String prev_name = prev_attr.getAttributeName();
+								String prev_value = prev_attr
+										.getAttributeValue();
+								if (prev_name.equals(spec_name)
+										&& prev_value
+												.equalsIgnoreCase(spec_value)) {
+									new_attributes.addElement(prev_attr);
+									break;
+								}
+							}
+						}
+						if (new_attributes.size() > 0)
+							new_media.addElement(new MediaDescriptor(prev_md
+									.getMedia(), prev_md.getConnection(),
+									new_attributes));
+					}
+				}
+			}
+		}
+		SessionDescriptor new_sdp = new SessionDescriptor(sdp);
+		new_sdp.removeMediaDescriptors();
+		new_sdp.addMediaDescriptors(new_media);
+		return new_sdp;
+	}
 
-/** Class SdpTools collects some static methods for managing SDP materials.
-  */
-public class SdpTools
-{
-   /** Costructs a new SessionDescriptor from a given SessionDescriptor
-     * with olny media types and attribute values specified by a MediaDescriptor Vector.
-     * <p> If no attribute is specified for a particular media, all present attributes are kept.
-     * <br>If no attribute is present for a selected media, the media is kept (regardless any sepcified attributes).
-     * @param sdp the given SessionDescriptor
-     * @param m_descs Vector of MediaDescriptor with the selecting media types and attributes
-     * @return this SessionDescriptor */
-   public static SessionDescriptor sdpMediaProduct(SessionDescriptor sdp, Vector<MediaDescriptor> m_descs)
-   {  Vector new_media=new Vector();
-      if (m_descs!=null)
-      {  for (Enumeration e=m_descs.elements(); e.hasMoreElements(); )
-         {  MediaDescriptor spec_md=(MediaDescriptor)e.nextElement();
-            //System.out.print("DEBUG: SDP: sdp_select: "+spec_md.toString());
-            MediaDescriptor prev_md=sdp.getMediaDescriptor(spec_md.getMedia().getMedia());
-            //System.out.print("DEBUG: SDP: sdp_origin: "+prev_md.toString());
-            if (prev_md!=null)
-            {  Vector spec_attributes=spec_md.getAttributes();
-               Vector prev_attributes=prev_md.getAttributes();
-               if (spec_attributes.size()==0 || prev_attributes.size()==0)
-               {  new_media.addElement(prev_md);
-               }
-               else
-               {  Vector new_attributes=new Vector();
-                  for (Enumeration i=spec_attributes.elements(); i.hasMoreElements(); )
-                  {  AttributeField spec_attr=(AttributeField)i.nextElement();
-                     String spec_name=spec_attr.getAttributeName();
-                     String spec_value=spec_attr.getAttributeValue();
-                     for (Enumeration k=prev_attributes.elements(); k.hasMoreElements(); )
-                     {  AttributeField prev_attr=(AttributeField)k.nextElement();
-                        String prev_name=prev_attr.getAttributeName();
-                        String prev_value=prev_attr.getAttributeValue();
-                        if (prev_name.equals(spec_name) && prev_value.equalsIgnoreCase(spec_value))
-                        {  new_attributes.addElement(prev_attr);
-                           break;
-                        }
-                     }
-                  }
-                  if (new_attributes.size()>0) new_media.addElement(new MediaDescriptor(prev_md.getMedia(),prev_md.getConnection(),new_attributes));
-               }
-            }
-         }
-      }
-      SessionDescriptor new_sdp=new SessionDescriptor(sdp);
-      new_sdp.removeMediaDescriptors();
-      new_sdp.addMediaDescriptors(new_media);
-      return new_sdp;
-   }
-   
-   /** Costructs a new SessionDescriptor from a given SessionDescriptor
-     * with olny the first specified media attribute.
-   /** Keeps only the fisrt attribute of the specified type for each media.
-     * <p> If no attribute is present for a media, the media is dropped.
-     * @param sdp the given SessionDescriptor
-     * @param a_name the attribute name
-     * @return this SessionDescriptor */
-   public static SessionDescriptor sdpAttirbuteSelection(SessionDescriptor sdp, String a_name)
-   {  Vector new_media=new Vector();
-      for (Enumeration e=sdp.getMediaDescriptors().elements(); e.hasMoreElements(); )
-      {  MediaDescriptor md=(MediaDescriptor)e.nextElement();
-         AttributeField attr=md.getAttribute(a_name);
-         if (attr!=null)
-         { new_media.addElement(new MediaDescriptor(md.getMedia(),md.getConnection(),attr));
-         }
-      }
-      SessionDescriptor new_sdp=new SessionDescriptor(sdp);
-      new_sdp.removeMediaDescriptors();
-      new_sdp.addMediaDescriptors(new_media);
-      return new_sdp;
-   }
+	/* HSC CHANGES END */
+	/**
+	 * Costructs a new SessionDescriptor from a given SessionDescriptor with
+	 * olny the first specified media attribute. /** Keeps only the fisrt
+	 * attribute of the specified type for each media.
+	 * <p>
+	 * If no attribute is present for a media, the media is dropped.
+	 * 
+	 * @param sdp
+	 *            the given SessionDescriptor
+	 * @param a_name
+	 *            the attribute name
+	 * @return this SessionDescriptor
+	 */
+	/* HSC CHANGES START */
+	public static SessionDescriptor sdpAttirbuteSelection(
+			SessionDescriptor sdp, String a_name) {
+		Vector<MediaDescriptor> new_media = new Vector<MediaDescriptor>();
+		for (Enumeration<MediaDescriptor> e = sdp.getMediaDescriptors()
+				.elements(); e.hasMoreElements();) {
+			/* HSC CHANGES END */
+			MediaDescriptor md = e.nextElement();
+			AttributeField attr = md.getAttribute(a_name);
+			if (attr != null) {
+				new_media.addElement(new MediaDescriptor(md.getMedia(), md
+						.getConnection(), attr));
+			}
+		}
+		SessionDescriptor new_sdp = new SessionDescriptor(sdp);
+		new_sdp.removeMediaDescriptors();
+		new_sdp.addMediaDescriptors(new_media);
+		return new_sdp;
+	}
 
 }

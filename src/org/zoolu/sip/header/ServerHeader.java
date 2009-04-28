@@ -23,27 +23,23 @@
 
 package org.zoolu.sip.header;
 
-
-
-
 /** Server header that carries information about the UAS */
-public class ServerHeader extends Header
-{
-   public ServerHeader(String info)
-   {  super(SipHeaders.Server,info);
-   }
+public class ServerHeader extends Header {
+	public ServerHeader(String info) {
+		super(SipHeaders.Server, info);
+	}
 
-   public ServerHeader(Header hd)
-   {  super(hd);
-   }
+	public ServerHeader(Header hd) {
+		super(hd);
+	}
 
-   /** Gets UAS information */
-   public String getInfo()
-   {  return value;
-   }
+	/** Gets UAS information */
+	public String getInfo() {
+		return value;
+	}
 
-   /** Sets the UAS information */
-   public void setInfo(String info)
-   {  value=info;
-   }
+	/** Sets the UAS information */
+	public void setInfo(String info) {
+		value = info;
+	}
 }

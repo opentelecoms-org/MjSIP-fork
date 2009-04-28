@@ -23,30 +23,27 @@
 
 package org.zoolu.sip.header;
 
-
-
 /** SIP Header Accept */
-public class AcceptHeader extends ParametricHeader
-{
-   public AcceptHeader()
-   {  super(SipHeaders.Accept,"application/sdp");
-   }
+public class AcceptHeader extends ParametricHeader {
+	public AcceptHeader() {
+		super(SipHeaders.Accept, "application/sdp");
+	}
 
-   public AcceptHeader(String hvalue)
-   {  super(SipHeaders.Accept,hvalue);
-   }
+	public AcceptHeader(String hvalue) {
+		super(SipHeaders.Accept, hvalue);
+	}
 
-   public AcceptHeader(Header hd)
-   {  super(hd);
-   }
+	public AcceptHeader(Header hd) {
+		super(hd);
+	}
 
-   /** Gets the accept-range */
-   public String getAcceptRange()
-   {  return value;
-   }
+	/** Gets the accept-range */
+	public String getAcceptRange() {
+		return value;
+	}
 
-   /** Sets the accept-range */
-   public void setAcceptRange(String range)
-   {  value=range;
-   }
+	/** Sets the accept-range */
+	public void setAcceptRange(String range) {
+		value = range;
+	}
 }

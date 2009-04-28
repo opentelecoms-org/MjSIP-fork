@@ -23,27 +23,27 @@
 
 package org.zoolu.tools;
 
-
 /** Class InnerTimer implements a separated-thread timer */
-class InnerTimer extends Thread
-{
-   long timeout;
-   InnerTimerListener listener;
-   
-   public InnerTimer(long timeout, InnerTimerListener listener)
-   {  this.timeout=timeout;
-      this.listener=listener;
-      start(); 
-   }  
+class InnerTimer extends Thread {
+	long timeout;
+	InnerTimerListener listener;
 
-   public void run()
-   {  if (listener!=null)
-      {  try
-         {  Thread.sleep(timeout);
-            listener.onInnerTimeout();
-         }
-         catch (Exception e) { e.printStackTrace(); }
-         listener=null;
-      }
-   }   
+	public InnerTimer(long timeout, InnerTimerListener listener) {
+		this.timeout = timeout;
+		this.listener = listener;
+		start();
+	}
+
+	public void run() {
+		if (listener != null) {
+			try {
+				Thread.sleep(timeout);
+				listener.onInnerTimeout();
+			} catch (Exception e) {
+
+				e.printStackTrace();
+			}
+			listener = null;
+		}
+	}
 }

@@ -23,17 +23,13 @@
 
 package org.zoolu.sip.header;
 
-
-
-
 /** SIP Header Supported */
-public class SupportedHeader extends OptionHeader
-{
-   public SupportedHeader(String option)
-   {  super(SipHeaders.Supported,option);
-   }
+public class SupportedHeader extends OptionHeader {
+	public SupportedHeader(String option) {
+		super(SipHeaders.Supported, option);
+	}
 
-   public SupportedHeader(Header hd)
-   {  super(hd);
-   }
+	public SupportedHeader(Header hd) {
+		super(hd);
+	}
 }

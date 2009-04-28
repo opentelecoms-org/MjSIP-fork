@@ -23,121 +23,115 @@
 
 package org.zoolu.tools;
 
+/**
+ * Simple and fast hash/message-digest algorithm.
+ */
+public class SimpleDigest extends MessageDigest {
 
+	// ************************* Attributes *************************
 
-/** Simple and fast hash/message-digest algorithm.
-  */
-public class SimpleDigest extends MessageDigest
-{
+	/** The digest */
+	byte[] message_digest;
 
-   // ************************* Attributes *************************
+	/** Whether is finalized. */
+	boolean is_done;
 
-   /** The digest */
-   byte[] message_digest;
+	/** Index within the message_digest. */
+	int index;
 
-   /** Whether is finalized. */
-   boolean is_done;
+	/** Add term */
+	byte add_term;
 
-   /** Index within the message_digest. */
-   int index;
+	// *********************** Public methods ***********************
 
-   /** Add term */
-   byte add_term;
+	/** Constructor */
+	public SimpleDigest(int size) {
+		init(size);
+	}
 
-   
-   // *********************** Public methods ***********************
+	/** Constructor */
+	public SimpleDigest(int size, byte[] buffer) {
+		init(size);
+		update(buffer);
+	}
 
-   /** Constructor */
-   public SimpleDigest(int size)
-   {  init(size);
-   }
+	/** Constructor */
+	public SimpleDigest(int size, byte[] buffer, int offset, int len) {
+		init(size);
+		update(buffer, offset, len);
+	}
 
+	/** Constructor */
+	public SimpleDigest(int size, String str) {
+		init(size);
+		update(str);
+	}
 
-   /** Constructor */
-   public SimpleDigest(int size, byte[] buffer)
-   {  init(size);
-      update(buffer);
-   }
+	/** Inits the SimpleDigest */
+	private void init(int size) {
+		is_done = false;
+		message_digest = new byte[size];
+		for (int i = 0; i < size; i++)
+			message_digest[i] = (byte) (i);
+		index = 0;
+		add_term = 0;
+	}
 
+	/**
+	 * MessageDigest block update operation. Continues a message-digest
+	 * operation, processing another message block, and updating the context.
+	 */
+	public MessageDigest update(byte[] buffer, int offset, int len) {
+		if (is_done)
+			return this;
+		// else
 
-   /** Constructor */
-   public SimpleDigest(int size, byte[] buffer, int offset, int len)
-   {  init(size);
-      update(buffer,offset,len);
-   }
+		for (int i = 0; i < len; i++) {
+			if (index == message_digest.length)
+				index = 0;
+			add_term += buffer[offset + i];
+			message_digest[index] = (byte) (message_digest[index] ^ add_term);
+			index++;
+		}
+		return this;
+	}
 
+	/**
+	 * MessageDigest finalization. Ends a message-digest operation, writing the
+	 * the message digest and zeroizing the context.
+	 */
+	public byte[] doFinal() {
+		if (is_done)
+			return message_digest;
+		// else
 
-   /** Constructor */
-   public SimpleDigest(int size, String str)
-   {  init(size);
-      update(str);
-   }
+		int k = message_digest.length - index;
+		while (index < message_digest.length) {
+			message_digest[index] = (byte) (message_digest[index] ^ (k));
+			index++;
+			k++;
+		}
+		for (int i = 0; i < message_digest.length; i++)
+			message_digest[i] = (byte) (message_digest[i] ^ add_term);
 
+		return message_digest;
+	}
 
-   /** Inits the SimpleDigest */
-   private void init(int size)
-   {  is_done=false;
-      message_digest=new byte[size];
-      for (int i=0; i<size; i++) message_digest[i]=(byte)(i);
-      index=0;
-      add_term=0;
-   }
+	/** Calculates the SimpleDigest. */
+	public static byte[] digest(int size, byte[] buffer, int offset, int len) {
+		MessageDigest md = new SimpleDigest(size, buffer, offset, len);
+		return md.doFinal();
+	}
 
+	/** Calculates the SimpleDigest. */
+	public static byte[] digest(int size, byte[] buffer) {
+		return digest(size, buffer, 0, buffer.length);
+	}
 
-   /** MessageDigest block update operation.
-     * Continues a message-digest operation,
-     * processing another message block, and updating the context. */
-   public MessageDigest update(byte[] buffer, int offset, int len)
-   {
-      if (is_done) return this;
-      //else
-       
-      for (int i=0; i<len; i++)
-      {  if (index==message_digest.length) index=0;
-         add_term+=buffer[offset+i];
-         message_digest[index]=(byte)(message_digest[index]^add_term);
-         index++;
-      }
-      return this;
-   }
+	/** Calculates the SimpleDigest. */
+	public static byte[] digest(int size, String str) {
+		MessageDigest md = new SimpleDigest(size, str);
+		return md.doFinal();
+	}
 
-
-   /** MessageDigest finalization. Ends a message-digest operation, writing the
-     * the message digest and zeroizing the context. */
-   public byte[] doFinal()
-   {
-      if (is_done) return message_digest;
-      //else
-
-      int k=message_digest.length-index;
-      while (index<message_digest.length)
-      {  message_digest[index]=(byte)(message_digest[index]^(k));
-         index++;
-         k++;
-      }     
-      for (int i=0; i<message_digest.length; i++) message_digest[i]=(byte)(message_digest[i]^add_term);    
-
-      return message_digest;
-   }
-
-   
-   /** Calculates the SimpleDigest. */
-   public static byte[] digest(int size, byte[] buffer, int offset, int len)
-   {  MessageDigest md=new SimpleDigest(size,buffer,offset,len);
-      return md.doFinal();
-   }
-
-
-   /** Calculates the SimpleDigest. */
-   public static byte[] digest(int size, byte[] buffer)
-   {  return digest(size,buffer,0,buffer.length);
-   }
-
-
-   /** Calculates the SimpleDigest. */
-   public static byte[] digest(int size, String str)
-   {  MessageDigest md=new SimpleDigest(size,str);
-      return md.doFinal();
-   }
-   
 }

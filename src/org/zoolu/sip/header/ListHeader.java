@@ -19,52 +19,54 @@
  * 
  * Author(s):
  * Luca Veltri (luca.veltri@unipr.it)
+ * Nitin Khanna, Hughes Systique Corp. (Reason: Android specific change, optmization, bug fix) 
  */
 
 package org.zoolu.sip.header;
 
-
 import org.zoolu.tools.Parser;
 import java.util.Vector;
 
-
 /** Generic SIP Header containing a list of tokens (Strings). */
-public abstract class ListHeader extends Header
-{
-   public ListHeader(String hname, String hvalue)
-   {  super(hname,hvalue);
-   }
+public abstract class ListHeader extends Header {
+	public ListHeader(String hname, String hvalue) {
+		super(hname, hvalue);
+	}
 
-   public ListHeader(Header hd)
-   {  super(hd);
-   }
+	public ListHeader(Header hd) {
+		super(hd);
+	}
 
-   /** Gets list of tokens (as Vector of Strings). */
-   public Vector<String> getElements()
-   {  Vector elements=new Vector();
-      Parser par=new Parser(value);
-      char[] delim={ ',' };
-      while (par.hasMore())
-      {  String elem=par.getWord(delim).trim();
-         if (elem!=null && elem.length()>0) elements.addElement(elem);
-         par.skipChar();
-      } 
-      return elements;
-   }
+	/** Gets list of tokens (as Vector of Strings). */
+	public Vector<String> getElements() {
+		Vector<String> elements = new Vector<String>();
+		Parser par = new Parser(value);
+		char[] delim = { ',' };
+		while (par.hasMore()) {
+			String elem = par.getWord(delim).trim();
+			if (elem != null && elem.length() > 0)
+				elements.addElement(elem);
+			par.skipChar();
+		}
+		return elements;
+	}
 
-   /** Sets the list of tokens. */
-   public void setElements(Vector<String> elements)
-   {  StringBuffer sb=new StringBuffer();
-      for (int i=0; i<elements.size(); i++)
-      {  if (i>0) sb.append(", "); 
-         sb.append((String)elements.elementAt(i));
-      }
-      value=sb.toString();
-   }
+	/** Sets the list of tokens. */
+	public void setElements(Vector<String> elements) {
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < elements.size(); i++) {
+			if (i > 0)
+				sb.append(", ");
+			sb.append((String) elements.elementAt(i));
+		}
+		value = sb.toString();
+	}
 
-   /** Adds a new token to the elements list. */
-   public void addElement(String elem)
-   {  if (value==null || value.length()==0) value=elem;
-      else value+=", "+elem;
-   }
+	/** Adds a new token to the elements list. */
+	public void addElement(String elem) {
+		if (value == null || value.length() == 0)
+			value = elem;
+		else
+			value += ", " + elem;
+	}
 }

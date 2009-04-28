@@ -19,31 +19,33 @@
  * 
  * Author(s):
  * Luca Veltri (luca.veltri@unipr.it)
+ * Nitin Khanna, Hughes Systique Corp. (Reason: Android specific change, optmization, bug fix) 
  */
 
 package org.zoolu.sip.header;
 
-
 import java.util.Vector;
 
-
 /** SIP Authorization header */
-public class AuthorizationHeader extends AuthenticationHeader
-{
-   /** Creates a new AuthorizationHeader */
-   public AuthorizationHeader(String hvalue)
-   {  super(SipHeaders.Authorization,hvalue);
-   }
+public class AuthorizationHeader extends AuthenticationHeader {
+	/** Creates a new AuthorizationHeader */
+	public AuthorizationHeader(String hvalue) {
+		super(SipHeaders.Authorization, hvalue);
+	}
 
-   /** Creates a new AuthorizationHeader */
-   public AuthorizationHeader(Header hd)
-   {  super(hd);
-   }
-   
-   /** Creates a new AuthorizationHeader
-     * specifing the <i>auth_scheme</i> and the vector of authentication parameters.
-     * <p> <i>auth_param</i> is a vector of String of the form <i>parm_name</i> "=" <i>parm_value</i> */
-   public AuthorizationHeader(String auth_scheme, Vector<String> auth_params)
-   {  super(SipHeaders.Authorization,auth_scheme,auth_params);
-   }
+	/** Creates a new AuthorizationHeader */
+	public AuthorizationHeader(Header hd) {
+		super(hd);
+	}
+
+	/**
+	 * Creates a new AuthorizationHeader specifing the <i>auth_scheme</i> and
+	 * the vector of authentication parameters.
+	 * <p>
+	 * <i>auth_param</i> is a vector of String of the form <i>parm_name</i>
+	 * "=" <i>parm_value</i>
+	 */
+	public AuthorizationHeader(String auth_scheme, Vector<String> auth_params) {
+		super(SipHeaders.Authorization, auth_scheme, auth_params);
+	}
 }

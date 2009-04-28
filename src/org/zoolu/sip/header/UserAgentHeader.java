@@ -23,27 +23,23 @@
 
 package org.zoolu.sip.header;
 
-
-
-
 /** User-Agent header that carries information about the UAC */
-public class UserAgentHeader extends Header
-{
-   public UserAgentHeader(String info)
-   {  super(SipHeaders.User_Agent,info);
-   }
+public class UserAgentHeader extends Header {
+	public UserAgentHeader(String info) {
+		super(SipHeaders.User_Agent, info);
+	}
 
-   public UserAgentHeader(Header hd)
-   {  super(hd);
-   }
+	public UserAgentHeader(Header hd) {
+		super(hd);
+	}
 
-   /** Gets UAC information */
-   public String getInfo()
-   {  return value;
-   }
+	/** Gets UAC information */
+	public String getInfo() {
+		return value;
+	}
 
-   /** Sets the UAC information */
-   public void setInfo(String info)
-   {  value=info;
-   }
+	/** Sets the UAC information */
+	public void setInfo(String info) {
+		value = info;
+	}
 }

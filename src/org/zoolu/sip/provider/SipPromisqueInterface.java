@@ -23,21 +23,16 @@
 
 package org.zoolu.sip.provider;
 
-
-import org.zoolu.sip.message.Message;
-
-
-/** SipPromisqueInterface is the SipInterface for capturing
-  * all SIP messages in PROMISQUE mode.
-  * All incoming messages are passed to the listener associated to the SipPromisqueInterface
-  * regardless of any other opened SipInterface.
-  * <p/>
-  * More than one SipPromisqueInterface can be open concurrently.
-  */
-public class SipPromisqueInterface extends SipInterface
-{
-   /** Creates a new SipPromisqueInterface. */ 
-   public SipPromisqueInterface(SipProvider sip_provider, SipInterfaceListener listener)
-   {  super(sip_provider,SipProvider.PROMISQUE,listener);
-   }
+/**
+ * SipPromisqueInterface is the SipInterface for capturing all SIP messages in
+ * PROMISQUE mode. All incoming messages are passed to the listener associated
+ * to the SipPromisqueInterface regardless of any other opened SipInterface.
+ * <p/> More than one SipPromisqueInterface can be open concurrently.
+ */
+public class SipPromisqueInterface extends SipInterface {
+	/** Creates a new SipPromisqueInterface. */
+	public SipPromisqueInterface(SipProvider sip_provider,
+			SipInterfaceListener listener) {
+		super(sip_provider, SipProvider.PROMISQUE, listener);
+	}
 }

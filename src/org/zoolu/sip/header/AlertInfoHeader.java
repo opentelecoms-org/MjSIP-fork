@@ -23,34 +23,37 @@
 
 package org.zoolu.sip.header;
 
-
-
 /** SIP Header Allert-Info */
-public class AlertInfoHeader extends ParametricHeader
-{
-   public AlertInfoHeader(String absolute_uri)
-   {  super(SipHeaders.Alert_Info,null);
-      setAbsoluteURI(absolute_uri);
-   }
+public class AlertInfoHeader extends ParametricHeader {
+	public AlertInfoHeader(String absolute_uri) {
+		super(SipHeaders.Alert_Info, null);
+		setAbsoluteURI(absolute_uri);
+	}
 
-   public AlertInfoHeader(Header hd)
-   {  super(hd);
-   }
+	public AlertInfoHeader(Header hd) {
+		super(hd);
+	}
 
-   /** Gets the absoluteURI */
-   public String getAbsoluteURI()
-   {  int begin=value.indexOf("<");
-      int end=value.indexOf(">");
-      if (begin<0) begin=0; else begin++; 
-      if (end<0) end=value.length(); 
-      return value.substring(begin,end);
-   }
+	/** Gets the absoluteURI */
+	public String getAbsoluteURI() {
+		int begin = value.indexOf("<");
+		int end = value.indexOf(">");
+		if (begin < 0)
+			begin = 0;
+		else
+			begin++;
+		if (end < 0)
+			end = value.length();
+		return value.substring(begin, end);
+	}
 
-   /** Sets the absoluteURI */
-   public void setAbsoluteURI(String absolute_uri)
-   {  absolute_uri=absolute_uri.trim();
-      if (absolute_uri.indexOf("<")<0) absolute_uri="<"+absolute_uri;
-      if (absolute_uri.indexOf(">")<0) absolute_uri=absolute_uri+">";
-      value=absolute_uri;
-   }
+	/** Sets the absoluteURI */
+	public void setAbsoluteURI(String absolute_uri) {
+		absolute_uri = absolute_uri.trim();
+		if (absolute_uri.indexOf("<") < 0)
+			absolute_uri = "<" + absolute_uri;
+		if (absolute_uri.indexOf(">") < 0)
+			absolute_uri = absolute_uri + ">";
+		value = absolute_uri;
+	}
 }

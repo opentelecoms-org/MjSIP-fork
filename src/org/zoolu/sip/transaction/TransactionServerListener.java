@@ -23,16 +23,17 @@
 
 package org.zoolu.sip.transaction;
 
-
 import org.zoolu.sip.message.Message;
 
-
-/** A TransactionServerListener listens for TransactionServer events.
-  * It collects all TransactionServer callback functions.
-  */
-public interface TransactionServerListener
-{  
-   /** When the TransactionServer goes into the "Trying" state receiving a request */
-   public void onTransRequest(TransactionServer ts, Message req);  
+/**
+ * A TransactionServerListener listens for TransactionServer events. It collects
+ * all TransactionServer callback functions.
+ */
+public interface TransactionServerListener {
+	/**
+	 * When the TransactionServer goes into the "Trying" state receiving a
+	 * request
+	 */
+	public void onTransRequest(TransactionServer ts, Message req);
 
 }

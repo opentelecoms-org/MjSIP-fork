@@ -23,61 +23,67 @@
 
 package org.zoolu.sip.header;
 
-
 import org.zoolu.sip.address.*;
 import org.zoolu.sip.provider.SipParser;
 import org.zoolu.tools.Parser;
 
+/**
+ * Abstract NameAddress Header is the base Class for SIP Headers such as
+ * EndPointHeader. It contains a NameAddress, formed by a SIP URI and optionally
+ * a display name.
+ */
+public abstract class NameAddressHeader extends ParametricHeader {
+	/** Creates a new NameAddressHeader. */
+	// public NameAddressHeader(String hname)
+	// { super(hname);
+	// }
+	/** Creates a new NameAddressHeader. */
+	public NameAddressHeader(String hname, NameAddress nameaddr) {
+		super(hname, nameaddr.toString());
+	}
 
-/** Abstract NameAddress Header is the base Class for SIP Headers such as EndPointHeader.
-  * It contains a NameAddress, formed by a SIP URI and optionally a display name.
-  */
-public abstract class NameAddressHeader extends ParametricHeader
-{
-   /** Creates a new NameAddressHeader. */
-   //public NameAddressHeader(String hname)
-   //{  super(hname);
-   //}
+	/** Creates a new NameAddressHeader. */
+	public NameAddressHeader(String hname, SipURL url) {
+		super(hname, url.toString());
+	}
 
-   /** Creates a new NameAddressHeader. */
-   public NameAddressHeader(String hname, NameAddress nameaddr)
-   {  super(hname,nameaddr.toString());
-   }
+	/** Creates a new NameAddressHeader. */
+	public NameAddressHeader(Header hd) {
+		super(hd);
+	}
 
-   /** Creates a new NameAddressHeader. */
-   public NameAddressHeader(String hname, SipURL url)
-   {  super(hname,url.toString());
-   }
+	/**
+	 * Gets NameAddress of NameAddressHeader (Returns null if NameAddress does
+	 * not exist - i.e. wildcard ContactHeader)
+	 */
+	public NameAddress getNameAddress() {
+		NameAddress naddr = (new SipParser(value)).getNameAddress();
+		return naddr;
+	}
 
-   /** Creates a new NameAddressHeader. */
-   public NameAddressHeader(Header hd)
-   {  super(hd);
-   }
+	/** Sets NameAddress of NameAddressHeader */
+	public void setNameAddress(NameAddress naddr) {
+		value = naddr.toString();
+	}
 
-   /** Gets NameAddress of NameAddressHeader (Returns null if NameAddress does not exist - i.e. wildcard ContactHeader) */
-   public NameAddress getNameAddress()
-   {  NameAddress naddr=(new SipParser(value)).getNameAddress();
-      return naddr;
-   }
+	// ***************** ParametricHeader's extended method *****************
 
-   /** Sets NameAddress of NameAddressHeader */
-   public void setNameAddress(NameAddress naddr)
-   {  value=naddr.toString();
-   }
-   
-   
-   // ***************** ParametricHeader's extended method *****************
-   
-   /** Returns the index of the first semicolon before the first parameter.
-     * @returns the index of the semicolon before the first parameter, or -1 if no parameter is present. */
-   protected int indexOfFirstSemi()
-   {  Parser par=new Parser(value);
-      par.goToSkippingQuoted('>');
-      if (par.getPos()==value.length()) par.setPos(0);
-      par.goToSkippingQuoted(';');
-      if (par.getPos()<value.length()) return par.getPos();
-      else return -1;
-   }
-
+	/**
+	 * Returns the index of the first semicolon before the first parameter.
+	 * 
+	 * @returns the index of the semicolon before the first parameter, or -1 if
+	 *          no parameter is present.
+	 */
+	protected int indexOfFirstSemi() {
+		Parser par = new Parser(value);
+		par.goToSkippingQuoted('>');
+		if (par.getPos() == value.length())
+			par.setPos(0);
+		par.goToSkippingQuoted(';');
+		if (par.getPos() < value.length())
+			return par.getPos();
+		else
+			return -1;
+	}
 
 }

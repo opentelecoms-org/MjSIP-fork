@@ -23,17 +23,13 @@
 
 package org.zoolu.sip.header;
 
-
-
-
 /** SIP Header Proxy-Require */
-public class ProxyRequireHeader extends OptionHeader
-{
-   public ProxyRequireHeader(String option)
-   {  super(SipHeaders.Proxy_Require,option);
-   }
+public class ProxyRequireHeader extends OptionHeader {
+	public ProxyRequireHeader(String option) {
+		super(SipHeaders.Proxy_Require, option);
+	}
 
-   public ProxyRequireHeader(Header hd)
-   {  super(hd);
-   }
+	public ProxyRequireHeader(Header hd) {
+		super(hd);
+	}
 }
