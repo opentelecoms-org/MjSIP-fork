@@ -27,7 +27,7 @@ package org.zoolu.tools;
  * Class InnerTimerST implements a single-thread timer. The same thread is used
  * for all instances of class InnerTimerST.
  */
-class InnerTimerST extends java.util.TimerTask {
+class InnerTimerST extends java.util.TimerTask implements InnerTimer {
 	static java.util.Timer single_timer = new java.util.Timer(true);
 
 	// long timeout;
