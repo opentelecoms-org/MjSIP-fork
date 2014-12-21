@@ -1,0 +1,1082 @@
+/*
+ * Copyright (C) 2005 Luca Veltri - University of Parma - Italy
+ * 
+ * This source code is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This source code is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this source code; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * 
+ * Author(s):
+ * Luca Veltri (luca.veltri@unipr.it)
+ */
+
+package local.ua;
+
+
+import local.media.AudioClipPlayer;
+import org.zoolu.sip.call.*;
+import org.zoolu.sip.address.*;
+import org.zoolu.sip.provider.SipStack;
+import org.zoolu.sip.provider.SipProvider;
+import org.zoolu.sip.header.ExpiresHeader;
+import org.zoolu.sip.header.ContactHeader;
+import org.zoolu.sip.header.CallIdHeader;
+import org.zoolu.sip.header.StatusLine;
+import org.zoolu.sip.transaction.TransactionClient;
+import org.zoolu.sip.transaction.TransactionClientListener;
+import org.zoolu.sip.call.*;
+import org.zoolu.sip.message.*;
+import org.zoolu.sdp.*;
+import org.zoolu.tools.Log;
+import org.zoolu.tools.LogLevel;
+import org.zoolu.tools.Parser;
+import org.zoolu.tools.Archive;
+
+//import java.util.Iterator;
+import java.util.Enumeration;
+import java.util.Vector;
+import java.io.*;
+
+
+/** Simple command-line-based SIP user agent (UA).
+  * It includes audio/video applications.
+  * <p>It can use external audio/video tools as media applications.
+  * Currently only RAT (Robust Audio Tool) and VIC are supported as external applications.
+  */
+public class UserAgent extends CallListenerAdapter implements UserAgentListener, RegisterUAListener
+{           
+   /** Event logger. */
+   Log log=null;
+
+   /** UserAgentProfile */
+   protected UserAgentProfile user_profile;
+
+   /** SipProvider */
+   protected SipProvider sip_provider;
+
+   /** Call */
+   //Call call;
+   protected ExtendedCall call;
+
+   /** Call transfer */
+   protected ExtendedCall call_transfer;
+   
+   /** Audio application */
+   protected MediaLauncher audio_app=null;
+   /** Video application */
+   protected MediaLauncher video_app=null;
+   
+   /** Local sdp */
+   protected String local_session=null;
+
+   /** UserAgent listener */
+   protected UserAgentListener ua_listener=null;
+
+   /** Media file path */
+   final String MEDIA_PATH="media/local/ua/";
+
+   /** On wav file */
+   final String CLIP_ON=MEDIA_PATH+"on.wav";
+   /** Off wav file */
+   final String CLIP_OFF=MEDIA_PATH+"off.wav";
+   /** Ring wav file */
+   final String CLIP_RING=MEDIA_PATH+"ring.wav";
+
+   /** Ring sound */
+   AudioClipPlayer clip_ring;
+   /** On sound */
+   AudioClipPlayer clip_on;
+   /** Off sound */
+   AudioClipPlayer clip_off;
+   
+   
+   /** RegisterUA */
+   RegisterUA register_ua=null;
+
+
+   // *********************** Startup Configuration ***********************   
+     
+   /** STATE_IDLE=0 */
+   static final String STATE_IDLE="IDLE";
+   /** STATE_INCOMING_CALL=1 */
+   static final String STATE_INCOMING_CALL="INCOMING_CALL";
+   /** STATE_OUTGOING_CALL=2 */
+   static final String STATE_OUTGOING_CALL="OUTGOING_CALL";
+   /** STATE_ONCALL=3 */
+   static final String STATE_ONCALL="ONCALL";
+   
+   /** Call state
+     * <P>STATE_IDLE=0, <BR>STATE_INCOMING_CALL=1, <BR>STATE_OUTGOING_CALL=2, <BR>STATE_ONCALL=3 */
+   String call_state=STATE_IDLE;
+   
+
+
+   // *************************** Basic methods ***************************   
+
+   /** Changes the call state */
+   public void changeStatus(String state)
+   {  call_state=state;
+      //printLog("state: "+call_state,LogLevel.MEDIUM); 
+   }
+
+   /** Checks the call state */
+   public boolean statusIs(String state)
+   {  return call_state.equals(state); 
+   }
+
+   /** Gets the call state */
+   public String getStatus()
+   {  return call_state; 
+   }
+   
+   /** Sets the auto accept mode (default is false) */
+   public void setAutoAcceptMode(boolean accept)
+   {  user_profile.auto_accept=accept; 
+   }
+
+   /** Sets the hangup time (default is 0, that corresponds to manual hangup mode) */
+   public void setHangupTime(int time)
+   {  user_profile.hangup_time=time; 
+   }
+      
+   /** Sets the redirection url (default is null, that is no redircetion) */
+   public void setRedirection(String url)
+   {  user_profile.redirect_to=url; 
+   }
+      
+   /** Sets the no offer mode for the invite (default is false) */
+   public void setNoOfferMode(boolean nooffer)
+   {  user_profile.no_offer=nooffer;
+   }
+
+   /** Enables audio */
+   public void setAudio(boolean enable)
+   {  user_profile.audio=enable;
+   }
+
+   /** Enables video */
+   public void setVideo(boolean enable)
+   {  user_profile.video=enable;
+   }
+   
+   /** Sets the receive only mode */
+   public void setReceiveOnlyMode(boolean r_only)
+   {  user_profile.recv_only=r_only;
+   }
+
+   /** Sets the send only mode */
+   public void setSendOnlyMode(boolean s_only)
+   {  user_profile.send_only=s_only;
+   }
+
+   /** Sets the send tone mode */
+   public void setSendToneMode(boolean s_tone)
+   {  user_profile.send_tone=s_tone;
+   }
+
+   /** Sets the send file mode */
+   public void setSendFileMode(boolean s_file)
+   {  user_profile.send_file=s_file;
+   }
+
+
+   /** Gets the local SDP */
+   public String getSessionDescriptor()
+   {  return local_session;
+   }   
+
+   /** Sets the local SDP */
+   public void setSessionDescriptor(String sdp)
+   {  local_session=sdp;
+   }
+
+   /** Inits the local SDP (no media spec) */
+   public void initSessionDescriptor()
+   {  SessionDescriptor sdp=new SessionDescriptor(user_profile.from_url,sip_provider.getViaAddress());
+      local_session=sdp.toString();
+   }
+
+   /** Adds a media to the SDP */
+   public void addMediaDescriptor(String media, int port, int avp, String codec, int rate)
+   {  if (local_session==null) initSessionDescriptor();
+      SessionDescriptor sdp=new SessionDescriptor(local_session);
+      String attr_param=String.valueOf(avp);
+      if (codec!=null) attr_param+=" "+codec+"/"+rate;
+      sdp.addMedia(new MediaField(media,port,0,"RTP/AVP",String.valueOf(avp)),new AttributeField("rtpmap",attr_param));
+      local_session=sdp.toString();
+   }
+
+   
+   // *************************** Public Methods **************************
+
+   /** Costructs a UA with a default media port */
+   public UserAgent(SipProvider sip_provider, UserAgentProfile user_profile, UserAgentListener listener)
+   {  this.sip_provider=sip_provider;
+      log=sip_provider.getLog();
+      this.user_profile=user_profile;
+      ua_listener=listener;
+      // if no contact_url and/or from_url has been set, create it now
+      if (user_profile.contact_url==null)
+      {  user_profile.contact_url="sip:"+user_profile.contact_user+"@"+sip_provider.getViaAddress();
+         if (sip_provider.getPort()!=SipStack.default_port) user_profile.contact_url+=":"+sip_provider.getPort();
+         if (!sip_provider.getDefaultTransport().equals(SipProvider.PROTO_UDP)) user_profile.contact_url+=";transport="+sip_provider.getDefaultTransport();
+      }
+      if (user_profile.from_url==null)
+         user_profile.from_url=user_profile.contact_url;
+      // load sounds  
+      try
+      {  String jar_file=user_profile.ua_jar;
+         clip_on=new AudioClipPlayer(Archive.getAudioInputStream(jar_file,CLIP_ON),null);
+         clip_off=new AudioClipPlayer(Archive.getAudioInputStream(jar_file,CLIP_OFF),null);
+         clip_ring=new AudioClipPlayer(Archive.getAudioInputStream(jar_file,CLIP_RING),null);
+      }
+      catch (Exception e)
+      {  printException(e,LogLevel.HIGH);
+      }
+      //clip_ring=new AudioClipPlayer(CLIP_RING,null);
+      //clip_on=new AudioClipPlayer(CLIP_ON,null);
+      //clip_off=new AudioClipPlayer(CLIP_OFF,null);
+
+      // set local sdp
+      initSessionDescriptor();
+      if (user_profile.audio || !user_profile.video) addMediaDescriptor("audio",user_profile.audio_port,user_profile.audio_avp,user_profile.audio_codec,user_profile.audio_rate);
+      if (user_profile.video) addMediaDescriptor("video",user_profile.video_port,user_profile.video_avp,null,0);     
+
+      //newCall();
+   } 
+   
+   /** Creates a new call */
+   private void newCall()
+   {  call=new ExtendedCall(sip_provider,user_profile.from_url,user_profile.contact_url,this);      
+   }
+
+   /** Creates a new session descriptor */
+   /*private void newSession(int media_port)
+   {  SessionDescriptor local_sdp=new SessionDescriptor(user_profile.from_url,sip_provider.getAddress());
+      int audio_port=media_port;
+      int video_port=media_port+2;
+      //PATCH [040902] if (audio || !video) local_sdp.addMedia(new MediaField("audio",audio_port,0,"RTP/AVP","0"),new AttributeField("rtpmap","0 PCMU/8000"));
+      //PATCH [040902] if (video || !(audio || video)) local_sdp.addMedia(new MediaField("video",video_port,0,"RTP/AVP","7"),new AttributeField("rtpmap","17"));
+      local_sdp.addMedia(new MediaField("audio",audio_port,0,"RTP/AVP","0"),new AttributeField("rtpmap","0 PCMU/8000"));
+      local_session=local_sdp.toString();
+   }*/
+
+   
+   /** Register with the registrar server */
+   public void register(int expire_time)
+   {  NameAddress target=new NameAddress(user_profile.from_url);
+      NameAddress contact=new NameAddress(user_profile.contact_url);
+      (new RegisterUA(sip_provider,target,contact,log,this)).register(expire_time);
+   }
+
+
+   /** Periodically registers the contact address with the registrar server. */
+   public void loopRegister(int expire_time, int renew_time)
+   {  if (register_ua==null)
+      {  NameAddress target=new NameAddress(user_profile.from_url);
+         NameAddress contact=new NameAddress(user_profile.contact_url);
+         register_ua=new RegisterUA(sip_provider,target,contact,log,this);
+      }
+      register_ua.loopRegister(expire_time,renew_time);
+   }
+
+
+   /** Unregister with the registrar server */
+   public void unregister()
+   {  if (register_ua!=null) register_ua.halt();
+      NameAddress target=new NameAddress(user_profile.from_url);
+      NameAddress contact=new NameAddress(user_profile.contact_url);
+      (new RegisterUA(sip_provider,target,contact,log,this)).unregister();
+   }
+
+
+   /** Unregister all contacts with the registrar server */
+   public void unregisterall()
+   {  NameAddress target=new NameAddress(user_profile.from_url);
+      NameAddress contact=new NameAddress(user_profile.contact_url);
+      (new RegisterUA(sip_provider,target,contact,log,this)).unregisterall();
+   }
+
+
+   /** Costructs a new client call */
+   public void client(String target_url)
+   {  changeStatus(STATE_OUTGOING_CALL);
+      newCall();
+      // in case of incomplete url (e.g. only 'user' is present), try to complete it
+      target_url=sip_provider.completeNameAddress(target_url).toString();
+      if (user_profile.no_offer) call.call(target_url);
+      else call.call(target_url,local_session);
+   }   
+
+
+   /** Costructs a new server call */
+   public void server()
+   {  newCall();
+      call.listen();  
+   } 
+
+
+   /** Closes an ongoing, incoming, or pending call */
+   public void hangup()
+   {  clip_ring.stop();
+      
+      closeMediaApplication();
+      call.hangup();
+      changeStatus(STATE_IDLE);
+   } 
+
+
+   /** Closes an ongoing, incoming, or pending call */
+   public void accept()
+   {  clip_ring.stop();
+      call.accept(local_session);
+   }   
+
+
+   /** Redirects an incoming call */
+   public void redirect(String redirection)
+   {  clip_ring.stop();
+      call.redirect(redirection);
+   }   
+
+
+   /** Launches the Media Application (currently, the RAT audio tool) */
+   protected void launchMediaApplication()
+   {
+      // exit if the Media Application is already running  
+      if (audio_app!=null || video_app!=null)
+      {  printLog("DEBUG: media application is already running",LogLevel.LOW);
+         return;
+      }
+      SessionDescriptor local_sdp=new SessionDescriptor(call.getLocalSessionDescriptor());
+      String local_media_address=(new Parser(local_sdp.getConnection().toString())).skipString().skipString().getString();
+      int local_audio_port=0;
+      int local_video_port=0;
+      // parse local sdp
+      for (Enumeration e=local_sdp.getMediaDescriptors().elements(); e.hasMoreElements(); )
+      {  MediaField media=((MediaDescriptor)e.nextElement()).getMedia();
+         if (media.getMedia().equals("audio")) 
+            local_audio_port=media.getPort();
+         if (media.getMedia().equals("video")) 
+            local_video_port=media.getPort();
+      }
+      // parse remote sdp
+      SessionDescriptor remote_sdp=new SessionDescriptor(call.getRemoteSessionDescriptor());
+      String remote_media_address=(new Parser(remote_sdp.getConnection().toString())).skipString().skipString().getString();
+      int remote_audio_port=0;              
+      int remote_video_port=0;              
+      for (Enumeration e=remote_sdp.getMediaDescriptors().elements(); e.hasMoreElements(); )
+      {  MediaField media=((MediaDescriptor)e.nextElement()).getMedia();
+         if (media.getMedia().equals("audio")) 
+            remote_audio_port=media.getPort();
+         if (media.getMedia().equals("video")) 
+            remote_video_port=media.getPort();
+      }
+
+      // select the media direction (send_only, recv_ony, fullduplex)
+      int dir=0;
+      if (user_profile.recv_only) dir=-1;
+      else if (user_profile.send_only) dir=1;
+
+      // for testing..
+      if (user_profile.send_tone) dir=2;
+      else if (user_profile.send_file) dir=3;
+      
+      if (user_profile.audio && local_audio_port!=0 && remote_audio_port!=0)
+      {  // create a audio_app and start it
+         if (user_profile.use_rat) audio_app=new RATLauncher(user_profile.bin_rat,local_audio_port,remote_media_address,remote_audio_port,log);
+         else 
+         if (user_profile.use_jmf) audio_app=new JMFAudioLauncher(local_audio_port,remote_media_address,remote_audio_port,dir,log);
+         else
+            audio_app=new JAudioLauncher(local_audio_port,remote_media_address,remote_audio_port,dir,log);
+         audio_app.startMedia();
+      }
+      if (user_profile.video && local_video_port!=0 && remote_video_port!=0)
+      {  // create a video_app and start it
+         if (user_profile.use_vic) video_app=new VICLauncher(user_profile.bin_vic,local_video_port,remote_media_address,remote_video_port,log);
+         else 
+         if (user_profile.use_jmf)  video_app=new JMFVideoLauncher(local_video_port,remote_media_address,remote_video_port,dir,log);
+         else
+         {  printLog("No external video application nor JMF has been selected: Video not started",LogLevel.HIGH);
+            return;
+         }
+         video_app.startMedia();
+      }
+   }
+ 
+   
+   /** Close the Media Application  */
+   protected void closeMediaApplication()
+   {  if (audio_app!=null)
+      {  audio_app.stopMedia();
+         audio_app=null;
+      }
+      if (video_app!=null)
+      {  video_app.stopMedia();
+         video_app=null;
+      }
+   }
+   
+   
+   // ******************* Local call callback functions *******************
+
+   /** When a new call is incoming */
+   public void onUaCallIncoming(NameAddress caller)
+   {  if (user_profile.redirect_to!=null) // redirect the call
+      {  redirect(user_profile.redirect_to);
+         System.out.println("call redirected to "+user_profile.redirect_to);
+         System.out.println("press 'enter' to exit"); 
+      }         
+      else
+      if (user_profile.auto_accept) // automatically accept the call
+      {  accept();
+         System.out.println("press 'enter' to hangup and exit"); 
+      }
+      else         
+      {  System.out.println("incoming call from "+caller.toString());
+         System.out.println("accept? [yes/no]");
+      }
+   }
+   
+   /** When an ougoing call is remotly ringing */
+   public void onUaCallRinging()
+   {  
+   }
+
+   /** When an ougoing call has been accepted */
+   public void onUaCallAccepted()
+   {  //System.out.println("press 'enter' to exit");
+   }
+   
+   /** When a call has been trasferred */
+   public void onUaCallTrasferred()
+   {  
+   }
+
+   /** When an incoming call has been cancelled */
+   public void onUaCallCancelled()
+   {  
+   }
+
+   /** When an ougoing call has been refused or timeout */
+   public void onUaCallFailed()
+   {  
+   }
+
+   /** When a call is beeing remotly closing */
+   public void onUaCallClosing()
+   {  System.out.println("press 'enter' to exit");
+   }
+
+
+
+
+   // ********************** Call callback functions **********************
+   
+   /** Callback function called when arriving a new INVITE method (incoming call) */
+   public void onCallIncoming(Call call, NameAddress caller, String sdp, Message invite)
+   {  printLog("onCallIncoming()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("INCOMING",LogLevel.HIGH);
+      //System.out.println("DEBUG: inside UserAgent.onCallIncoming(): sdp=\n"+sdp);
+      changeStatus(STATE_INCOMING_CALL);
+      call.ring();
+      if (sdp!=null)
+      {  // Create the new SDP
+         SessionDescriptor remote_sdp=new SessionDescriptor(sdp);     
+         SessionDescriptor local_sdp=new SessionDescriptor(local_session);
+         SessionDescriptor new_sdp=new SessionDescriptor(remote_sdp.getOrigin(),remote_sdp.getSessionName(),local_sdp.getConnection(),local_sdp.getTime());
+         new_sdp.addMediaDescriptors(local_sdp.getMediaDescriptors());
+         new_sdp=SdpTools.sdpMediaProduct(new_sdp,remote_sdp.getMediaDescriptors());
+         new_sdp=SdpTools.sdpAttirbuteSelection(new_sdp,"rtpmap");
+         local_session=new_sdp.toString();
+      }
+      // play "ring" sound
+      clip_ring.loop();
+      if (ua_listener!=null) ua_listener.onUaCallIncoming(caller);
+   }  
+
+
+   /** Callback function called when arriving a new Re-INVITE method (re-inviting/call modify) */
+   public void onCallModifying(Call call, String sdp, Message invite)
+   {  printLog("onCallModifying()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("RE-INVITE/MODIFY",LogLevel.HIGH);
+      super.onCallModifying(call,sdp,invite);
+   }
+
+
+   /** Callback function that may be overloaded (extended). Called when arriving a 180 Ringing */
+   public void onCallRinging(Call call, Message resp)
+   {  printLog("onCallRinging()",LogLevel.LOW);
+      if (call!=this.call && call!=call_transfer) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("RINGING",LogLevel.HIGH);
+      // play "on" sound
+      clip_on.replay();
+      if (ua_listener!=null) ua_listener.onUaCallRinging();
+   }
+
+
+   /** Callback function called when arriving a 2xx (call accepted) */
+   public void onCallAccepted(Call call, String sdp, Message resp)
+   {  printLog("onCallAccepted()",LogLevel.LOW);
+      if (call!=this.call && call!=call_transfer) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("ACCEPTED/CALL",LogLevel.HIGH);
+      changeStatus(STATE_ONCALL);
+      if (user_profile.no_offer)
+      {  // Create the new SDP
+         SessionDescriptor remote_sdp=new SessionDescriptor(sdp);
+         SessionDescriptor local_sdp=new SessionDescriptor(local_session);
+         SessionDescriptor new_sdp=new SessionDescriptor(remote_sdp.getOrigin(),remote_sdp.getSessionName(),local_sdp.getConnection(),local_sdp.getTime());
+         new_sdp.addMediaDescriptors(local_sdp.getMediaDescriptors());
+         new_sdp=SdpTools.sdpMediaProduct(new_sdp,remote_sdp.getMediaDescriptors());
+         new_sdp=SdpTools.sdpAttirbuteSelection(new_sdp,"rtpmap");
+
+
+         // update the local SDP  
+         local_session=new_sdp.toString();
+         // answer with the local sdp
+         call.ackWithAnswer(local_session);
+      }
+      // play "on" sound
+      clip_on.replay();
+      if (ua_listener!=null) ua_listener.onUaCallAccepted();
+
+      launchMediaApplication();
+      
+      if (call==call_transfer)
+      {  StatusLine status_line=resp.getStatusLine();
+         int code=status_line.getCode();
+         String reason=status_line.getReason();
+         this.call.notify(code,reason);
+      }
+   }
+
+
+   /** Callback function called when arriving an ACK method (call confirmed) */
+   public void onCallConfirmed(Call call, String sdp, Message ack)
+   {  printLog("onCallConfirmed()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("CONFIRMED/CALL",LogLevel.HIGH);
+      changeStatus(STATE_ONCALL);
+      // play "on" sound
+      clip_on.replay();
+      launchMediaApplication();
+   }
+
+
+   /** Callback function called when arriving a 2xx (re-invite/modify accepted) */
+   public void onCallReInviteAccepted(Call call, String sdp, Message resp)
+   {  printLog("onCallReInviteAccepted()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("RE-INVITE-ACCEPTED/CALL",LogLevel.HIGH);
+   }
+
+
+   /** Callback function called when arriving a 4xx (re-invite/modify failure) */
+   public void onCallReInviteRefused(Call call, String reason, Message resp)
+   {  printLog("onCallReInviteRefused()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("RE-INVITE-REFUSED ("+reason+")/CALL",LogLevel.HIGH);
+      if (ua_listener!=null) ua_listener.onUaCallFailed();
+   }
+
+
+   /** Callback function called when arriving a 4xx (call failure) */
+   public void onCallRefused(Call call, String reason, Message resp)
+   {  printLog("onCallRefused()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("REFUSED ("+reason+")",LogLevel.HIGH);
+      changeStatus(STATE_IDLE);
+      if (call==call_transfer)
+      {  StatusLine status_line=resp.getStatusLine();
+         int code=status_line.getCode();
+         //String reason=status_line.getReason();
+         this.call.notify(code,reason);
+         call_transfer=null;
+      }
+      // play "off" sound
+      clip_off.replay();
+      if (ua_listener!=null) ua_listener.onUaCallFailed();
+   }
+
+
+   /** Callback function called when arriving a 3xx (call redirection) */
+   public void onCallRedirection(Call call, String reason, Vector contact_list, Message resp)
+   {  printLog("onCallRedirection()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("REDIRECTION ("+reason+")",LogLevel.HIGH);
+      call.call(((String)contact_list.elementAt(0))); 
+   }
+
+
+   /** Callback function that may be overloaded (extended). Called when arriving a CANCEL method (cancel request) */
+   public void onCallCanceling(Call call, Message cancel)
+   {  printLog("onCallCanceling()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("CANCEL",LogLevel.HIGH);
+      changeStatus(STATE_IDLE);
+      // stop ringing
+      clip_ring.stop();
+      // play "off" sound
+      clip_off.replay();
+      if (ua_listener!=null) ua_listener.onUaCallCancelled();
+   }
+
+
+   /** Callback function called when arriving a BYE method (close request) */
+   public void onCallClosing(Call call, Message bye)
+   {  printLog("onCallClosing()",LogLevel.LOW);
+      if (call!=this.call && call!=call_transfer) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      if (call!=call_transfer && call_transfer!=null)
+      {  printLog("CLOSE PREVIOUS CALL",LogLevel.HIGH);
+         this.call=call_transfer;
+         call_transfer=null;
+         return;
+      }
+      // else
+      printLog("CLOSE",LogLevel.HIGH);
+      closeMediaApplication();
+      // play "off" sound
+      clip_off.replay();
+      if (ua_listener!=null) ua_listener.onUaCallClosing();
+      changeStatus(STATE_IDLE);
+   }
+
+
+   /** Callback function called when arriving a 200 OK after a BYE request (call closed) */
+   public void onCallClosed(Call call, Message resp)
+   {  printLog("onCallClosed()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("CLOSE/OK",LogLevel.HIGH);
+      changeStatus(STATE_IDLE);
+   }
+
+   /** Callback function called when the invite expires */
+   public void onCallTimeout(Call call)
+   {  printLog("onCallTimeout()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("NOT FOUND/TIMEOUT",LogLevel.HIGH);
+      changeStatus(STATE_IDLE);
+      if (call==call_transfer)
+      {  int code=408;
+         String reason="Request Timeout";
+         this.call.notify(code,reason);
+         call_transfer=null;
+      }
+      // play "off" sound
+      clip_off.replay();
+      if (ua_listener!=null) ua_listener.onUaCallFailed();
+   }
+
+
+
+   // ****************** ExtendedCall callback functions ******************
+
+   /** Callback function called when arriving a new REFER method (transfer request) */
+   public void onCallTransfer(ExtendedCall call, NameAddress refer_to, NameAddress refered_by, Message refer)
+   {  printLog("onCallTransfer()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("Transfer to "+refer_to.toString(),LogLevel.HIGH);
+      call.acceptTransfer();
+      call_transfer=new ExtendedCall(sip_provider,user_profile.from_url,user_profile.contact_url,this);
+      call_transfer.call(refer_to.toString(),local_session);
+   }
+
+   /** Callback function called when a call transfer is successfully completed */
+   public void onCallTransferSuccess(ExtendedCall call, Message notify)
+   {  printLog("onCallTransferSuccess()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("Transfer successed",LogLevel.HIGH);
+      call.hangup();
+      call_transfer=null;
+      if (ua_listener!=null) ua_listener.onUaCallTrasferred();
+   }
+
+   /** Callback function called when a call transfer is NOT sucessfully completed */
+   public void onCallTransferFailure(ExtendedCall call, int code, String reason, Message msg)
+   {  printLog("onCallTransferFailure()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("Transfer failed",LogLevel.HIGH);
+      call_transfer=null;
+   }
+
+
+   // **************** RegisterUA callback functions *****************
+
+   /** When a UA has been successfully (un)registered. */
+   public void onUaRegistrationSuccess(NameAddress target, NameAddress contact, Message resp)
+   {  StatusLine status=resp.getStatusLine();
+      printLog("Registration success: "+status.getCode()+" "+status.getReason(),LogLevel.HIGH);
+   }
+
+   /** When a UA failed on (un)registering. */
+   public void onUaRegistrationFailure(NameAddress target, NameAddress contact, Message resp)
+   {  if (resp!=null)
+      {
+         StatusLine status=resp.getStatusLine();
+         printLog("Registration failure: "+status.getCode()+" "+status.getReason(),LogLevel.HIGH);
+      }
+      else
+      {  printLog("Registration failure: No response from server.",LogLevel.HIGH);
+      }
+   }
+
+
+   // ***************************** MAIN *****************************
+
+
+   /** Schedules a re-inviting event. */
+   protected static void scheduleReInvite(final UserAgent ua, final String contact_url, final int time)
+   {  SessionDescriptor sdp=new SessionDescriptor(ua.local_session);
+      final SessionDescriptor new_sdp=new SessionDescriptor(sdp.getOrigin(),sdp.getSessionName(),new ConnectionField("IP4","0.0.0.0"),new TimeField());
+      new_sdp.addMediaDescriptors(sdp.getMediaDescriptors());
+      //new ReInviteThread(ua,contact_url,new_sdp.toString(),time);
+      (new Thread() {  public void run() {  reInvite(ua,contact_url,new_sdp.toString(),time);  }  }).start();
+   }
+    
+   /** Re-invite. */
+   private static void reInvite(UserAgent ua, String contact, String body, int time)
+   {  try
+      {  Thread.sleep(time*1000);
+         ua.printLog("RE-INVITING/MODIFING");
+         ExtendedCall call=ua.call; 
+         if (call!=null && call.isOnCall())
+         {  ua.printLog("REFER/TRANSFER");
+            call.modify(contact,body);
+         }
+      }
+      catch (Exception e) { e.printStackTrace(); }
+   }
+
+
+   /** Schedules a call-transfer event. */
+   protected static void scheduleCallTransfer(final UserAgent ua, final String transfer_to, final int time)
+   {  //new TransferThread(ua,transfer_to,time);
+      (new Thread() {  public void run() {  transferTo(ua,transfer_to,time);  }  }).start();
+   }
+
+   /** Call-transfer. */
+   private static void transferTo(UserAgent ua, String transfer_to, int time)
+   {  try
+      {  Thread.sleep(time*1000);
+         ExtendedCall call=ua.call; 
+         if (call!=null && call.isOnCall())
+         {  ua.printLog("REFER/TRANSFER");
+            call.transfer(transfer_to);
+         }
+      }
+      catch (Exception e) { e.printStackTrace(); }
+   }
+
+
+   /** The main method. */
+   public static void main(String[] args)
+   {         
+      String file=null;
+      boolean opt_regist=false;
+      boolean opt_unregist=false;
+      boolean opt_unregist_all=false;
+      int     opt_expires=0;
+      String  opt_call_to=null;      
+      boolean opt_auto_accept=false;      
+      int     opt_hangup_time=0;
+      boolean opt_no_offer=false;
+      String  opt_redirect_to=null;
+      boolean opt_audio=false;
+      boolean opt_video=false;
+      boolean opt_recv_only=false;
+      boolean opt_send_only=false;
+      boolean opt_send_tone=false;
+      boolean opt_send_file=false;
+      int     opt_media_port=21068;
+      String  opt_transfer_to=null;
+      int     opt_transfer_time=0;
+      int     opt_re_invite_time=0;
+ 
+      try
+      {  
+         for (int i=0; i<args.length; i++)
+         {
+            if (args[i].equals("-f") && args.length>(i+1))
+            {  file=args[++i];
+               continue;
+            }
+            if (args[i].equals("-c") && args.length>(i+1)) // make a call with a remote user (url)
+            {  opt_call_to=args[++i];
+               continue;
+            }
+            if (args[i].equals("-s")) // automatic accept incoming call
+            {  opt_auto_accept=true;
+               continue;
+            }
+            if (args[i].equals("-p") && args.length>(i+1)) // set the local port
+            {  opt_media_port=Integer.parseInt(args[++i]);
+               continue;
+            }
+            if (args[i].equals("-g") && args.length>(i+1)) // registrate the contact url
+            {  opt_regist=true;
+               String time=args[++i];
+               if (time.charAt(time.length()-1)=='h') opt_expires=Integer.parseInt(time.substring(0,time.length()-1))*3600;
+               else opt_expires=Integer.parseInt(time);
+               continue;
+            }
+            if (args[i].equals("-u")) // unregistrate the contact url
+            {  opt_unregist=true;
+               continue;
+            }
+            if (args[i].equals("-z")) // unregistrate all contact urls
+            {  opt_unregist_all=true;
+               continue;
+            }
+            if (args[i].equals("-t") && args.length>(i+1)) // set the call duration
+            {  opt_hangup_time=Integer.parseInt(args[++i]);
+               continue;
+            }
+            if (args[i].equals("-i") && args.length>(i+1)) // set the re-invite time
+            {  opt_re_invite_time=Integer.parseInt(args[++i]);
+               continue;
+            }
+            if (args[i].equals("-o")) // no offer in the invite
+            {  opt_no_offer=true;
+               continue;
+            }
+            if (args[i].equals("-r") && args.length>(i+1)) // redirect the call to a new url
+            {  opt_auto_accept=true;
+               opt_redirect_to=args[++i];
+               continue;
+            }
+            if (args[i].equals("-q") && args.length>(i+1)) // transfers the call to a new user (REFER)
+            {  opt_transfer_to=args[++i];
+               opt_transfer_time=Integer.parseInt(args[++i]);
+               continue;
+            }
+            if (args[i].equals("-a")) // use audio
+            {  opt_audio=true;
+               continue;
+            }
+            if (args[i].equals("-v")) // use video
+            {  opt_video=true;
+               continue;
+            }
+            if (args[i].equals("--recv-only")) // receive only mode
+            {  opt_recv_only=true;
+               continue;
+            }
+            if (args[i].equals("--send-only")) // send only mode
+            {  opt_send_only=true;
+               continue;
+            }
+            if (args[i].equals("--send-tone")) // send only mode
+            {  opt_send_only=true;
+               opt_send_tone=true;
+               continue;
+            }
+            if (args[i].equals("--send-file")) // send only mode
+            {  opt_send_only=true;
+               opt_send_file=true;
+               continue;
+            }
+            
+            // else, do:
+            if (!args[i].equals("-h"))
+               System.out.println("unrecognized param '"+args[i]+"'\n");
+            
+            System.out.println("usage:\n   java UserAgent [options]");
+            System.out.println("   options:");
+            System.out.println("   -h               this help");
+            System.out.println("   -f <config_file> specifies a configuration file");
+            System.out.println("   -c <call_to>  calls a remote user");
+            System.out.println("   -s               auto accept incoming calls");
+            System.out.println("   -t <secs>        specipies the call duration (0 means manual hangup)");
+            System.out.println("   -p <port>        local media port");
+            System.out.println("   -i <secs>        re-invite after <secs> seconds");
+            System.out.println("   -g <time>        registers the contact URL with the registrar server");
+            System.out.println("                    where time is the duration of the registration, and can be");
+            System.out.println("                    in seconds (default) or hours ( -r 7200 is the same as -r 2h )");
+            System.out.println("   -u               unregisters the contact URL with the registrar server");
+            System.out.println("                    (is the same as -r 0)");
+            System.out.println("   -z               unregisters ALL the contact URLs");
+            System.out.println("   -r <url>         redirects the call to a new user");
+            System.out.println("   -q <url> <secs>  transfers the call to a new user (REFER) after <secs> seconds");
+            System.out.println("   -o               no offer in invite (offer/answer in 2xx/ack)");
+            System.out.println("   -a               audio");
+            System.out.println("   -v               video");
+            System.out.println("   --recv-only      receive only mode, no media is sent");
+            System.out.println("   --send-only      send only mode, no media is received");
+            System.out.println("   --send-tone      send only mode, an audio test tone is generated");
+            System.out.println("   --send-file      send only mode, audio in file 'audio.wav' is sent");
+            System.exit(0);
+         }
+                     
+         SipStack.init(file);
+         SipProvider sip_provider=new SipProvider(file);
+         UserAgentProfile user_profile=new UserAgentProfile(file);
+         
+         if (opt_regist) user_profile.do_register=true;
+         if (opt_unregist) user_profile.do_unregister=true;
+         if (opt_unregist_all) user_profile.do_unregister_all=true;
+         if (opt_expires>0) user_profile.expires=opt_expires;
+         if (opt_call_to!=null) user_profile.call_to=opt_call_to;
+         if (opt_auto_accept) user_profile.auto_accept=true;
+         if (opt_hangup_time>0) user_profile.hangup_time=opt_hangup_time;
+         if (opt_redirect_to!=null) user_profile.redirect_to=opt_redirect_to;
+         if (opt_no_offer) user_profile.no_offer=true;
+         if (opt_media_port!=21068) user_profile.video_port=(user_profile.audio_port=opt_media_port)+2;
+         if (opt_audio) user_profile.audio=true;
+         if (opt_video) user_profile.video=true;
+         if (opt_recv_only) user_profile.recv_only=true;
+         if (opt_send_only) user_profile.send_only=true;             
+         if (opt_send_tone) user_profile.send_tone=true;
+         if (opt_send_file) user_profile.send_file=true;
+
+         // ################# patch to make audio working with javax.sound.. #################
+         // # currently AudioSender must be started before any AudioClipPlayer is initialized,
+         // # since there is a problem with the definition of the audio format
+         // ##################################################################################
+         if (!user_profile.use_rat && !user_profile.use_jmf)
+         //{  if (user_profile.audio && !user_profile.recv_only) local.media.AudioInput.initAudioLine();
+         {  if (user_profile.audio && !user_profile.recv_only && !user_profile.send_file && !user_profile.send_tone) local.media.AudioInput.initAudioLine();
+            if (user_profile.audio && !user_profile.send_only) local.media.AudioOutput.initAudioLine();
+         }
+         UserAgent ua=new UserAgent(sip_provider,user_profile,null);
+         ua.ua_listener=ua;
+             
+         BufferedReader in=new BufferedReader(new InputStreamReader(System.in)); 
+         
+         // Set the re-invite
+         if (user_profile.re_invite_time>0)
+         {  scheduleReInvite(ua,user_profile.contact_url,user_profile.re_invite_time);
+         }
+
+         // Set the transfer (REFER)
+         if (user_profile.transfer_to!=null && user_profile.transfer_time>0)
+         {  scheduleCallTransfer(ua,user_profile.transfer_to,user_profile.transfer_time);
+         }
+
+         if (user_profile.do_unregister_all)
+         // ########## unregisters ALL contact URLs
+         {  ua.printLog("UNREGISTER ALL contact URLs");
+            ua.unregisterall();
+         } 
+         else
+         if (user_profile.do_unregister)
+         // unregisters the contact URL
+         {  ua.printLog("UNREGISTER the contact URL");
+            ua.unregister();
+         } 
+         else
+         if (user_profile.do_register)
+         // ########## registers the contact URL with the registrar server
+         {  ua.printLog("REGISTRATION");
+            ua.register(user_profile.expires);
+         } 
+         else
+         if (user_profile.call_to!=null)
+         // ########## make a call with the remote URL
+         {  ua.printLog("UAC: CALLING "+user_profile.call_to);
+            if (!user_profile.audio && !user_profile.video) ua.printLog("ONLY SIGNALING, NO MEDIA");       
+            ua.client(user_profile.call_to);       
+            if (user_profile.hangup_time>0)   
+            {  Thread.sleep(user_profile.hangup_time*1000);
+               ua.hangup();
+            }
+            else
+            {  Thread.sleep(2000); // a little delay..
+               System.out.println("press 'enter' to hangup and exit"); 
+               in.readLine();            
+               ua.hangup(); 
+            }          
+         } 
+         else       
+         if (user_profile.auto_accept)
+         // ########## accept an incoming call
+         {  ua.printLog("UAS:");
+            if (!user_profile.audio && !user_profile.video) ua.printLog("ONLY SIGNALING, NO MEDIA");       
+            ua.server();        
+            if (user_profile.hangup_time>0)   
+            {  Thread.sleep(user_profile.hangup_time*1000);
+               ua.hangup();
+            }
+            else
+            {  System.out.println("press 'enter' to hangup and exit"); 
+               in.readLine();            
+               ua.hangup(); 
+            }          
+         } 
+         else 
+         // ########## no command, then switch to the interactive mode
+         {  ua.printLog("INTERACTIVE MODE");
+            if (!user_profile.audio && !user_profile.video) ua.printLog("ONLY SIGNALING, NO MEDIA");       
+            ua.printLog("Starting the UAS");
+            ua.server();
+            System.out.println("digit the callee's URL to make a call:");
+            String line=in.readLine();            
+
+            if (!ua.statusIs(STATE_IDLE))
+            {  if (line.toLowerCase().startsWith("n")) ua.hangup();
+               else
+               {  ua.accept();             
+               }
+               Thread.sleep(2000); // a little delay..
+               System.out.println("press 'enter' to hangup and exit");
+               in.readLine();            
+               ua.hangup();
+            }
+            else
+            {  // DEBUG:
+               /*if (line.equals("alice")) line="sip:alice@127.0.0.7:5070";         
+               if (line.equals("peter")) line="sip:peter@127.0.0.8:5080";
+               if (line.equals("focus")) line="sip:focus0127.0.0.66:5066";
+               if (line.equals("conference")) line="sip:conference@wonderland.net:5066";
+               */
+               
+               // tear down the UAS and start the UAC
+               ua.hangup();
+               ua.client(line);  
+               Thread.sleep(2000); // a little delay..
+               System.out.println("press 'enter' to hangup and exit");             
+               in.readLine();            
+               ua.hangup();           
+            }
+         }
+         
+         // wait some seconds before exit..
+         System.out.println("wait a moment for cleanup..");             
+         //Thread.sleep(7000);
+         Thread.sleep(2500);
+      }
+      catch (Exception e) { e.printStackTrace(); }
+
+      System.exit(0);
+   }    
+   
+
+   // ****************************** Logs *****************************
+
+   /** Adds a new string to the default Log */
+   void printLog(String str)
+   {  printLog(str,LogLevel.HIGH);
+   }
+
+   /** Adds a new string to the default Log */
+   void printLog(String str, int level)
+   {  if (log!=null) log.println("UA: "+str,level+SipStack.LOG_LEVEL_UA);  
+      if (level<=LogLevel.HIGH) System.out.println("UA: "+str);
+   }
+
+   /** Adds the Exception message to the default Log */
+   void printException(Exception e,int level)
+   {  if (log!=null) log.printException(e,level+SipStack.LOG_LEVEL_UA);
+   }
+
+}

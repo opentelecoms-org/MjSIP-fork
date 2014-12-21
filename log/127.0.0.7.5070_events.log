@@ -1,0 +1,158 @@
+SipProvider-5070: Date: 12:29:11.130 Tue 06 Sep 2005
+SipProvider-5070: SipStack: MjSip 1.5.1
+SipProvider-5070: new SipProvider(): 5070/udp/tcp
+SipProvider-5070: udp is up
+SipProvider-5070: tcp is up
+Dialog#0: SIPX: changed dialog state: D_INIT
+Dialog#0: SIPX: changed dialog state: D_WAITING
+Transaction#0: id=INVITE, Server: Invite: created
+Transaction#0: id=INVITE, Server: Invite: start
+Transaction#0: id=INVITE, Server: Invite: changed transaction state: T_Waiting
+SipProvider-5070: adding SipProviderListener: id=INVITE
+SipProvider-5070: 1 listeners: INVITE, 
+UA: REGISTRATION
+UA: ONLY SIGNALING, NO MEDIA
+RegisterAgent: Registering contact <sip:alice@127.0.0.7:5070> (it expires in 600 secs)
+Transaction#0: id=9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441, Client: created
+Transaction#0: id=9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441, Client: start
+Transaction#0: id=9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441, Client: changed transaction state: T_Trying
+SipProvider-5070: adding SipProviderListener: id=9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441
+SipProvider-5070: 2 listeners: INVITE, 9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441, 
+SipProvider-5070: Sending message (342 bytes): REGISTER sip:127.0.0.2 SIP/2.0
+SipProvider-5070: using transport udp
+SipProvider-5070: Resolving host address '127.0.0.2'
+SipProvider-5070: Sending message to udp:127.0.0.2:5060
+SipProvider-5070: DEBUG UDP
+SipProvider-5070: Message sent to udp:127.0.0.2:5060 (342 bytes): REGISTER sip:127.0.0.2 SIP/2.0
+
+Transaction#0: id=9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441, Client: Retransmission timeout expired
+SipProvider-5070: Sending message (342 bytes): REGISTER sip:127.0.0.2 SIP/2.0
+SipProvider-5070: using transport udp
+SipProvider-5070: Resolving host address '127.0.0.2'
+SipProvider-5070: Sending message to udp:127.0.0.2:5060
+SipProvider-5070: DEBUG UDP
+SipProvider-5070: Message sent to udp:127.0.0.2:5060 (342 bytes): REGISTER sip:127.0.0.2 SIP/2.0
+
+SipProvider-5070: Message received from 127.0.0.2:5060 (326 bytes): SIP/2.0 200 OK
+SipProvider-5070: DEBUG: transaction-id: 9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441
+SipProvider-5070: message passed to transaction: 9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441
+Transaction#0: id=9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441, Client: changed transaction state: T_Completed
+RegisterAgent: Registration success: 200 OK
+UA: Registration success: 200 OK
+SipProvider-5070: Message received from 127.0.0.2:5060 (326 bytes): SIP/2.0 200 OK
+SipProvider-5070: DEBUG: transaction-id: 9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441
+SipProvider-5070: message passed to transaction: 9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441
+Transaction#0: id=9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441, Client: Clearing timeout expired
+SipProvider-5070: removing SipProviderListener: id=9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441
+SipProvider-5070: 1 listeners: INVITE, 
+Transaction#0: id=9afa94e3c94b@127.0.0.7-1-REGISTER-127.0.0.7:5070-z9hG4bKa8441, Client: changed transaction state: T_Terminated
+SipProvider-5070: Message received from 127.0.0.7:5060 (651 bytes): INVITE sip:alice@127.0.0.7:5070 SIP/2.0
+SipProvider-5070: DEBUG: transaction-id: de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK1869b3213
+SipProvider-5070: DEBUG: dialog-id: de26176f5320@127.0.0.8-null-64a0e70f
+SipProvider-5070: message passed to uas: INVITE
+SipProvider-5070: adding SipProviderListener: id=de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK1869b3213
+SipProvider-5070: 2 listeners: INVITE, de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK1869b3213, 
+SipProvider-5070: removing SipProviderListener: id=INVITE
+SipProvider-5070: 1 listeners: de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK1869b3213, 
+Transaction#0: id=de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK1869b3213, Server: Invite: changed transaction state: T_Trying
+SipProvider-5070: Sending message through conn null: SIP/2.0 100 Trying
+SipProvider-5070: no active connection found matching null
+SipProvider-5070: Sending message (362 bytes): SIP/2.0 100 Trying
+SipProvider-5070: using transport udp
+SipProvider-5070: Resolving host address '127.0.0.7'
+SipProvider-5070: Sending message to udp:127.0.0.7:5060
+SipProvider-5070: DEBUG UDP
+SipProvider-5070: Message sent to udp:127.0.0.7:5060 (362 bytes): SIP/2.0 100 Trying
+
+Transaction#0: id=de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK1869b3213, Server: Invite: changed transaction state: T_Proceeding
+Dialog#0: SIPX: changed dialog state: D_INVITED
+Dialog#0: SIPX: dialog=de26176f5320@127.0.0.8-null-64a0e70f
+SipProvider-5070: adding SipProviderListener: id=de26176f5320@127.0.0.8-null-64a0e70f
+SipProvider-5070: 2 listeners: de26176f5320@127.0.0.8-null-64a0e70f, de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK1869b3213, 
+UA: onCallIncoming()
+UA: INCOMING
+Dialog#0: SIPX: inside ring()
+Dialog#0: SIPX: inside respond(180,Ringing)
+Dialog#0: SIPX: inside respond(resp)
+Dialog#0: SIPX: inside respond(resp)
+SipProvider-5070: Sending message through conn null: SIP/2.0 180 Ringing
+SipProvider-5070: no active connection found matching null
+SipProvider-5070: Sending message (397 bytes): SIP/2.0 180 Ringing
+SipProvider-5070: using transport udp
+SipProvider-5070: Resolving host address '127.0.0.7'
+SipProvider-5070: Sending message to udp:127.0.0.7:5060
+SipProvider-5070: DEBUG UDP
+SipProvider-5070: Message sent to udp:127.0.0.7:5060 (397 bytes): SIP/2.0 180 Ringing
+
+Dialog#0: SIPX: inside accept(sdp)
+Dialog#0: SIPX: inside respond(200,OK)
+Dialog#0: SIPX: inside respond(resp)
+Dialog#0: SIPX: inside respond(resp)
+SipProvider-5070: removing SipProviderListener: id=de26176f5320@127.0.0.8-null-64a0e70f
+SipProvider-5070: 1 listeners: de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK1869b3213, 
+Dialog#0: SIPX: dialog=de26176f5320@127.0.0.8-f8411595-64a0e70f
+SipProvider-5070: adding SipProviderListener: id=de26176f5320@127.0.0.8-f8411595-64a0e70f
+SipProvider-5070: 2 listeners: de26176f5320@127.0.0.8-f8411595-64a0e70f, de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK1869b3213, 
+Dialog#0: SIPX: changed dialog state: D_ACCEPTED
+SipProvider-5070: removing SipProviderListener: id=de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK1869b3213
+SipProvider-5070: 1 listeners: de26176f5320@127.0.0.8-f8411595-64a0e70f, 
+Transaction#0: id=de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK1869b3213, Server: Invite: changed transaction state: T_Terminated
+Transaction#0: id=ACK, Server: Ack: created
+Transaction#0: id=ACK, Server: Ack: start
+Transaction#0: id=ACK, Server: Ack: changed transaction state: T_Proceeding
+SipProvider-5070: Sending message through conn null: SIP/2.0 200 OK
+SipProvider-5070: no active connection found matching null
+SipProvider-5070: Sending message (622 bytes): SIP/2.0 200 OK
+SipProvider-5070: using transport udp
+SipProvider-5070: Resolving host address '127.0.0.7'
+SipProvider-5070: Sending message to udp:127.0.0.7:5060
+SipProvider-5070: DEBUG UDP
+SipProvider-5070: Message sent to udp:127.0.0.7:5060 (622 bytes): SIP/2.0 200 OK
+
+SipProvider-5070: Message received from 127.0.0.7:5060 (444 bytes): ACK sip:alice@127.0.0.7:5070 SIP/2.0
+SipProvider-5070: DEBUG: transaction-id: de26176f5320@127.0.0.8-1-INVITE-127.0.0.2:5060-z9hG4bK42da1fb9b
+SipProvider-5070: DEBUG: dialog-id: de26176f5320@127.0.0.8-f8411595-64a0e70f
+SipProvider-5070: message passed to dialog: de26176f5320@127.0.0.8-f8411595-64a0e70f
+Dialog#0: SIPX: changed dialog state: D_CALL
+Transaction#0: id=ACK, Server: Ack: changed transaction state: T_Terminated
+UA: onCallConfirmed()
+UA: CONFIRMED/CALL
+Dialog#0: SIPX: inside refuse()
+Dialog#0: SIPX: inside refuse(403,Forbidden)
+Dialog#0: SIPX: inside respond(403,Forbidden)
+Dialog#0: SIPX: WARNING: Dialog isn't in "invited" state: cannot respond (403/D_CALL/de26176f5320@127.0.0.8-f8411595-64a0e70f)
+Dialog#0: SIPX: inside cancel()
+Dialog#0: SIPX: inside bye()
+Dialog#0: SIPX: inside bye(bye)
+Dialog#0: SIPX: changed dialog state: D_BYEING
+Transaction#0: id=de26176f5320@127.0.0.8-1-BYE-127.0.0.7:5070-z9hG4bK24b0a, Client: created
+Transaction#0: id=de26176f5320@127.0.0.8-1-BYE-127.0.0.7:5070-z9hG4bK24b0a, Client: start
+Transaction#0: id=de26176f5320@127.0.0.8-1-BYE-127.0.0.7:5070-z9hG4bK24b0a, Client: changed transaction state: T_Trying
+SipProvider-5070: adding SipProviderListener: id=de26176f5320@127.0.0.8-1-BYE-127.0.0.7:5070-z9hG4bK24b0a
+SipProvider-5070: 2 listeners: de26176f5320@127.0.0.8-f8411595-64a0e70f, de26176f5320@127.0.0.8-1-BYE-127.0.0.7:5070-z9hG4bK24b0a, 
+SipProvider-5070: Sending message (326 bytes): BYE sip:bob@127.0.0.8:5080 SIP/2.0
+SipProvider-5070: using transport udp
+SipProvider-5070: Resolving host address '127.0.0.2'
+SipProvider-5070: Sending message to udp:127.0.0.2:5060
+SipProvider-5070: DEBUG UDP
+SipProvider-5070: Message sent to udp:127.0.0.2:5060 (326 bytes): BYE sip:bob@127.0.0.8:5080 SIP/2.0
+
+SipProvider-5070: removing SipProviderListener: id=de26176f5320@127.0.0.8-f8411595-64a0e70f
+SipProvider-5070: 1 listeners: de26176f5320@127.0.0.8-1-BYE-127.0.0.7:5070-z9hG4bK24b0a, 
+Dialog#1: SIPX: changed dialog state: D_INIT
+Dialog#1: SIPX: changed dialog state: D_WAITING
+Transaction#0: id=INVITE, Server: Invite: created
+Transaction#0: id=INVITE, Server: Invite: start
+Transaction#0: id=INVITE, Server: Invite: changed transaction state: T_Waiting
+SipProvider-5070: adding SipProviderListener: id=INVITE
+SipProvider-5070: 2 listeners: INVITE, de26176f5320@127.0.0.8-1-BYE-127.0.0.7:5070-z9hG4bK24b0a, 
+SipProvider-5070: Message received from 127.0.0.2:5060 (281 bytes): SIP/2.0 200 OK
+SipProvider-5070: DEBUG: transaction-id: de26176f5320@127.0.0.8-1-BYE-127.0.0.7:5070-z9hG4bK24b0a
+SipProvider-5070: message passed to transaction: de26176f5320@127.0.0.8-1-BYE-127.0.0.7:5070-z9hG4bK24b0a
+Transaction#0: id=de26176f5320@127.0.0.8-1-BYE-127.0.0.7:5070-z9hG4bK24b0a, Client: changed transaction state: T_Completed
+Dialog#0: SIPX: changed dialog state: D_CLOSE
+SipProvider-5070: removing SipProviderListener: id=de26176f5320@127.0.0.8-f8411595-64a0e70f
+SipProvider-5070: WARNING: trying to remove a missed SipProviderListener.
+SipProvider-5070: 2 listeners: INVITE, de26176f5320@127.0.0.8-1-BYE-127.0.0.7:5070-z9hG4bK24b0a, 
+UA: onCallClosed()
+UA: NOT the current call

@@ -1,0 +1,23 @@
+# Simple-call HOW-TO
+# ________________________________________________________________
+# (by Luca Veltri, 16/10/2005)
+#
+
+# to run a stateless proxy server (with configuration file 'server.cfg') use:
+bin\proxy -f config\server.cfg
+
+# to establish a call between two UAs, run the visual UAs with the desired configuration files:
+bin\uaw -f config\a.cfg
+bin\uaw -f config\b.cfg
+
+# or without GUI:
+bin\uac -f config\a.cfg
+bin\uac -f config\b.cfg -c alice@127.0.0.2
+
+# or with registration and audio support in one-way:
+uaw -f config\a.cfg -a --send-only -p 3000 -z -g 1800
+uaw -f config\a.cfg -a --recv-only -p 4000 -z -g 1800
+
+# use -h in order to view all command-line options:
+bin\uaw -h
+# or bin\uac -h
