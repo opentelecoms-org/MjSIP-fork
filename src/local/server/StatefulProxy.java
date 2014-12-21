@@ -100,18 +100,33 @@ public class StatefulProxy extends Proxy implements TransactionClientListener
          super.processRequestToLocalUser(msg);
          return; 
       }
+      
       TransactionServer ts;
-      if (msg.isInvite()) ts=new InviteTransactionServer(sip_provider_server,msg,true,null);
+      if (msg.isInvite()) ts=new InviteTransactionServer(sip_provider_server,msg,null);
       else ts=new TransactionServer(sip_provider_server,msg,null);
       //ts.listen();
    
+      if (server_profile.do_proxy_authentication && !msg.isAck() && !msg.isCancel())
+      {  // check message authentication
+         Message err_resp=as.authenticateProxyRequest(msg);  
+         if (err_resp!=null)
+         {  ts.respondWith(err_resp);
+            return;
+         }
+      }
 
       // message targets
       Vector targets=getTargets(msg);
 
       if (targets.isEmpty())
+      {  // try to treat the request-URI as a phone URL
+         SipURL request_uri=msg.getRequestLine().getAddress();
+         SipURL new_target=getPhoneTarget(request_uri);
+         if (new_target!=null) targets.addElement(new_target.toString());
+      }
+      if (targets.isEmpty())
       {  printLog("No target found, message discarded",LogLevel.HIGH);
-         if (!msg.isAck()) statefulServerResponse(ts,MessageFactory.createResponse(msg,404,"Not found",null,null));
+         if (!msg.isAck()) statefulServerResponse(ts,MessageFactory.createResponse(msg,404,SipResponses.reasonOf(404),null));
          return;
       }
 
@@ -145,19 +160,36 @@ public class StatefulProxy extends Proxy implements TransactionClientListener
          return; 
       }
       TransactionServer ts;
-      if (msg.isInvite()) ts=new InviteTransactionServer(sip_provider_server,msg,true,null);
+      if (msg.isInvite()) ts=new InviteTransactionServer(sip_provider_server,msg,null);
       else ts=new TransactionServer(sip_provider_server,msg,null);
       //ts.listen();
 
       if (!server_profile.is_open_proxy)
-      {  SipURL from_url=msg.getFromHeader().getNameAddress().getAddress();
-         String username=from_url.getUserName();
-         String hostaddr=from_url.getHost();
-         String user;
-         if (username==null) user=hostaddr; else user=username+"@"+hostaddr;
-         if (!location_service.hasUser(user))
-         {  printLog("user "+user+" not found: proxy denied.",LogLevel.HIGH);
-            statefulServerResponse(ts,MessageFactory.createResponse(msg,503,"Service Unavailable",null,null));
+      {  // check whether the caller is a local user 
+         SipURL from_url=msg.getFromHeader().getNameAddress().getAddress();
+         String from_username=from_url.getUserName();
+         String from_hostaddr=from_url.getHost();
+         String caller=(from_username==null)? from_hostaddr : from_username+"@"+from_hostaddr;
+         if (!location_service.hasUser(caller))
+         {  // but do not filter messages directed to local users
+            SipURL to_url=msg.getToHeader().getNameAddress().getAddress();
+            String to_username=to_url.getUserName();
+            String to_hostaddr=to_url.getHost();
+            String callee=(to_username==null)? to_hostaddr : to_username+"@"+to_hostaddr;
+            if (!location_service.hasUser(callee))
+            {  // both caller and callee are not registered with the local server
+               printLog("both users "+caller+" and "+callee+" are not registered with the local server: proxy denied.",LogLevel.HIGH);
+               ts.respondWith(MessageFactory.createResponse(msg,503,SipResponses.reasonOf(503),null));
+               return;
+            }
+         }
+      }
+
+      if (server_profile.do_proxy_authentication && !msg.isAck() && !msg.isCancel())
+      {  // check message authentication
+         Message err_resp=as.authenticateProxyRequest(msg);  
+         if (err_resp!=null)
+         {  ts.respondWith(err_resp);
             return;
          }
       }
@@ -235,7 +267,7 @@ public class StatefulProxy extends Proxy implements TransactionClientListener
          printLog("Cancelling "+clients.size()+" pending clients",LogLevel.LOW);
          for (Iterator i=clients.iterator(); i.hasNext(); )
          {  Transaction tc=(Transaction)i.next();
-            Message cancel=MessageFactory.createCancelRequest(tc.getMethodMessage());
+            Message cancel=MessageFactory.createCancelRequest(tc.getRequestMessage());
             TransactionClient tr_cancel=new TransactionClient(sip_provider_server,cancel,null);
             tr_cancel.request();
          }
@@ -265,22 +297,22 @@ public class StatefulProxy extends Proxy implements TransactionClientListener
    // ******************* TransactionClient callback methods *******************
 
    /** When the TransactionClient is in "Proceeding" state and receives a new 1xx response */
-   public void onCltProvisionalResponse(TransactionClient transaction, Message resp)
+   public void onTransProvisionalResponse(TransactionClient transaction, Message resp)
    {  processProvisionalResponse(transaction,resp);
    }
    
    /** When the TransactionClient goes into the "Completed" state, receiving a failure response */
-   public void onCltFailureResponse(TransactionClient transaction, Message resp)
+   public void onTransFailureResponse(TransactionClient transaction, Message resp)
    {  processFailureResponse(transaction,resp);
    }
            
    /** When an TransactionClient goes into the "Terminated" state, receiving a 2xx response */
-   public void onCltSuccessResponse(TransactionClient transaction, Message resp) 
+   public void onTransSuccessResponse(TransactionClient transaction, Message resp) 
    {  processSuccessResponse(transaction,resp);
    }
 
    /** When the TransactionClient goes into the "Terminated" state, caused by transaction timeout */
-   public void onCltTimeout(TransactionClient transaction)
+   public void onTransTimeout(TransactionClient transaction)
    {  processTimeout(transaction);
    }
 

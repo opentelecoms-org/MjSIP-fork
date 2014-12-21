@@ -53,7 +53,7 @@ public class SipStack extends Configure
    // *********************** software release ***********************
 
    /** Release */
-   public static final String release="MjSip 1.5.3";
+   public static final String release="mjsip stack 1.6";
    /** Authors */
    public static final String authors="Luca Veltri - University of Parma (Italy)";
 
@@ -104,7 +104,7 @@ public class SipStack extends Configure
    public static boolean early_dialog=false;
 
    /** Default 'expires' value in seconds. RFC2361 suggests 3600s as default value. */
-   public static int expires=3600;
+   public static int default_expires=3600;
 
    /** UA info included in request messages in the 'User-Agent' header field.
      * Use "NONE" if the 'User-Agent' header filed must not be added. */
@@ -172,7 +172,7 @@ public class SipStack extends Configure
       if (attribute.equals("clearing_timeout"))    { clearing_timeout=par.getInt(); return; }
       if (attribute.equals("single_timer"))   { single_timer=(par.getString().toLowerCase().startsWith("y")); return; }
       if (attribute.equals("early_dialog"))   { early_dialog=(par.getString().toLowerCase().startsWith("y")); return; }
-      if (attribute.equals("expires"))        { expires=par.getInt(); return; }
+      if (attribute.equals("default_expires")){ default_expires=par.getInt(); return; }
       if (attribute.equals("ua_info"))        { ua_info=par.getRemainingString().trim(); return; }
       if (attribute.equals("server_info"))    { server_info=par.getRemainingString().trim(); return; }
 

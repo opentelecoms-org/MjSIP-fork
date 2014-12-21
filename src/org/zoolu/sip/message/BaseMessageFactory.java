@@ -89,7 +89,7 @@ public abstract class BaseMessageFactory
          //System.out.println("DEBUG: Contact: "+contact.toString());
          req.setContacts(contacts);
       }
-      req.setExpiresHeader(new ExpiresHeader(String.valueOf(SipStack.expires)));
+      req.setExpiresHeader(new ExpiresHeader(String.valueOf(SipStack.default_expires)));
       // add User-Agent header field
       if (SipStack.ua_info!=null) req.setUserAgentHeader(new UserAgentHeader(SipStack.ua_info));
       //if (body!=null) req.setBody(body); else req.setBody("");
@@ -131,8 +131,8 @@ public abstract class BaseMessageFactory
      * <LI> branch is picked random
      * </UL>
      * @see #createRequest(String,SipURL,NameAddress,NameAddress,NameAddress,String,String,int,String,long,String,String,String,String) */
-   public static Message createRequest(SipProvider sip_provider, String method, NameAddress to, NameAddress from, NameAddress contact, String body)
-   {  SipURL request_uri=to.getAddress();
+   public static Message createRequest(SipProvider sip_provider, String method, SipURL request_uri, NameAddress to, NameAddress from, NameAddress contact, String body)
+   {  //SipURL request_uri=to.getAddress();
       String call_id=sip_provider.pickCallId();
       int cseq=SipProvider.pickInitialCSeq();
       String local_tag=SipProvider.pickTag();
@@ -157,7 +157,7 @@ public abstract class BaseMessageFactory
    public static Message createRequest(SipProvider sip_provider, String method, NameAddress to, NameAddress from, String body)
    {  String contact_user=from.getAddress().getUserName();
       NameAddress contact=new NameAddress(new SipURL(contact_user,sip_provider.getViaAddress(),sip_provider.getPort()));
-      return createRequest(sip_provider,method,to,from,contact,body);
+      return createRequest(sip_provider,method,to.getAddress(),to,from,contact,body);
    }
 
 
@@ -315,7 +315,7 @@ public abstract class BaseMessageFactory
       if (contact==null)
       {  ContactHeader star=new ContactHeader(); // contact is *
          req.setContactHeader(star);
-         req.setExpiresHeader(new ExpiresHeader(String.valueOf(SipStack.expires)));
+         req.setExpiresHeader(new ExpiresHeader(String.valueOf(SipStack.default_expires)));
       }
       return req;
    }
@@ -336,7 +336,7 @@ public abstract class BaseMessageFactory
      * @param contact the contact address
      * @param local_tag the local tag in the 'To' header
      * @param body the message body */
-   public static Message createResponse(Message req, int code, String reason, NameAddress contact, String local_tag, String body)
+   public static Message createResponse(Message req, int code, String reason, String local_tag, NameAddress contact, String content_type, String body)
    {  Message resp=new Message(); 
       resp.setStatusLine(new StatusLine(code,reason));
       resp.setVias(req.getVias());
@@ -353,19 +353,21 @@ public abstract class BaseMessageFactory
       // add Server header field
       if (SipStack.server_info!=null) resp.setServerHeader(new ServerHeader(SipStack.server_info));
       //if (body!=null) resp.setBody(body); else resp.setBody("");
-      resp.setBody(body);
+      if (content_type==null) resp.setBody(body);
+      else resp.setBody(content_type,body);
       //System.out.println("DEBUG: MessageFactory: response:\n"+resp.toString());
       return resp;
    }
 
    /** Creates a SIP response message. For 2xx responses generates the local tag by means of the SipStack.pickTag(req) method.
      * @see #createResponse(Message,int,String,NameAddress,String,String body) */
-   public static Message createResponse(Message req, int code, String reason, NameAddress contact, String body)
-   {  String localtag=null;
+   public static Message createResponse(Message req, int code, String reason, NameAddress contact)
+   {  //String reason=SipResponses.reasonOf(code);
+      String localtag=null;
       if (req.createsDialog() && !req.getToHeader().hasTag())
       {  if (SipStack.early_dialog || (code>=200 && code<300)) localtag=SipProvider.pickTag(req);
       }
-      return createResponse(req,code,reason,contact,localtag,body);
+      return createResponse(req,code,reason,localtag,contact,null,null);
    }
 
 }  

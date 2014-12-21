@@ -24,9 +24,11 @@
 package org.zoolu.sip.header;
 
 
+import java.util.Vector;
+
 
 /** SIP Header Allow */
-public class AllowHeader extends ParametersHeader
+public class AllowHeader extends ListHeader
 {
    public AllowHeader(String hvalue)
    {  super(SipHeaders.Allow,hvalue);
@@ -36,13 +38,18 @@ public class AllowHeader extends ParametersHeader
    {  super(hd);
    }
 
-   /** Gets method */
-   public String getMethod()
-   {  return value;
+   /** Gets list of methods (as Vector of Strings). */
+   public Vector getMethods()
+   {  return super.getElements();
    }
 
-   /** Sets the method */
-   public void setMethod(String method)
-   {  value=method;
+   /** Sets the list of methods. */
+   public void setMethod(Vector methods)
+   {  super.setElements(methods);
+   }
+
+   /** Adds a new method to the methods list. */
+   public void addMethod(String method)
+   {  super.addElement(method);
    }
 }

@@ -48,7 +48,7 @@ public class CommandLineMA implements RegisterAgentListener, MessageAgentListene
    NameAddress remote_user;
    
    
-   /** Costructs a new MessageAgent. */
+   /** Costructs a new CommandLineMA. */
    public CommandLineMA(SipProvider sip_provider, UserAgentProfile user_profile)
    {  log=sip_provider.getLog();
       ma=new MessageAgent(sip_provider,user_profile,this);
@@ -160,7 +160,7 @@ public class CommandLineMA implements RegisterAgentListener, MessageAgentListene
          if (!args[i].equals("-h"))
             System.out.println("unrecognized param '"+args[i]+"'\n");
          
-         System.out.println("usage:\n   java MessageAgent [options]");
+         System.out.println("usage:\n   java CommandLineMA [options]");
          System.out.println("   options:");
          System.out.println("   -h               this help");
          System.out.println("   -f <config_file> specifies a configuration file");

@@ -32,6 +32,7 @@ import org.zoolu.sip.transaction.Transaction;
 import org.zoolu.tools.Configure;
 import org.zoolu.tools.Configurable;
 import org.zoolu.tools.Parser;
+import org.zoolu.tools.Random;
 import org.zoolu.tools.Log;
 import org.zoolu.tools.LogLevel;
 import org.zoolu.tools.RotatingLog;
@@ -126,13 +127,16 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    public static final Identifier PROMISQUE=new Identifier("PROMISQUE"); 
 
 
+   /** Minimum length for a valid SIP message.  */
+   private static final int MIN_MESSAGE_LENGTH=12;
+
    // ***************** Readable/configurable attributes *****************
 
    /** Via address/name.
      * Use 'auto-configuration' for auto detection, or let it undefined. */
    String via_addr=null;
 
-   /** Sip port */
+   /** Local SIP port */
    int host_port=0;
 
    /** Network interface (IP address) used by SIP.
@@ -145,11 +149,20 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    /** Max number of (contemporary) open connections */
    int nmax_connections=0;
 
-   /** Outbound proxy.
+   /** Outbound proxy (host_addr[:host_port]).
      * Use 'NONE' for not using an outbound proxy (or let it undefined). */
-   public String outbound_addr=null;
-   /** Outbound proxy port */
-   public int outbound_port;
+   SocketAddress outbound_proxy=null;
+
+   /** Whether logging all packets (including non-SIP keepalive tokens). */
+   boolean log_all_packets=false;
+
+
+   // for backward compatibility:
+
+   /** Outbound proxy addr (for backward compatibility). */
+   private String outbound_addr=null;
+   /** Outbound proxy port (for backward compatibility). */
+   private int outbound_port=-1;
 
 
    // ********************* Non-readable attributes *********************
@@ -206,8 +219,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
 
    /** Creates a new SipProvider. */ 
    public SipProvider(String via_addr, int port)
-   {  //init(via_addr,port,null,0,null,null,0);
-      init(via_addr,port,null,null);
+   {  init(via_addr,port,null,null);
       initlog();
       startTrasport();
    }
@@ -216,29 +228,10 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    /** Creates a new SipProvider. 
      * Costructs the SipProvider, initializing the SipProviderListeners, the transport protocols, and other attributes. */ 
    public SipProvider(String via_addr, int port, String[] protocols, String ifaddr)
-   {  //init(via_addr,port,protocols,0,null,null,0);
-      init(via_addr,port,protocols,ifaddr);
+   {  init(via_addr,port,protocols,ifaddr);
       initlog();
       startTrasport();
    }
-
-
-   /** Creates a new SipProvider. 
-     * Costructs the SipProvider, initializing the SipProviderListeners, the transport protocols, and other attributes. */ 
-   /*public SipProvider(String via_addr, int port, String[] protocols, int nmax_connections)
-   {  init(via_addr,port,protocols,nmax_connections,null,null,0);
-      initlog();
-      startTrasport();
-   }*/
-
-
-   /** Creates a new SipProvider. 
-     * Costructs the SipProvider, initializing the SipProviderListeners, the transport protocols, the outbound proxy, and other attributes. */ 
-   /*public SipProvider(String via_addr, int port, String[] protocols, int nmax_connections, String host_ifaddr, String outbound_addr, int outbound_port)
-   {  init(via_addr,port,protocols,nmax_connections,host_ifaddr,outbound_addr,outbound_port);
-      initlog();
-      startTrasport();
-   }*/
 
 
    /** Creates a new SipProvider. 
@@ -246,7 +239,6 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    public SipProvider(String file)
    {  if (!SipStack.isInit()) SipStack.init(file);
       new Configure(this,file);
-      //init(via_addr,host_port,transport_protocols,nmax_connections,host_ifaddr,outbound_addr,outbound_port);
       init(via_addr,host_port,transport_protocols,host_ifaddr);
       initlog();
       startTrasport();
@@ -254,7 +246,6 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
 
 
    /** Inits the SipProvider, initializing the SipProviderListeners, the transport protocols, the outbound proxy, and other attributes. */ 
-   //private void init(String viaddr, int port, String[] protocols, int nmaxconns, String ifaddr, String outboundaddr, int outboundport)
    private void init(String viaddr, int port, String[] protocols, String ifaddr)
    {  if (!SipStack.isInit()) SipStack.init();
       via_addr=viaddr;
@@ -281,8 +272,13 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
          */
       }
       if (nmax_connections<=0) nmax_connections=SipStack.default_nmax_connections;
-      if (outbound_addr!=null && (outbound_addr.equalsIgnoreCase(Configure.NONE) || outbound_addr.equalsIgnoreCase("NO-OUTBOUND"))) outbound_addr=null;
-      if (outbound_port==0) outbound_port=SipStack.default_port;  
+
+      // just for backward compatibility..
+      if (outbound_port<0) outbound_port=SipStack.default_port;
+      if (outbound_addr!=null)
+      {  if (outbound_addr.equalsIgnoreCase(Configure.NONE) || outbound_addr.equalsIgnoreCase("NO-OUTBOUND")) outbound_proxy=null;
+         else outbound_proxy=new SocketAddress(outbound_addr,outbound_port);
+      }
       
       rport=SipStack.use_rport; 
       force_rport=SipStack.force_rport; 
@@ -384,13 +380,28 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
       if (attribute.equals("host_ifaddr")) {  host_ifaddr=par.getString(); return;  }
       if (attribute.equals("transport_protocols")) {  transport_protocols=par.getWordArray(delim); return;  }
       if (attribute.equals("nmax_connections")) {  nmax_connections=par.getInt(); return;  }
-      if (attribute.equals("outbound_addr")) {  outbound_addr=par.getString(); return;  }
-      if (attribute.equals("outbound_port")) {  outbound_port=par.getInt(); return; }
+      if (attribute.equals("outbound_proxy"))
+      {  String soaddr=par.getString();
+         if (soaddr==null || soaddr.length()==0 || soaddr.equalsIgnoreCase(Configure.NONE) || soaddr.equalsIgnoreCase("NO-OUTBOUND")) outbound_proxy=null;
+         else outbound_proxy=new SocketAddress(soaddr);
+         return;
+      }
+      if (attribute.equals("log_all_packets")) { log_all_packets=(par.getString().toLowerCase().startsWith("y")); return; }
 
       // old parameters
       if (attribute.equals("host_addr")) System.err.println("WARNING: parameter 'host_addr' is no more supported; use 'via_addr' instead.");
       if (attribute.equals("all_interfaces")) System.err.println("WARNING: parameter 'all_interfaces' is no more supported; use 'host_iaddr' for setting a specific interface or let it undefined.");
-      if (attribute.equals("use_outbound")) System.err.println("WARNING: parameter 'use_outbound' is no more supported; use 'outbound_addr' for setting an outbound proxy or let it undefined.");
+      if (attribute.equals("use_outbound")) System.err.println("WARNING: parameter 'use_outbound' is no more supported; use 'outbound_proxy' for setting an outbound proxy or let it undefined.");
+      if (attribute.equals("outbound_addr"))
+      {  System.err.println("WARNING: parameter 'outbound_addr' has been deprecated; use 'outbound_proxy=<host_addr>[:<host_port>]' instead.");
+         outbound_addr=par.getString();
+         return;
+      }
+      if (attribute.equals("outbound_port"))
+      {  System.err.println("WARNING: parameter 'outbound_port' has been deprecated; use 'outbound_proxy=<host_addr>[:<host_port>]' instead.");
+         outbound_port=par.getInt();
+         return;
+      }
    }  
 
 
@@ -411,111 +422,104 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
 
    // ************************** Public methods *************************
 
-   /** Gets via address */ 
+   /** Gets via address. */ 
    public String getViaAddress()
    {  return via_addr;
    }    
    
-   /** Sets via address */ 
+   /** Sets via address. */ 
    /*public void setViaAddress(String addr)
    {  via_addr=addr;
    }*/   
 
-   /** Gets host port */ 
+   /** Gets host port. */ 
    public int getPort()
    {  return host_port;
    }       
 
-   /** Whether binding the sip provider to all interfaces or only on the specified host address */
+   /** Whether binding the sip provider to all interfaces or only on the specified host address. */
    public boolean isAllInterfaces()
    {  return host_ipaddr==null;
    }       
 
-   /** Gets host interface IpAddress */ 
+   /** Gets host interface IpAddress. */ 
    public IpAddress getInterfaceAddress()
    {  return host_ipaddr;
    }    
    
-   /** Gets array of transport protocols */ 
+   /** Gets array of transport protocols. */ 
    public String[] getTransportProtocols()
    {  return transport_protocols;
    }    
    
-   /** Gets the default transport protocol */ 
+   /** Gets the default transport protocol. */ 
    public String getDefaultTransport()
    {  return default_transport;
    } 
    
-   /** Gets the default transport protocol */ 
+   /** Gets the default transport protocol. */ 
    public void setDefaultTransport(String proto)
    {  default_transport=proto;
    }    
 
-   /** Sets rport support */ 
+   /** Sets rport support. */ 
    public void setRport(boolean flag)
    {  rport=flag;
    }   
 
-   /** Whether using rport */ 
+   /** Whether using rport. */ 
    public boolean isRportSet()
    {  return rport;
    }   
 
-   /** Sets 'force-rport' mode */ 
+   /** Sets 'force-rport' mode. */ 
    public void setForceRport(boolean flag)
    {  force_rport=flag;
    }   
 
-   /** Whether using 'force-rport' mode */ 
+   /** Whether using 'force-rport' mode. */ 
    public boolean isForceRportSet()
    {  return force_rport;
    }   
 
-   /** Whether has outbound proxy */ 
+   /** Whether has outbound proxy. */ 
    public boolean hasOutboundProxy()
-   {  return outbound_addr!=null;
+   {  return outbound_proxy!=null;
    }    
 
-   /** Gets the outbound proxy */ 
-   public String getOutboundAddress()
-   {  return outbound_addr;
+   /** Gets the outbound proxy. */ 
+   public SocketAddress getOutboundProxy()
+   {  return outbound_proxy;
    }    
 
-   /** Gets the outbound proxy port */ 
-   public int getOutboundPort()
-   {  return outbound_port;
-   }    
+   /** Sets the outbound proxy. Use 'null' for not using any outbound proxy. */ 
+   public void setOutboundProxy(SocketAddress soaddr)
+   {  outbound_proxy=soaddr;
+   }
 
-   /** Sets the outbound proxy */ 
-   public void setOutboundProxy(String address, int port)
-   {  outbound_addr=address;
-      outbound_port=port;
-   }    
+   /** Removes the outbound proxy. */ 
+   /*public void removeOutboundProxy()
+   {  setOutboundProxy(null);
+   }*/
 
-   /** Removes the outbound proxy */ 
-   public void removeOutboundProxy()
-   {  outbound_addr=null;
-      outbound_port=0;
-   }    
-
-   /** Gets the max number of (contemporary) open connections */ 
+   /** Gets the max number of (contemporary) open connections. */ 
    public int getNMaxConnections()
    {  return nmax_connections;
    }    
 
-   /** Sets the max number of (contemporary) open connections */ 
+   /** Sets the max number of (contemporary) open connections. */ 
    public void setNMaxConnections(int n)
    {  nmax_connections=n;
    }    
       
             
-   /** Gets event log */ 
+   /** Gets event log. */ 
    public Log getLog()
    {  return event_log;
    }    
    
 
-   /** Returns the list (Hashtable) of active listener_IDs */ 
+   /** Returns the list (Hashtable) of active listener_IDs. */ 
    public Hashtable getListeners()
    {  return listeners;
    }   
@@ -556,7 +560,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
      * @return It returns <i>true</i> if the SipProviderListener is added,
      * <i>false</i> if the listener_ID is already in use. */
    public boolean addSipProviderListener(Identifier id, SipProviderListener listener)
-   {  printLog("adding SipProviderListener: id="+id,LogLevel.MEDIUM);
+   {  printLog("adding SipProviderListener: "+id,LogLevel.MEDIUM);
       boolean ret;
       Identifier key=id;
       if (listeners.containsKey(key))
@@ -582,7 +586,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
      * @return It returns <i>true</i> if the SipProviderListener is removed,
      * <i>false</i> if the  identifier is missed. */
    public boolean removeSipProviderListener(Identifier id)
-   {  printLog("removing SipProviderListener: id="+id,LogLevel.MEDIUM);
+   {  printLog("removing SipProviderListener: "+id,LogLevel.MEDIUM);
       boolean ret;
       Identifier key=id;
       if (!listeners.containsKey(key))
@@ -653,7 +657,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
      * (e.g. TCP) or null in case of connection-less delivery (e.g. UDP)
      */
    public ConnectionIdentifier sendMessage(Message msg, String proto, String dest_addr, int dest_port, int ttl)
-   {  printLog("Resolving host address '"+dest_addr+"'",LogLevel.MEDIUM);
+   {  if (log_all_packets || msg.getLength()>MIN_MESSAGE_LENGTH) printLog("Resolving host address '"+dest_addr+"'",LogLevel.MEDIUM);
       try
       {  IpAddress dest_ipaddr=IpAddress.getByName(dest_addr);  
          return sendMessage(msg,proto,dest_ipaddr,dest_port,ttl); 
@@ -667,11 +671,11 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    /** Sends a Message, specifing the transport portocol, nexthop address and port. */
    private ConnectionIdentifier sendMessage(Message msg, String proto, IpAddress dest_ipaddr, int dest_port, int ttl)
    {  ConnectionIdentifier conn_id=new ConnectionIdentifier(proto,dest_ipaddr,dest_port);
-      printLog("Sending message to "+conn_id,LogLevel.MEDIUM);
+      if (log_all_packets || msg.getLength()>MIN_MESSAGE_LENGTH) printLog("Sending message to "+conn_id,LogLevel.MEDIUM);
 
       if (transport_udp && proto.equals(PROTO_UDP))
       {  // UDP
-         printLog("DEBUG UDP",LogLevel.LOW);     
+         //printLog("using UDP",LogLevel.LOW);     
          conn_id=null;
          try
          {  // if (ttl>0 && multicast_address) do something?
@@ -685,7 +689,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
       else
       if (transport_tcp && proto.equals(PROTO_TCP))
       {  // TCP
-         printLog("DEBUG TCP",LogLevel.LOW);
+         //printLog("using TCP",LogLevel.LOW);
          if (!connections.containsKey(conn_id))
          {  printLog("no active connection found matching "+conn_id,LogLevel.MEDIUM);
             printLog("open "+proto+" connection to "+dest_ipaddr+":"+dest_port,LogLevel.MEDIUM);
@@ -729,9 +733,6 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
       // logs
       String dest_addr=dest_ipaddr.toString();
       printMessageLog(proto,dest_addr,dest_port,msg.getLength(),msg,"sent");
-      String foot_print=msg.getFirstLine();
-      if (foot_print==null) foot_print="NOT a SIP message\r\n";
-      printLog("Message sent to "+proto+":"+dest_addr+":"+dest_port+" ("+msg.getLength()+" bytes): "+foot_print,LogLevel.HIGH);
       return conn_id;
    }
 
@@ -759,11 +760,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
      * (e.g. TCP) or null in case of connection-less delivery (e.g. UDP)
      */
    public ConnectionIdentifier sendMessage(Message msg)
-   {  // logs
-      String foot_print=msg.getFirstLine();
-      if (foot_print==null) foot_print="NOT a SIP message\r\n";
-      printContLog("Sending message ("+msg.getLength()+" bytes): "+foot_print,LogLevel.HIGH);
-      printLog("message:\r\n"+msg.toString(),LogLevel.LOWER);
+   {  printLog("Sending message:\r\n"+msg.toString(),LogLevel.LOWER);
 
       // select the transport protocol
       ViaHeader via=msg.getViaHeader();
@@ -777,12 +774,12 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
       
       if (msg.isRequest())
       {  // REQUESTS
-         if (outbound_addr!=null)
-         {  dest_addr=outbound_addr;
-            dest_port=outbound_port;
+         if (outbound_proxy!=null)
+         {  dest_addr=outbound_proxy.getAddress().toString();
+            dest_port=outbound_proxy.getPort();
          }
          else 
-         {  if (msg.hasRouteHeader() && msg.getRouteHeader().getNameAddress().getAddress().hasParameter("lr"))
+         {  if (msg.hasRouteHeader() && msg.getRouteHeader().getNameAddress().getAddress().hasLr())
             {  
                SipURL url=msg.getRouteHeader().getNameAddress().getAddress();
                dest_addr=url.getHost();
@@ -820,12 +817,8 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
 
    /** Sends the message <i>msg</i> using the specified connection. */
    public ConnectionIdentifier sendMessage(Message msg, ConnectionIdentifier conn_id)
-   {  // logs
-      String foot_print=msg.getFirstLine();
-      if (foot_print==null) foot_print="NOT a SIP message\r\n";
-      printContLog("Sending message through conn "+conn_id+": "+foot_print,LogLevel.HIGH);
+   {  if (log_all_packets || msg.getLength()>MIN_MESSAGE_LENGTH) printLog("Sending message through conn "+conn_id,LogLevel.HIGH);
       printLog("message:\r\n"+msg.toString(),LogLevel.LOWER);
-
 
       if (conn_id!=null && connections.containsKey(conn_id))
       {  // connection exists
@@ -839,7 +832,6 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
             String dest_addr=conn.getRemoteAddress().toString();
             int dest_port=conn.getRemotePort();
             printMessageLog(proto,dest_addr,dest_port,msg.getLength(),msg,"sent");
-            printLog("Message sent to "+proto+":"+dest_addr+":"+dest_port+" ("+msg.getLength()+" bytes): "+foot_print,LogLevel.HIGH);
             return conn_id;
          }
          catch (Exception e)
@@ -852,28 +844,28 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    }
 
 
-   /** Processes the message received by the transport layer. */ 
+   /** Processes the message received.
+     * It is called each time a new message is received by the transport layer, and
+     * it performs the actual message processing. */ 
    protected void processReceivedMessage(Message msg)
    {  try
       {  // logs
          printMessageLog(msg.getTransportProtocol(),msg.getRemoteAddress(),msg.getRemotePort(),msg.getLength(),msg,"received");
-         // check the first line
+
+         // discard too short messages
+         if (msg.getLength()<=2)
+         {  if (log_all_packets) printLog("message too short: discarded\r\n",LogLevel.LOW);
+            return;
+         }
+         // discard non-SIP messages
          String first_line=msg.getFirstLine();
          if (first_line==null || first_line.toUpperCase().indexOf("SIP/2.0")<0)
-         {  printLog("Message received from "+msg.getRemoteAddress()+":"+msg.getRemotePort()+" ("+msg.getLength()+" bytes): NOT a SIP message: discarded",LogLevel.HIGH);
-            printLog("message:\r\n"+msg.toString(),LogLevel.LOWER);
+         {  if (log_all_packets) printLog("NOT a SIP message: discarded\r\n",LogLevel.LOW);
             return;
          }
-         //else
-         printContLog("Message received from "+msg.getRemoteAddress()+":"+msg.getRemotePort()+" ("+msg.getLength()+" bytes): "+first_line,LogLevel.HIGH);
+         printLog("received new SIP message",LogLevel.HIGH);
          printLog("message:\r\n"+msg.toString(),LogLevel.LOWER);
          
-         // discard messages too short
-         if (msg.getLength()<=2)
-         {  printLog("message too short: discarded\r\n",LogLevel.LOW);
-            return;
-         }
-
          // if a request, handle "received" and "rport" parameters
          if (msg.isRequest())
          {  ViaHeader vh=msg.getViaHeader();
@@ -1071,44 +1063,38 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
 
    //************************** Other methods ***************************
    
-   /** Seed for the branch gernerator */
-   //private static int branch_generator=org.zoolu.tools.Random.nextInt();//=10000;      
-
    /** Picks a fresh branch value.
      * The branch ID MUST be unique across space and time for
      * all requests sent by the UA.
      * The branch ID always begin with the characters "z9hG4bK". These
      * 7 characters are used by RFC 3261 as a magic cookie. */
    public static String pickBranch()
-   {  //return "z9hG4bK"+String.valueOf(branch_generator++);
-      //return "z9hG4bK"+(new MD5(String.valueOf(branch_generator++))).asHex().substring(0,5);
-      String str=Long.toString(Math.abs(org.zoolu.tools.Random.nextLong()),16);
-      if (str.length()<5) str+="00000";
-      return "z9hG4bK"+str.substring(0,5);
+   {  //String str=Long.toString(Math.abs(Random.nextLong()),16);
+      //if (str.length()<5) str+="00000";
+      //return "z9hG4bK"+str.substring(0,5);
+      return "z9hG4bK"+Random.nextNumString(5);
    }  
 
    /** Picks an unique branch value based on a SIP message.
      * This value could also be used as transaction ID */
    public String pickBranch(Message msg)
-   {  String unique_str=msg.getRequestLine().getAddress().toString();
-      unique_str+=getViaAddress()+getPort();
+   {  StringBuffer sb=new StringBuffer();
+      sb.append(msg.getRequestLine().getAddress().toString());
+      sb.append(getViaAddress()+getPort());
       ViaHeader top_via=msg.getViaHeader();
       if (top_via.hasBranch())
-         unique_str+=top_via.getBranch();
+         sb.append(top_via.getBranch());
       else
-      {  unique_str+=top_via.getHost()+top_via.getPort();
-         unique_str+=Long.toString(msg.getCSeqHeader().getSequenceNumber());
-         unique_str+=msg.getCallIdHeader().getCallId();
-         unique_str+=msg.getFromHeader().getTag();
-         unique_str+=msg.getToHeader().getTag();
+      {  sb.append(top_via.getHost()+top_via.getPort());
+         sb.append(msg.getCSeqHeader().getSequenceNumber());
+         sb.append(msg.getCallIdHeader().getCallId());
+         sb.append(msg.getFromHeader().getTag());
+         sb.append(msg.getToHeader().getTag());
       }
       //return "z9hG4bK"+(new MD5(unique_str)).asHex().substring(0,9);
-      return "z9hG4bK"+(new SimpleDigest(5,unique_str)).asHex();
+      return "z9hG4bK"+(new SimpleDigest(5,sb.toString())).asHex();
    }  
 
-
-   /** Seed for the tag gernerator */
-   //private static int tag_generator=org.zoolu.tools.Random.nextInt();//=2101968;   
 
    /** Picks a new tag.
      * A tag  MUST be globally unique and cryptographically random
@@ -1118,27 +1104,23 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
      * response to the same INVITE.  This is needed in order for a UA to
      * invite itself to a session. */
    public static String pickTag()
-   {  //return String.valueOf(tag_generator++);
-      //return (new MD5(String.valueOf(tag_generator++))).asHex().substring(0,8);
-      String str=Long.toString(Math.abs(org.zoolu.tools.Random.nextLong()),16);
-      if (str.length()<8) str+="00000000";
-      return str.substring(0,8);
+   {  //String str=Long.toString(Math.abs(Random.nextLong()),16);
+      //if (str.length()<8) str+="00000000";
+      //return str.substring(0,8);
+      return "z9hG4bK"+Random.nextNumString(8);
    }   
 
-   /** Picks a new tag. The tag is generated uniquely based on message <i>request</i>.
+   /** Picks a new tag. The tag is generated uniquely based on message <i>req</i>.
      * This tag can be generated for responses in a stateless
      * manner - in a manner that will generate the same tag for the
      * same request consistently.
      */
-   public static String pickTag(Message request)
+   public static String pickTag(Message req)
    {  //return String.valueOf(tag_generator++);
       //return (new MD5(request.toString())).asHex().substring(0,8);
-      return (new SimpleDigest(8,request.toString())).asHex();
+      return (new SimpleDigest(8,req.toString())).asHex();
    }
 
-
-   /** Seed for the call-id gernerator */
-   //private static int callid_generator=org.zoolu.tools.Random.nextInt();//=19681002; 
 
    /** Picks a new call-id.
      * The call-id is a globally unique
@@ -1146,11 +1128,10 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
      * form "localid@host". Call-id must be considered case-sensitive and is
      * compared byte-by-byte. */
    public String pickCallId()
-   {  //return String.valueOf(callid_generator++)+"@"+via_addr;
-      //return (new MD5(String.valueOf(callid_generator++))).asHex().substring(0,16)+"@"+getViaAddress();
-      String str=Long.toString(Math.abs(org.zoolu.tools.Random.nextLong()),16);
-      if (str.length()<12) str+="000000000000";
-      return str.substring(0,12)+"@"+getViaAddress();
+   {  //String str=Long.toString(Math.abs(Random.nextLong()),16);
+      //if (str.length()<12) str+="000000000000";
+      //return str.substring(0,12)+"@"+getViaAddress();
+      return Random.nextNumString(12)+"@"+getViaAddress();
    }   
 
 
@@ -1160,7 +1141,7 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    }   
 
 
-   /** (<b>Deprecated</b>) Constructs an NameAddress based on an input string.
+   /** (<b>Deprecated</b>) Constructs a NameAddress based on an input string.
      * The input string can be a:
      * <br> - <i>user</i> name,
      * <br> - <i>user@address</i> url,
@@ -1182,9 +1163,10 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
       if (!str.startsWith("sip:") && str.indexOf("@")<0 && str.indexOf(".")<0 && str.indexOf(":")<0)
       {  // may be it is just the user name..
          String url="sip:"+str+"@";
-         if (outbound_addr!=null)
-         {  url+=outbound_addr;
-            if (outbound_port>0 && outbound_port!=SipStack.default_port) url+=":"+outbound_port;
+         if (outbound_proxy!=null)
+         {  url+=outbound_proxy.getAddress().toString();
+            int port=outbound_proxy.getPort();
+            if (port>0 && port!=SipStack.default_port) url+=":"+port;
          }
          else
          {  url+=via_addr;
@@ -1194,6 +1176,12 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
       }
       else return new SipURL(str);
    }
+   
+   /** Constructs a SipURL for the given <i>username</i> on the local SIP UA.
+     * If <i>username</i> is null, only host address and port are used. */
+   /*public SipURL getSipURL(String user_name)
+   {  return new SipURL(user_name,via_addr,(host_port!=SipStack.default_port)?host_port:-1);
+   }*/
 
 
    //******************************* Logs *******************************
@@ -1204,20 +1192,12 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
       else return host_ipaddr.toString()+":"+host_port+"/"+transportProtocolsToString();
    }   
 
-   /** Starting log level for this class */
-   //private static int LOG_OFFSET=SipStack.LOG_LEVEL_TRANSPORT;
-
-   /** Adds a new log string to the default log output, without return-line (CRLF) */ 
-   private void printContLog(String str, int level)
+   /** Adds a new string to the default Log */
+   private final void printLog(String str, int level)
    {  if (event_log!=null)
       {  String provider_id=(host_ipaddr==null)? Integer.toString(host_port) : host_ipaddr.toString()+":"+host_port;
-         event_log.print("SipProvider-"+provider_id+": "+str,level+SipStack.LOG_LEVEL_TRANSPORT);  
+         event_log.println("SipProvider-"+provider_id+": "+str,level+SipStack.LOG_LEVEL_TRANSPORT);  
       }
-   }
-
-   /** Adds a new log line to the default log output */ 
-   private final void printLog(String str, int level)
-   {  printContLog(str+"\r\n",level);  
    }
   
    /** Adds a WARNING to the default Log */
@@ -1230,9 +1210,20 @@ public class SipProvider implements Configurable, TransportListener, TcpServerLi
    {  if (event_log!=null) event_log.printException(e,level+SipStack.LOG_LEVEL_TRANSPORT);
    }
   
-   /** Adds the new message to the messageslog */
+   /** Adds the SIP message to the messageslog */
    private final void printMessageLog(String proto, String addr, int port, int len, Message msg, String str)
-   {  if (message_log!=null) message_log.printPacketTimestamp(proto,addr,port,len,str+"\r\n"+msg.toString()+"-----End-of-message-----\r\n",1);
+   {  if (log_all_packets || len>=MIN_MESSAGE_LENGTH)
+      {  if (message_log!=null)
+         {  message_log.printPacketTimestamp(proto,addr,port,len,str+"\r\n"+msg.toString()+"-----End-of-message-----\r\n",1);
+         }
+         if (event_log!=null)
+         {  String first_line=msg.getFirstLine();
+            if (first_line!=null) first_line=first_line.trim(); else first_line="NOT a SIP message";
+            event_log.print("\r\n");
+            event_log.printPacketTimestamp(proto,addr,port,len,first_line+", "+str,1);
+            event_log.print("\r\n");
+         }
+      }
    }
 
 }

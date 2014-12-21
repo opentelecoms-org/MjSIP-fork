@@ -32,5 +32,5 @@ import org.zoolu.sip.message.Message;
 public interface SipProviderListener
 {
    /** When a new Message is received by the SipProvider. */
-   public void onReceivedMessage(SipProvider provider, Message message);
+   public void onReceivedMessage(SipProvider sip_provider, Message message);
 }

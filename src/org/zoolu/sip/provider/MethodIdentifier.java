@@ -39,5 +39,4 @@ public class MethodIdentifier extends Identifier
    public MethodIdentifier(MethodIdentifier i)
    {  super(i);
    }
-
 }

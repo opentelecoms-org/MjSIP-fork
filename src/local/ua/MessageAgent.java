@@ -33,14 +33,14 @@ import org.zoolu.tools.LogLevel;
 import java.io.*;
 
 
-/** Simple Message Agent.
+/** Simple Message Agent (MA).
   * It allows a user to send and receive short messages.
   */
 //public class MessageAgent implements SipProviderListener, TransactionClientListener
 public class MessageAgent implements SipInterfaceListener, TransactionClientListener
 {     
    /** Event logger. */
-   protected Log log=null;
+   protected Log log;
 
    /** UserProfile */
    protected UserAgentProfile user_profile;
@@ -51,7 +51,7 @@ public class MessageAgent implements SipInterfaceListener, TransactionClientList
    /** SipInterface to message MESSAGE. */
    protected SipInterface sip_interface;
 
-   /** UserProfile */
+   /** Message listener */
    protected MessageAgentListener listener;
 
    
@@ -59,17 +59,11 @@ public class MessageAgent implements SipInterfaceListener, TransactionClientList
    public MessageAgent(SipProvider sip_provider, UserAgentProfile user_profile, MessageAgentListener listener)
    {  this.sip_provider=sip_provider;
       this.log=sip_provider.getLog();
-      this.user_profile=user_profile;
-      this.listener=listener;
       this.sip_interface=null;
+      this.listener=listener;
+      this.user_profile=user_profile;
       // if no contact_url and/or from_url has been set, create it now
-      if (user_profile.contact_url==null)
-      {  user_profile.contact_url="sip:"+user_profile.username+"@"+sip_provider.getViaAddress();
-         if (sip_provider.getPort()!=SipStack.default_port) user_profile.contact_url+=":"+sip_provider.getPort();
-         if (!sip_provider.getDefaultTransport().equals(SipProvider.PROTO_UDP)) user_profile.contact_url+=";transport="+sip_provider.getDefaultTransport();
-      }
-      if (user_profile.from_url==null)
-         user_profile.from_url=user_profile.contact_url;
+      user_profile.initContactAddress(sip_provider);
    }   
 
    
@@ -125,7 +119,7 @@ public class MessageAgent implements SipInterfaceListener, TransactionClientList
    public void onReceivedMessage(SipInterface sip, Message msg)
    {  //printLog("Message received: "+msg.getFirstLine().substring(0,msg.toString().indexOf('\r')));
       if (msg.isRequest())
-      {  (new TransactionServer(sip_provider,msg,null)).respondWith(MessageFactory.createResponse(msg,200,"OK",null,""));
+      {  (new TransactionServer(sip_provider,msg,null)).respondWith(MessageFactory.createResponse(msg,200,SipResponses.reasonOf(200),null));
          NameAddress sender=msg.getFromHeader().getNameAddress();
          NameAddress recipient=msg.getToHeader().getNameAddress();
          String subject=null;
@@ -138,29 +132,29 @@ public class MessageAgent implements SipInterfaceListener, TransactionClientList
  
 
    /** When the TransactionClient goes into the "Completed" state receiving a 2xx response */
-   public void onCltSuccessResponse(TransactionClient tc, Message resp) 
+   public void onTransSuccessResponse(TransactionClient tc, Message resp) 
    {  onDeliverySuccess(tc,resp.getStatusLine().getReason());
    }
 
    /** When the TransactionClient goes into the "Completed" state receiving a 300-699 response */
-   public void onCltFailureResponse(TransactionClient tc, Message resp) 
+   public void onTransFailureResponse(TransactionClient tc, Message resp) 
    {  onDeliveryFailure(tc,resp.getStatusLine().getReason());
    }
     
    /** When the TransactionClient is (or goes) in "Proceeding" state and receives a new 1xx provisional response */
-   public void onCltProvisionalResponse(TransactionClient tc, Message resp)
+   public void onTransProvisionalResponse(TransactionClient tc, Message resp)
    {  // do nothing.
    }
       
    /** When the TransactionClient goes into the "Terminated" state, caused by transaction timeout */
-   public void onCltTimeout(TransactionClient tc)
+   public void onTransTimeout(TransactionClient tc)
    {  onDeliveryFailure(tc,"Timeout");
    }
  
    /** When the delivery successes. */
    private void onDeliverySuccess(TransactionClient tc, String result)
    {  printLog("Message successfully delivered ("+result+").");
-      Message req=tc.getMethodMessage();
+      Message req=tc.getRequestMessage();
       NameAddress recipient=req.getToHeader().getNameAddress();
       String subject=null;
       if (req.hasSubjectHeader()) subject=req.getSubjectHeader().getSubject();
@@ -170,7 +164,7 @@ public class MessageAgent implements SipInterfaceListener, TransactionClientList
    /** When the delivery fails. */
    private void onDeliveryFailure(TransactionClient tc, String result)
    {  printLog("Message delivery failed ("+result+").");
-      Message req=tc.getMethodMessage();
+      Message req=tc.getRequestMessage();
       NameAddress recipient=req.getToHeader().getNameAddress();
       String subject=null;
       if (req.hasSubjectHeader()) subject=req.getSubjectHeader().getSubject();
@@ -192,4 +186,5 @@ public class MessageAgent implements SipInterfaceListener, TransactionClientList
    {  if (log!=null) log.println("MessageAgent: "+str,level+SipStack.LOG_LEVEL_UA);
       //System.out.println("MA: "+str);  
    }
+
 }

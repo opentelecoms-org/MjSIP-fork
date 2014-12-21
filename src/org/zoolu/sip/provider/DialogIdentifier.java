@@ -40,5 +40,4 @@ public class DialogIdentifier extends Identifier
    public DialogIdentifier(DialogIdentifier i)
    {  super(i);
    }
-
 }

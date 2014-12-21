@@ -32,7 +32,7 @@ import org.zoolu.tools.Parser;
 /** Abstract NameAddress Header is the base Class for SIP Headers such as EndPointHeader.
   * It contains a NameAddress, formed by a SIP URI and optionally a display name.
   */
-public abstract class NameAddressHeader extends ParametersHeader
+public abstract class NameAddressHeader extends ParametricHeader
 {
    /** Creates a new NameAddressHeader. */
    //public NameAddressHeader(String hname)
@@ -66,7 +66,7 @@ public abstract class NameAddressHeader extends ParametersHeader
    }
    
    
-   // ***************** ParametersHeader's extended method *****************
+   // ***************** ParametricHeader's extended method *****************
    
    /** Returns the index of the first semicolon before the first parameter.
      * @returns the index of the semicolon before the first parameter, or -1 if no parameter is present. */

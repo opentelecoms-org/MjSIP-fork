@@ -46,6 +46,11 @@ public class SipHeaders extends BaseSipHeaders
    /** Whether <i>str</i> is an Event field */
    public static boolean isEvent(String str) { return same(str,Event) || same(str,Event_short); }
 
+   /** String "Allow-Events" */
+   public static final String Allow_Events="Allow-Events";
+   /** Whether <i>str</i> is "Allow-Events" */
+   public static boolean isAllowEvents(String str) { return same(str,Allow_Events); }
+
    /** String "Subscription-State" */
    public static final String Subscription_State="Subscription-State";
    /** Whether <i>str</i> is an Subscription_State field */

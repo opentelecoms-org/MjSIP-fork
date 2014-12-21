@@ -51,5 +51,4 @@ public class TransactionIdentifier extends Identifier
       if (method.equals(SipMethods.ACK)) method=SipMethods.INVITE; 
       id=call_id+"-"+seqn+"-"+method+"-"+sent_by+"-"+branch;
    }
-
 }

@@ -40,36 +40,49 @@ import java.util.*;
 public abstract class BaseMessageOtp extends BaseMessage
 {
 
-   protected RequestLine request_line=null;
-   protected StatusLine status_line=null;
+   protected RequestLine request_line;
+   protected StatusLine status_line;
 
-   protected Vector headers=null;
-   protected String body=null;
+   protected Vector headers;
+   protected String body;
 
 
+   /** Inits empty Message */
+   private void init()
+   {  request_line=null;
+      status_line=null;
+      headers=null;
+      body=null;
+   }
+      
    /** Costructs a new empty Message */
    public BaseMessageOtp()
-   {  headers=new Vector();
+   {  init();
+      headers=new Vector();
    }
       
    /** Costructs a new Message */
    public BaseMessageOtp(byte[] data, int offset, int len)
-   {  parseIt(new String(data,offset,len));
+   {  init();
+      parseIt(new String(data,offset,len));
    }
 
    /** Costructs a new Message */
    public BaseMessageOtp(UdpPacket packet)
-   {  parseIt(new String(packet.getData(),packet.getOffset(),packet.getLength()));
+   {  init();
+      parseIt(new String(packet.getData(),packet.getOffset(),packet.getLength()));
    }
 
    /** Costructs a new Message */
    public BaseMessageOtp(String str)
-   {  parseIt(str);
+   {  init();
+      parseIt(str);
    }
 
    /** Costructs a new Message */
    public BaseMessageOtp(BaseMessageOtp msg)
-   {  remote_addr=msg.remote_addr;
+   {  init();
+      remote_addr=msg.remote_addr;
       remote_port=msg.remote_port;
       transport_proto=msg.transport_proto;
       connection_id=msg.connection_id;

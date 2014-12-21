@@ -33,54 +33,6 @@ import org.zoolu.sip.message.Message;
 public interface TransactionServerListener
 {  
    /** When the TransactionServer goes into the "Trying" state receiving a request */
-   public void onSrvRequest(TransactionServer transaction, Message req);  
-   
-   /** When the TransactionServer goes into the "Proceeding" state, sending a provisional response  */
-   //public void onSrvProceeding(TransactionServer transaction);
-   
-   /** When the TransactionServer goes into the "Completed" state, sending a final response */
-   //public void onSrvCompleted(TransactionServer transaction);
-   
-   /** When the TransactionServer goes into the "Terminated" state, caused by clearing timeout after sent final response */
-   //public void onSrvClearingTimeout(TransactionServer transaction);
-
-   /** When the TransactionServer goes into the "Terminated" state, forced by the transaction user */
-   //public void onSrvTerminated(TransactionServer transaction);
-
-
-   /************************ InviteTransactionServer listeners ************************
-
-   /** When the InviteTransactionServer goes into the "Trying" state receiving a request */
-   //public void onInvSrvInvite(TransactionServer transaction, Message req);  
-   
-   /** When the InviteTransactionServer goes into the "Proceeding" state, sending a provisional response  */
-   //public void onInvSrvProceeding(TransactionServer transaction);
-   
-   /** When the InviteTransactionServer goes into the "Completed" state, sending a failure response */
-   //public void onInvSrvFailureCompleted(TransactionServer transaction);
-   
-   /** When an InviteTransactionServer goes into the "Confirmed" state receining an ACK for NON-2xx response */
-   //public void onInvSrvFailureAck(TransactionServer transaction, Message ack);
-
-   /** When the InviteTransactionServer goes into the "Terminated" state, sending a success response */
-   //public void onInvSrvSuccessTerminated(TransactionServer transaction);
-
-   /** When the InviteTransactionServer goes into the "Terminated" state, caused by end timeout after sent final response */
-   //public void onInvSrvEndTimeout(TransactionServer transaction);
-
-   /** When the InviteTransactionServer goes into the "Terminated" state, caused by clearing timeout after sent final response */
-   //public void onInvSrvClearingTimeout(TransactionServer transaction);
-
-   /** When the InviteTransactionServer goes into the "Terminated" state, forced by the transaction user */
-   //public void onInvSrvTerminated(TransactionServer transaction);
-
-
-   /************************* AckTransactionServer listeners *************************
-
-   /** When the AckTransactionServer goes into the "Terminated" state, caused by transaction timeout */
-   //public void onAckSrvTimeout(AckTransactionServer transaction);
-
-   /** When the AckTransactionServer goes into the "Terminated" state, forced by the transaction user */
-   //public void onAckSrvTerminated(AckTransactionServer transaction);
+   public void onTransRequest(TransactionServer ts, Message req);  
 
 }

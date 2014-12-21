@@ -36,14 +36,20 @@ import java.util.Vector;
  */
 public interface ExtendedCallListener extends CallListener
 {  
-   /** Callback function called when arriving a new REFER method (transfer request) */
+   /** Callback function called when arriving a new REFER method (transfer request). */
    public void onCallTransfer(ExtendedCall call, NameAddress refer_to, NameAddress refered_by, Message refer);
 
-   /** Callback function called when a call transfer is successfully completed */
+   /** Callback function called when a call transfer is accepted. */
+   public void onCallTransferAccepted(ExtendedCall call, Message resp);
+
+   /** Callback function called when a call transfer is refused. */
+   public void onCallTransferRefused(ExtendedCall call, String reason, Message resp);
+
+   /** Callback function called when a call transfer is successfully completed. */
    public void onCallTransferSuccess(ExtendedCall call, Message notify);
 
-   /** Callback function called when a call transfer is NOT sucessfully completed */
-   public void onCallTransferFailure(ExtendedCall call, int code, String reason, Message msg);
+   /** Callback function called when a call transfer is NOT sucessfully completed. */
+   public void onCallTransferFailure(ExtendedCall call, String reason, Message notify);
    
 }
 

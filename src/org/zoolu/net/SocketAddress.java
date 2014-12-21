@@ -37,43 +37,56 @@ public class SocketAddress
    int port;
  
    
-   /** Creates a SocketAddress */
+   /** Creates a SocketAddress. */
    public SocketAddress(IpAddress ipaddr, int port)
    {  init(ipaddr,port);
    }
 
-   /** Creates a SocketAddress */
+   /** Creates a SocketAddress. */
    public SocketAddress(String addr, int port)
    {  init(new IpAddress(addr),port);
    }
 
-   /** Creates a SocketAddress */
-   public SocketAddress(SocketAddress saddr)
-   {  init(saddr.ipaddr,saddr.port);
+   /** Creates a SocketAddress. */
+   public SocketAddress(String soaddr)
+   {  String addr=null;
+      int port=-1;
+      int colon=soaddr.indexOf(':');
+      if (colon<0) addr=soaddr;
+      else
+      {  addr=soaddr.substring(0,colon);
+         try {  port=Integer.parseInt(soaddr.substring(colon+1));  } catch (Exception e) {}
+      }
+      init(new IpAddress(addr),port);
    }
 
-   /** Inits the SocketAddress */
+   /** Creates a SocketAddress. */
+   public SocketAddress(SocketAddress soaddr)
+   {  init(soaddr.ipaddr,soaddr.port);
+   }
+
+   /** Inits the SocketAddress. */
    private void init(IpAddress ipaddr, int port)
    {  this.ipaddr=ipaddr;
       this.port=port;
    }
    
-   /** Gets the host address */
+   /** Gets the host address. */
    public IpAddress getAddress()
    {  return ipaddr;
    }
 
-   /** Gets the port */
+   /** Gets the port. */
    public int getPort()
    {  return port;
    }
 
-   /** Makes a copy */
+   /** Makes a copy. */
    public Object clone()
    {  return new SocketAddress(this);
    }
 
-   /** Wthether it is equal to Object <i>obj</i> */
+   /** Wthether it is equal to Object <i>obj</i>. */
    public boolean equals(Object obj)
    {  try
       {  SocketAddress saddr=(SocketAddress)obj;
@@ -84,7 +97,7 @@ public class SocketAddress
       catch (Exception e) {  return false;  }
    }
 
-   /** Gets a String representation of the Object */
+   /** Gets a String representation of the Object. */
    public String toString()
    {  return (ipaddr.toString()+":"+port);
    }

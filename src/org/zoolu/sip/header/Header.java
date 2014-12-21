@@ -34,22 +34,19 @@ public class Header
    /** The header string, without terminating CRLF */
    protected String value;
 
-   /** Creates a void Header. Used for inheritance */
+   /** Creates a void Header. */
    protected Header()
    {  name=null;
       value=null;
    }
 
-   //public Header(String hname)
-   //{  name=hname;
-   //   value=null;
-   //}
-
+   /** Creates a new Header. */
    public Header(String hname, String hvalue)
    {  name=hname;
       value=hvalue;
    }
 
+   /** Creates a new Header. */
    public Header(Header hd)
    {  name=hd.getName();
       value=hd.getValue();
@@ -81,8 +78,8 @@ public class Header
    }
 
    /** Sets value of Header */
-   public void setValue(String v)
-   {  value=v; 
+   public void setValue(String hvalue)
+   {  value=hvalue; 
    }
 
    /** Gets string representation of Header */

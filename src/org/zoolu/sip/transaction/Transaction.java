@@ -42,31 +42,9 @@ import org.zoolu.tools.LogLevel;
  */
 public abstract class Transaction implements SipProviderListener, TimerListener
 { 
-   /** Event logger. */
-   Log log=null;
- 
-   /** Transactions sequence number */
+   /** Transactions counter */
    protected static int transaction_counter=0;
 
-   /** This transaction number */
-   protected int t_number;
-
-   // all transaction states:
-   /** State Waiting, used only by server transactions */
-   //static final String STATE_IDLE="T_Idle"; 
-   /** State Waiting, used only by server transactions */
-   //static final String STATE_WAITING="T_Waiting"; 
-   /** State Trying */
-   //static final String STATE_TRYING="T_Trying"; 
-   /** State Proceeding */
-   //static final String STATE_PROCEEDING="T_Proceeding";
-   /** State Completed */
-   //static final String STATE_COMPLETED="T_Completed";
-   /** State Confirmed, used only by invite server transactions */
-   //static final String STATE_CONFIRMED="T_Confirmed";
-   /** State Waiting */
-   //static final String STATE_TERMINATED="T_Terminated"; 
-  
    // all transaction states:
    /** State Waiting, used only by server transactions */
    static final int STATE_IDLE=0; 
@@ -80,7 +58,7 @@ public abstract class Transaction implements SipProviderListener, TimerListener
    static final int STATE_COMPLETED=4;
    /** State Confirmed, used only by invite server transactions */
    static final int STATE_CONFIRMED=5;
-   /** State Waiting */
+   /** State Waiting. */
    static final int STATE_TERMINATED=7; 
   
    /** Gets the transaction state. */
@@ -97,27 +75,40 @@ public abstract class Transaction implements SipProviderListener, TimerListener
       }
    }
 
+
+   /** Transaction sequence number */
+   int transaction_sqn;
+
+   /** Event logger. */
+   Log log;
+ 
    /** Lower layer dispatcher that sends and receive messages.
      * The messages received by the SipProvider are fired to the Transaction
      * by means of the onReceivedMessage() method. */
-   SipProvider sip_provider=null;
+   SipProvider sip_provider;
  
-   /** internal state-machine status */
-   int status=STATE_IDLE;
+   /** Internal state-machine status */
+   int status;
 
-   /** transaction method */
-   Message method=null;
+   /** transaction request message/method */
+   Message request;
    
    /** the Transaction ID */
-   TransactionIdentifier transaction_id=null;
+   TransactionIdentifier transaction_id;
 
    /** Transaction connection id */
-   ConnectionIdentifier connection_id=null;
+   ConnectionIdentifier connection_id;
+
 
    /** Costructs a new Transaction */
-   protected Transaction(SipProvider provider)
-   {  sip_provider=provider;
+   protected Transaction(SipProvider sip_provider)
+   {  this.sip_provider=sip_provider;
       log=sip_provider.getLog();
+      this.transaction_id=null;
+      this.request=null;
+      this.connection_id=null;
+      this.transaction_sqn=transaction_counter++;
+      this.status=STATE_IDLE;
    }
 
    /** Changes the internal status */
@@ -143,13 +134,13 @@ public abstract class Transaction implements SipProviderListener, TimerListener
    }
 
    /** Gets the Transaction request message */
-   public Message getMethodMessage()
-   {  return method;
+   public Message getRequestMessage()
+   {  return request;
    }
 
    /** Gets the Transaction method */
    public String getTransactionMethod()
-   {  return method.getTransactionMethod();
+   {  return request.getTransactionMethod();
    }
 
    /** Gets the transaction-ID */
@@ -176,36 +167,25 @@ public abstract class Transaction implements SipProviderListener, TimerListener
    {  //do nothing
    }
 
-   /** Starts the transaction client and sends the transaction request. It it should be extended by TransactioClients. */
-   /*public void request()
-   {  //do nothing 
-      System.err.println("DEBUG: request() method called for a TransactionServer.");
-   }*/
-
-   /** Starts the transaction server. It it should be extended by TransactioServerss. */
-   /*public void listen()
-   {  //do nothing 
-      System.err.println("DEBUG: listen() method called for a TransactionClient.");
-   }*/
-
    /** Terminates the transaction. */
    public abstract void terminate();
    
 
    //**************************** Logs ****************************/
 
-   /** Adds a new event to the log file */
-   void printLog(String str, int level)
-   {  if (log!=null) log.println("Transaction#"+t_number+": id="+transaction_id+", "+str,level+SipStack.LOG_LEVEL_TRANSACTION);  
+   /** Adds a new string to the default Log */
+   protected void printLog(String str, int level)
+   {  if (log!=null) log.println("Transaction#"+transaction_sqn+": "+str,level+SipStack.LOG_LEVEL_TRANSACTION);  
    }
 
    /** Adds a WARNING to the default Log */
-   final void printWarning(String str, int level)
+   protected void printWarning(String str, int level)
    {  printLog("WARNING: "+str,level); 
    }
 
    /** Adds the Exception to the log file */
-   final void printException(Exception e, int level)
+   protected void printException(Exception e, int level)
    {  if (log!=null) log.printException(e,level+SipStack.LOG_LEVEL_TRANSACTION);
    }
+
 }

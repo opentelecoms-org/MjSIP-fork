@@ -39,28 +39,28 @@ public class TcpConnection extends Thread
    public static final int DEFAULT_SOCKET_TIMEOUT=2000; // 2sec 
 
    /** The TCP socket */ 
-   TcpSocket socket=null;  
+   TcpSocket socket;  
 
    /** Maximum time that the connection can remain active after been halted (in milliseconds) */
-   int socket_timeout=DEFAULT_SOCKET_TIMEOUT;
+   int socket_timeout;
 
    /** Maximum time that the connection remains active without receiving data (in milliseconds) */
    long alive_time; 
 
    /** The InputStream */
-   InputStream istream=null;
+   InputStream istream;
    
    /** The OutputStream */
-   OutputStream ostream=null;
+   OutputStream ostream;
 
    /** InputStream/OutputStream error */
-   Exception error=null;
+   Exception error;
 
    /** Whether it has been halted */
-   boolean stop=false; 
+   boolean stop; 
 
    /** Whether it is running */
-   boolean is_running=true; 
+   boolean is_running; 
 
    /** TcpConnection listener */
    TcpConnectionListener listener;
@@ -82,9 +82,16 @@ public class TcpConnection extends Thread
 
    /** Inits the TcpConnection */
    private void init(TcpSocket socket, long alive_time, TcpConnectionListener listener)
-   {  this.socket=socket;
+   {  this.listener=listener;
+      this.socket=socket;
+      this.socket_timeout=DEFAULT_SOCKET_TIMEOUT;
       this.alive_time=alive_time;
-      this.listener=listener;
+      this.stop=false; 
+      this.is_running=true; 
+
+      this.istream=null;
+      this.ostream=null;
+      this.error=null;
       try
       {  istream=new BufferedInputStream(socket.getInputStream());
          ostream=new BufferedOutputStream(socket.getOutputStream());

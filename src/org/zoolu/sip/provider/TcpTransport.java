@@ -37,18 +37,17 @@ class TcpTransport implements ConnectedTransport, TcpConnectionListener
    public static final String PROTO_TCP="tcp";
 
    /** TCP connection */
-   ConnectionIdentifier connection_id;  
+   TcpConnection tcp_conn;  
 
    /** TCP connection */
-   TcpConnection tcp_conn=null;  
+   ConnectionIdentifier connection_id;  
 
    /** The last time that has been used (in milliseconds) */
    long last_time;
    
    /** the current received text. */
-   String text="";
-
-       
+   String text;
+     
    /** Transport listener */
    TransportListener listener;   
 
@@ -58,8 +57,9 @@ class TcpTransport implements ConnectedTransport, TcpConnectionListener
    {  this.listener=listener;
       TcpSocket socket=new TcpSocket(remote_ipaddr,remote_port);
       tcp_conn=new TcpConnection(socket,this);
-      last_time=System.currentTimeMillis();
       connection_id=new ConnectionIdentifier(this);
+      last_time=System.currentTimeMillis();
+      text="";
    }
 
 
@@ -67,7 +67,9 @@ class TcpTransport implements ConnectedTransport, TcpConnectionListener
    public TcpTransport(TcpSocket socket, TransportListener listener)
    {  this.listener=listener;
       tcp_conn=new TcpConnection(socket,this);
+      connection_id=null;
       last_time=System.currentTimeMillis();
+      text="";
    }
 
 

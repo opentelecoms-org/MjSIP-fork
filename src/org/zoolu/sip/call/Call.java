@@ -44,13 +44,13 @@ import java.util.Vector;
 public class Call implements InviteDialogListener
 {  
    /** Event logger. */
-   Log log=null;
+   Log log;
 
    /** The SipProvider used for the call */
    protected SipProvider sip_provider;
    
    /** The invite dialog (sip.dialog.InviteDialog) */
-   protected InviteDialog dialog=null;
+   protected InviteDialog dialog;
    
    /** The user url */
    protected String from_url;
@@ -59,10 +59,10 @@ public class Call implements InviteDialogListener
    protected String contact_url;
 
    /** The local sdp */
-   protected String local_sdp=null;
+   protected String local_sdp;
 
    /** The remote sdp */
-   protected String remote_sdp=null;
+   protected String remote_sdp;
    
    /** The call listener (sipx.call.CallListener) */
    CallListener listener;
@@ -75,6 +75,9 @@ public class Call implements InviteDialogListener
       this.listener=call_listener;
       this.from_url=from_url;
       this.contact_url=contact_url;
+      this.dialog=null;
+      this.local_sdp=null;
+      this.remote_sdp=null;
    }
 
    /** Creates a new Call specifing the sdp */
@@ -109,7 +112,7 @@ public class Call implements InviteDialogListener
    
    /** Whether the call is on (active). */
    public boolean isOnCall()
-   {  return dialog.statusIs(org.zoolu.sip.dialog.InviteDialog.D_CALL);
+   {  return dialog.isSessionActive();
    } 
          
    /** Waits for an incoming call */
@@ -217,10 +220,10 @@ public class Call implements InviteDialogListener
    // ************** Inherited from InviteDialogListener **************
 
    /** Inherited from class InviteDialogListener and called by an InviteDialag. Normally you should not use it. Use specific callback methods instead (e.g. onCallIncoming()). */ 
-   public void onDlgInvite(InviteDialog d, NameAddress caller, NameAddress callee, String sdp, Message msg)
+   public void onDlgInvite(InviteDialog d, NameAddress callee, NameAddress caller, String sdp, Message msg)
    {  if (d!=dialog) {  printLog("NOT the current dialog",LogLevel.HIGH);  return;  }
       if (sdp!=null && sdp.length()!=0) remote_sdp=sdp;
-      if (listener!=null) listener.onCallIncoming(this,caller,callee,sdp,msg);
+      if (listener!=null) listener.onCallIncoming(this,callee,caller,sdp,msg);
    }
 
    /** Inherited from class InviteDialogListener and called by an InviteDialag. Normally you should not use it. Use specific callback methods instead (e.g. onCallModifying()). */ 

@@ -1,5 +1,135 @@
 Changes:
 ----------------------------------------------------
+28/2/2006
+-add: ExtendedCallListener,ExtendedCall,CallListenerAdapter,UserAgent: new ExtendedCallListener methods onCallTransferAccepted() and onCallTransferRefused()
+-change: ExtendedCallListener: changed method onCallTransferFailure(call,code,reason,msg) into onCallTransferFailure(call,reason,notify)
+
+23/2/2006
+-fix: GraphicalUA: command-line option 'call_to' was disabled: re-activated
+-change: GraphicalUA,CommandLineUA: renamed option '-o' to '-n'
+-add: GraphicalUA,CommandLineUA: added option '-o' for setting the outbound_proxy
+
+14/2/2006
+-change: InviteDialog: renamed method isCallActive() to isSessionActive()
+
+12/2/2006
+-change: ParametersHeader: renamed method getParameters() to getParameterNames()
+-change: header: renamed class ParametersHeader to ParametricHeader
+-change: BaseMessageFactory: removed parameter body from method createResponse(req,code,reason,contact)
+-change: BaseMessage: removed method setNullBody()
+
+11/2/2006
+-add: dialog: new class DialogInformation that collects basic Dialog attributes (URLs, tags, route, etc.) 
+-change: Dialog: it now extends DialogInformation  
+-change: Dialog,InviteDialog: listener is automatically added and removed within metods changeStatus() and update()   
+-change: SubscriberDialog: minor changes 
+-change: NotifierDialog: minor changes 
+
+4/2/2006
+-change: SipURL: minor changes to costructors; port is added only if >0
+-change: dialog: changed name and visibility of methods that manage the dialog state
+
+29/1/2006
+-add: UserAgentProfile: new method updateUserAddress()
+-change: ua: auto answer mode became -y
+-change: AckTransactionServer: renamed method onAckSrvTimeout() to onSrvAckTimeout()
+-change: CallListener: in method onCallIncoming() changed order of caller and callee parameters
+-change: InviteDialogListener: in method onDlgInvite() changed order of caller and callee parameters
+-change: UserAgentListener: in method onUaCallIncoming() changed order of caller and callee parameters
+-change: org.zoolu.sip.transaction: minor changes to transaction initialization and logs
+-change: Transaction: renamed attribute 'method' to 'request'
+-change: InviteDialog: added costructor for an already received INVITE request (for server-side InviteDialog)
+-change: NotifierDialog: added costructor for an already received SUBSCRIBE request
+
+28/1/2006
+-change: Dialog: method update() automatically updates the dialog_id used as listener key with the SipProvider; Dialog now implements SipProivderListener 
+-change: SubscriberDialog, NotifierDialog: changed the implementation  
+
+23/1/2006
+-add: header: added headers ListHeader, AllowEventsHeader
+-change: AllowHeader: now it extends ListHeader
+-change: SipHeaders: added "Allow-Events"
+
+21/1/2006
+-fix: Random: fixed an error in method nextHexString()
+
+20/1/2006
+-change: ServerEngine,Proxy: changed the rule for performing loop detection: added temporary Loop-Tag header filed
+-change: SipProvider: minor changes within method pickBranch(msg)
+
+19/1/2006
+-change: ServerEngine: changed the rule for performing loop detection: no detection for messagres the server is responsible for
+
+18/1/2006
+-change: ServerEngine: new method isResponsibleFor(msg) replaces method isTargetOf(msg)
+
+17/1/2006
+-change: ServerEngine: renamed method isForLocalServer() to isTargetOf()
+-change: ServerEngine,Proxy: renamed method matchesDomainName() to isResponsibleFor()
+
+1/1/2006
+-change: ServerEngine,Proxy: renamed method isLocalDomain() to matchesDomainName()
+-change: ServerEngine,Registrar: renamed method localDomains() to getLocalDomains()
+
+29/12/2005
+-add: SipURL: added methods hasLr() addLr() for processing param "lr"
+
+25/12/2005
+-change: Dialog: renamed T_Client and T_Server to UAC and UAS respectively
+-change: InviteDialog: close the dialog when no ACK is received
+-change: InviteDialog: close the dialog when no response is received also for a re-INVITE
+
+21/12/2005
+-change: RtpStreamSender: changed the synchronization method: the frame time is now simply calculated from frame length and sample rate 
+-change: RtpStreamSender: added attribute sync_adj (milliseconds) that accellerates the frame rate respect to the nominal value in order to compensate program latencies 
+-change: JAudioLauncher: now it forces synchronization when capturing system audio
+-change: UserAgentProfile: changed default attribute value of audio_frame_size from 500 to 160
+
+17/12/2005
+-fix: ServerEngine: when validating an ACK request do not generate error response
+-fix: ServerEngine: do not detect a loop for requests with Route header field 
+-fix: AckTransactionServer: 2xx retransmission did not use exponential backoff; now it starts after T1 seconds and doubles for each retransmission until it reaches T2 seconds (as defined in RFC3261)
+
+11/12/2005
+-change: ServerProfile: renamed parameter pstn_gateways to phone_routing_rules
+-fix: Proxy,StatefulProxy: now in case of is_open_proxy=false does not filter messages with to_url corresponding to local users 
+-add: AuthenticationServer,AuthenticationServerImpl: added Proxy-Authentication
+-add: Proxy,StatefulProxy: added Proxy-Authentication
+-add: ExtendedInviteDialog,ExtendedCall,UserAgent: added proxy and server authentication
+-fix: UserAgent: fixed JMFAudioLauncher and JMFVideoLauncher costructor declaration with java reflection ('int' parameters were not declared java.lang.Integer.TYPE)
+
+10/12/2005
+-change: KeepAliveSip,KeepAliveUdp: moved to package local.net
+-add: SipProvider: added option 'log_all_packets'; defalut value is false (no)
+-change: SipProvider: improved message logs
+-fix: Transaction: the t_number value ,that is the transaction's sqn, was not incremented; fixed
+-change: Proxy: sends a 484 if no username is set in non-REGISTER requests addressed to local server 
+-add: Random: new methods nextBytes(len), nextString(len), nextNumString(), nextHexString()
+-change: SipProvider: used method Random.nextNumString(len) for random token generation
+-add: server: added new interface RoutingRule; added new class PrefixRoutingRule
+-change: ServerProfile,Proxy: use new class PrefixRoutingRule
+
+9/12/2005
+-add: ServerEngine,Proxy: implementted loop detection, distinguishing spirals, as suggested in RFC3261
+-change: AddressResolverKeepAlive,Makefile: updated AddressResolverKeepAlive and Makefile with new KeepAliveSip
+
+4/12/2005
+-add: KeepAliveUdp,KeepAliveSip: new classes media.KeepAliveUdp and media.KeepAliveSip 
+-add: RegisterAgent: added support for SIP keep-alive (by means of KeepAliveSip) 
+-add: CommandLineUA,GraphicalUA: added support for SIP keep-alive when registering 
+-fix: UserAgentProfile: 'expires' value eas not read from configuration file; fixed.
+-change: SipStack: attribute expires renamed to default_expires
+-change: ServerProfile: new attribute expires
+-add: SocketAddress: added costructor SocketAddress(String)
+-change: SipProvider: attributes outbound_addr and outbound_port replaced by outbound_proxy
+-change: ServerProfile,Registrar: pstn_gw_addr,pstn_gw_port,pstn_gw_prefix have been generalize by a list of pairs {pstn_gateway,pstn_prefix} that are the Vectors pstn_gateways and pstn_prefixes
+
+3/12/2005
+-change: RegisterAgent: renew_time for succesive re-registrations is updated with the expire value(s) in the 2xx response
+
+1/12/2005
+-fix: Registrar: do not generate a 501 response for ACK methods
+
 28/11/2005
 -change: AuthenticationService,AuthenticationServiceImpl,LdapAuthenticationServiceImpl: removed user attributes 'rand' and 'seqn'
 -add: AuthenticationServiceImpl: file aaa.db now can contain passwd in plain text (passwd=<passwd>)

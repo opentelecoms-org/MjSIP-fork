@@ -26,7 +26,7 @@ package org.zoolu.sip.header;
 
 
 /** SIP Header Accept */
-public class AcceptHeader extends ParametersHeader
+public class AcceptHeader extends ParametricHeader
 {
    public AcceptHeader()
    {  super(SipHeaders.Accept,"application/sdp");

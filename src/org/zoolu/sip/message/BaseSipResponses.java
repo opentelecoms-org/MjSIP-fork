@@ -113,11 +113,15 @@ public abstract class BaseSipResponses
       is_init=true;
    }
    
-   /** Gets the reason phrase of a response code */
+   /** Gets the reason phrase of a given response <i>code</i> */
    public static String reasonOf(int code)
    {  if (!is_init) init();
       if (reasons[code]!=null) return reasons[code];
       else return reasons[((int)(code/100))*100];
-   }  
+   }
    
+   /** Sets the reason phrase for a given response <i>code</i> */
+   /*public static void setReason(int code, String reason)
+   {  reasons[((int)(code/100))*100]=reason;
+   }*/
 }

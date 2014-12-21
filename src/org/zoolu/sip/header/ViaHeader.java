@@ -46,7 +46,7 @@ import org.zoolu.sip.provider.SipParser;
   * response will also have the same branch ID as the INVITE whose
   * response it acknowledges.
   */
-public class ViaHeader extends ParametersHeader
+public class ViaHeader extends ParametricHeader
 {
    protected static final String received_param="received";
    protected static final String rport_param="rport";
@@ -198,5 +198,6 @@ public class ViaHeader extends ParametersHeader
    /** Sets "ttl" parameter */
    public void setTtl(int ttl)
    {  setParameter(ttl_param,Integer.toString(ttl));
-   }   
+   } 
+
 }

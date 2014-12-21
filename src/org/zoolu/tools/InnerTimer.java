@@ -28,7 +28,7 @@ package org.zoolu.tools;
 class InnerTimer extends Thread
 {
    long timeout;
-   InnerTimerListener listener=null;
+   InnerTimerListener listener;
    
    public InnerTimer(long timeout, InnerTimerListener listener)
    {  this.timeout=timeout;
@@ -47,4 +47,3 @@ class InnerTimer extends Thread
       }
    }   
 }
-

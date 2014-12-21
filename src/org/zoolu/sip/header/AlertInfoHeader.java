@@ -26,7 +26,7 @@ package org.zoolu.sip.header;
 
 
 /** SIP Header Allert-Info */
-public class AlertInfoHeader extends ParametersHeader
+public class AlertInfoHeader extends ParametricHeader
 {
    public AlertInfoHeader(String absolute_uri)
    {  super(SipHeaders.Alert_Info,null);

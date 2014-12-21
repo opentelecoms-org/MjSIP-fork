@@ -48,16 +48,16 @@ public abstract class BaseMessage
    protected static int MAX_PKT_SIZE=8000; 
    
    /** The remote ip address */
-   protected String remote_addr=null;
+   protected String remote_addr;
 
    /** The remote port */
-   protected int remote_port=0;
+   protected int remote_port;
    
    /** Transport protocol */
-   protected String transport_proto=null;   
+   protected String transport_proto;
 
    /** Connection identifier */
-   protected ConnectionIdentifier connection_id=null;   
+   protected ConnectionIdentifier connection_id;
 
    /** Packet length */
    //protected int packet_length;   
@@ -65,24 +65,38 @@ public abstract class BaseMessage
    /** The message string */
    private String message;
 
+
+   /** Inits empty Message */
+   private void init()
+   {  //message="";
+      remote_addr=null;
+      remote_port=0;
+      transport_proto=null;
+      connection_id=null;
+   }
+
    /** Costructs a new empty Message */
    public BaseMessage()
-   {  message="";
+   {  init();
+      message="";
    }
-      
+
    /** Costructs a new Message */
    public BaseMessage(byte[] data, int offset, int len)
-   {  message=new String(data,offset,len);
+   {  init();
+      message=new String(data,offset,len);
    }
    
    /** Costructs a new Message */
    public BaseMessage(UdpPacket packet)
-   {  message=new String(packet.getData(),packet.getOffset(),packet.getLength());
+   {  init();
+      message=new String(packet.getData(),packet.getOffset(),packet.getLength());
    }
 
    /** Costructs a new Message */
    public BaseMessage(String str)
-   {  message=new String(str);
+   {  init();
+      message=new String(str);
    }
 
    /** Costructs a new Message */
@@ -1061,10 +1075,6 @@ public abstract class BaseMessage
    public void setBody(String body) 
    {  setBody("application/sdp",body);
    }            
-   /** Sets no body */
-   public void setNullBody() 
-   {  setBody(null);
-   }
    /** Gets message body. The end of body is evaluated
      * from the Content-Length header if present (SIP-RFC compliant),
      * or from the end of message if no Content-Length header is present (non-SIP-RFC compliant) */
@@ -1209,7 +1219,7 @@ public abstract class BaseMessage
    {  if (hasRouteHeader())
       {  MultipleHeader mrh=getRoutes();
          RouteHeader rh=new RouteHeader(mrh.getTop());
-         if (!(new RouteHeader(mrh.getTop())).getNameAddress().getAddress().hasParameter("lr"))
+         if (!(new RouteHeader(mrh.getTop())).getNameAddress().getAddress().hasLr())
          {  // re-format the message according to the RFC2543 Strict Route rule
             SipURL next_hop=(new RouteHeader(mrh.getTop())).getNameAddress().getAddress();
             SipURL recipient=getRequestLine().getAddress();
@@ -1235,7 +1245,7 @@ public abstract class BaseMessage
       MultipleHeader mrh=getRoutes();
       SipURL target=(new RouteHeader(mrh.getBottom())).getNameAddress().getAddress();
       mrh.removeBottom();
-      next_hop.addParameter("lr",null);
+      next_hop.addLr();
       mrh.addTop(new RouteHeader(new NameAddress(next_hop)));
       removeRoutes();
       addRoutes(mrh);

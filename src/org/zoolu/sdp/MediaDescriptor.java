@@ -38,16 +38,18 @@ import java.util.Vector;
   */
 public class MediaDescriptor
 {
-   MediaField m=null;
-   ConnectionField c=null;
-   /** Vector of SDPField 'a' (attributes) */
-   Vector av=null;
+   /** Media field ('m'). */
+   MediaField m;
+   /** Connection field ('c') */
+   ConnectionField c;
+   /** Vector of attribute fileds ('a') */
+   Vector av;
 
    /** Creates a new MediaDescriptor.
      * @param md the cloned MediaDescriptor */
    public MediaDescriptor(MediaDescriptor md)
    {  m=new MediaField(md.m);
-      if (md.c!=null) c=new ConnectionField(md.c);
+      if (md.c!=null) c=new ConnectionField(md.c); else c=null;
       av=new Vector();
       for (int i=0; i<md.av.size(); i++) av.addElement(new AttributeField((AttributeField)md.av.elementAt(i)));
    }

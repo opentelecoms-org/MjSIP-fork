@@ -2,6 +2,8 @@ package local.ua;
 
 
 import org.zoolu.sip.address.*;
+import org.zoolu.sip.provider.SipStack;
+import org.zoolu.sip.provider.SipProvider;
 import org.zoolu.tools.Configure;
 import org.zoolu.tools.Parser;
 
@@ -47,8 +49,13 @@ public class UserAgentProfile extends Configure
    public boolean do_unregister=false;
    /** Whether unregistering all contacts beafore registering the contact address */
    public boolean do_unregister_all=false;
-   /** Expires value. */
-   public int expires=1800;
+   /** Expires time (in seconds). */
+   public int expires=3600;
+
+   /** Rate of keep-alive packets sent toward the registrar server (in milliseconds).
+     * Set keepalive_time=0 to disable the sending of keep-alive datagrams. */
+   public long keepalive_time=0;
+
 
    /** Automatic call a remote user secified by the 'call_to' value.
      * Use value 'NONE' for manual calls (or let it undefined).  */
@@ -102,7 +109,7 @@ public class UserAgentProfile extends Configure
    /** Audio sample size */
    public int audio_sample_size=1;
    /** Audio frame size */
-   public int audio_frame_size=500;
+   public int audio_frame_size=160;
    
    /** Video port */
    public int video_port=21070;
@@ -120,7 +127,7 @@ public class UserAgentProfile extends Configure
    /** VIC command-line executable */
    public String bin_vic="vic";
    
-   // ************************** costructors *************************
+   // ************************** Costructors *************************
    
    /** Costructs a void UserProfile */
    public UserAgentProfile()
@@ -146,7 +153,27 @@ public class UserAgentProfile extends Configure
       if (recv_file!=null && recv_file.equalsIgnoreCase(Configure.NONE)) recv_file=null;
    }  
 
-   // **************************** methods ***************************
+
+   // ************************ Public methods ************************
+
+   /** Sets contact_url and from_url with transport information.
+     * <p/>
+     * This method actually sets contact_url and from_url only if
+     * they haven't still been explicitly initilized.
+     */
+   public void initContactAddress(SipProvider sip_provider)
+   {  // contact_url
+      if (contact_url==null)
+      {  contact_url="sip:"+username+"@"+sip_provider.getViaAddress();
+         if (sip_provider.getPort()!=SipStack.default_port) contact_url+=":"+sip_provider.getPort();
+         if (!sip_provider.getDefaultTransport().equals(SipProvider.PROTO_UDP)) contact_url+=";transport="+sip_provider.getDefaultTransport();
+      }
+      // from_url
+      if (from_url==null) from_url=contact_url;
+   }
+
+
+   // *********************** Protected methods **********************
 
    /** Parses a single line (loaded from the config file) */
    protected void parseLine(String line)
@@ -167,7 +194,8 @@ public class UserAgentProfile extends Configure
       if (attribute.equals("do_register"))    { do_register=(par.getString().toLowerCase().startsWith("y")); return; }
       if (attribute.equals("do_unregister"))  { do_unregister=(par.getString().toLowerCase().startsWith("y")); return; }
       if (attribute.equals("do_unregister_all")) { do_unregister_all=(par.getString().toLowerCase().startsWith("y")); return; }
-      //if (attribute.equals("expires"))        { expires=par.getInt(); return; } 
+      if (attribute.equals("expires"))        { expires=par.getInt(); return; } 
+      if (attribute.equals("keepalive_time")) { keepalive_time=par.getInt(); return; } 
 
       if (attribute.equals("call_to"))     { call_to=par.getRemainingString().trim(); return; }
       if (attribute.equals("accept_time"))    { accept_time=par.getInt(); return; }

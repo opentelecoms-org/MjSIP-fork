@@ -24,6 +24,7 @@ package local.server;
 
 import org.zoolu.sip.address.*;
 import org.zoolu.sip.provider.*;
+import org.zoolu.sip.message.*;
 import org.zoolu.sip.header.RequestLine;
 import org.zoolu.sip.header.Header;
 import org.zoolu.sip.header.ViaHeader;
@@ -31,8 +32,6 @@ import org.zoolu.sip.header.ContactHeader;
 import org.zoolu.sip.header.MultipleHeader;
 import org.zoolu.sip.header.RouteHeader;
 import org.zoolu.sip.header.SipHeaders;
-import org.zoolu.sip.message.Message;
-import org.zoolu.sip.message.MessageFactory;
 import org.zoolu.tools.LogLevel;
 
 import java.util.Enumeration;
@@ -59,7 +58,7 @@ public class Redirect extends Registrar
 
       if (contacts.isEmpty())
       {  printLog("No target found, message discarded",LogLevel.HIGH);
-         if (!msg.isAck()) sip_provider.sendMessage(MessageFactory.createResponse(msg,404,"Not found",null,null));
+         if (!msg.isAck()) sip_provider.sendMessage(MessageFactory.createResponse(msg,404,SipResponses.reasonOf(404),null));
          return;
       } 
                 
@@ -67,7 +66,7 @@ public class Redirect extends Registrar
       // create the response with all contact urls, and send it 
       MultipleHeader mc=new MultipleHeader(SipHeaders.Contact,contacts);
       mc.setCommaSeparated(true);
-      Message resp=MessageFactory.createResponse(msg,302,"Moved Temporarily",null,null);
+      Message resp=MessageFactory.createResponse(msg,302,SipResponses.reasonOf(302),null);
       resp.setContacts(mc);
       sip_provider.sendMessage(resp);      
    }
@@ -76,7 +75,7 @@ public class Redirect extends Registrar
    public void processRequestToRemoteUA(Message msg)
    {  printLog("inside processRequestToRemoteUA(msg)",LogLevel.MEDIUM);
       printLog("request not for local server",LogLevel.HIGH);
-      if (!msg.isAck()) sip_provider.sendMessage(MessageFactory.createResponse(msg,404,"Not found",null,null));
+      if (!msg.isAck()) sip_provider.sendMessage(MessageFactory.createResponse(msg,404,SipResponses.reasonOf(404),null));
       else printLog("message discarded",LogLevel.HIGH);
    }   
 

@@ -86,7 +86,9 @@ public class JAudioLauncher implements MediaLauncher
             //audio_input=new AudioInput();
             AudioFormat format=new AudioFormat(codec,sample_rate,8*sample_size,1,sample_size,sample_rate,big_endian);
             audio_input=new AudioInput(format);
-            sender=new RtpStreamSender(audio_input.getInputStream(),false,payload_type,frame_rate,frame_size,socket,remote_addr,remote_port);
+            //sender=new RtpStreamSender(audio_input.getInputStream(),false,payload_type,frame_rate,frame_size,socket,remote_addr,remote_port);
+            sender=new RtpStreamSender(audio_input.getInputStream(),true,payload_type,frame_rate,frame_size,socket,remote_addr,remote_port);
+            sender.setSyncAdj(2);
          }
          // receiver
          if (dir<=0)
@@ -136,7 +138,9 @@ public class JAudioLauncher implements MediaLauncher
             //audio_input=new AudioInput();
             AudioFormat format=new AudioFormat(codec,sample_rate,8*sample_size,1,sample_size,sample_rate,big_endian);
             audio_input=new AudioInput(format);
-            sender=new RtpStreamSender(audio_input.getInputStream(),false,payload_type,frame_rate,frame_size,socket,remote_addr,remote_port);
+            //sender=new RtpStreamSender(audio_input.getInputStream(),false,payload_type,frame_rate,frame_size,socket,remote_addr,remote_port);
+            sender=new RtpStreamSender(audio_input.getInputStream(),true,payload_type,frame_rate,frame_size,socket,remote_addr,remote_port);
+            sender.setSyncAdj(2);
          }
          
          // receiver

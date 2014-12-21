@@ -30,11 +30,13 @@ import org.zoolu.sip.header.Header;
 import org.zoolu.sip.header.RouteHeader;
 import org.zoolu.sip.header.RequestLine;
 import org.zoolu.sip.header.MaxForwardsHeader;
+import org.zoolu.sip.header.MultipleHeader;
 import org.zoolu.sip.message.Message;
 import org.zoolu.sip.message.SipResponses;
 import org.zoolu.sip.message.MessageFactory;
 import org.zoolu.tools.Log;
 import org.zoolu.tools.LogLevel;
+import org.zoolu.tools.SimpleDigest;
 
 import java.util.Vector;
 
@@ -53,6 +55,11 @@ import java.util.Vector;
   */
 public abstract class ServerEngine implements SipProviderListener
 {
+   /** Name of the Loop-Tag header field.
+     * It is used as temporary filed for carry loop detection information,
+     * added to the via branch parameter of the forwarded requests. */
+   protected static final String Loop_Tag="Loop-Tag";
+
    /** Event logger. */
    protected Log log=null;
 
@@ -102,7 +109,8 @@ public abstract class ServerEngine implements SipProviderListener
          // validate the message
          Message err_resp=validateRequest(msg);
          if (err_resp!=null)
-         {  sip_provider.sendMessage(err_resp);
+         {  // for non-ACK requests respond with an error message
+            if (!msg.isAck()) sip_provider.sendMessage(err_resp);
             return;
          }
 
@@ -110,14 +118,14 @@ public abstract class ServerEngine implements SipProviderListener
          SipURL target=msg.getRequestLine().getAddress();  
          
          // check if this server is the target
-         //boolean this_is_target=isLocalDomain(target.getHost(),target.getPort());         
+         //boolean this_is_target=isResponsibleFor(target.getHost(),target.getPort());         
 
          // look if the msg sent by the previous UA is compliant with the RFC2543 Strict Route rule..
-         if (isLocalDomain(target.getHost(),target.getPort()) && msg.hasRouteHeader())
+         if (isResponsibleFor(target.getHost(),target.getPort()) && msg.hasRouteHeader())
          {  
             //SipURL route_url=msg.getRouteHeader().getNameAddress().getAddress();
             SipURL route_url=(new RouteHeader(msg.getRoutes().getBottom())).getNameAddress().getAddress();
-            if (!route_url.hasParameter("lr"))
+            if (!route_url.hasLr())
             {  printLog("probably the message was compliant to RFC2543 Strict Route rule: message is updated to RFC3261",LogLevel.MEDIUM);
 
                // the message has been sent to this server according with RFC2543 Strict Route
@@ -132,7 +140,7 @@ public abstract class ServerEngine implements SipProviderListener
                printLog("new recipient: "+target.toString(),LogLevel.LOW);
                
                // check again if this server is the target
-               //this_is_target=isLocalDomain(target.getHost(),target.getPort());
+               //this_is_target=matchesDomainName(target.getHost(),target.getPort());
             }
          }
          
@@ -140,15 +148,15 @@ public abstract class ServerEngine implements SipProviderListener
          /*if (msg.hasRouteHeader())
          {  MultipleHeader mr=msg.getRoutes();
             SipURL top_route=(new RouteHeader(mr.getTop())).getNameAddress().getAddress();
-            if (isLocalDomain(top_route.getHost(),top_route.getPort()))
+            if (matchesDomainName(top_route.getHost(),top_route.getPort()))
             {  mr.removeTop();
                if (mr.size()>0) msg.setRoutes(mr);
                else msg.removeRoutes();
             }
          }*/
 
-         // check whether this server is the target
-         if (isForLocalServer(msg)) // the request is for "local domain"
+         // check whether the request is for a domain the server is responsible for
+         if (isResponsibleFor(msg))
          {  
             printLog("the request is for the local server",LogLevel.LOW);
             
@@ -184,39 +192,46 @@ public abstract class ServerEngine implements SipProviderListener
    //   sip_provider.sendMessage(msg);
    //}
    
-   /** Whether the domain <i>name</i> is included in the local domain names list
-     * and <i>port</i> (if >0) is the local server port */
-   protected boolean isLocalDomain(String name, int port)
+   /** Whether the server is responsible for the given <i>domain</i>
+     * (i.e. the <i>domain</i> is included in the local domain names list)
+     * and <i>port</i> (if >0) matches the local server port. */
+   protected boolean isResponsibleFor(String domain, int port)
    {  // check port
       if (!server_profile.domain_port_any && port>0 && port!=sip_provider.getPort()) return false;
       // check host address
-      if (name.equals(sip_provider.getViaAddress())) return true;
+      if (domain.equals(sip_provider.getViaAddress())) return true;
       // check domain name
-      boolean is=false;
+      boolean it_is=false;
       for (int i=0; i<server_profile.domain_names.length; i++)
-      {  if (server_profile.domain_names[i].equals(name)) { is=true; break; }
+      {  if (server_profile.domain_names[i].equals(domain)) { it_is=true; break; }
       }
-      return is;
+      return it_is;
    }
    
+   /** Whether the server is responsible for the request-uri of the request <i>req</i>. */
+   protected boolean isResponsibleFor(Message req)
+   {  SipURL target=req.getRequestLine().getAddress();
+      return isResponsibleFor(target.getHost(),target.getPort());
+   }
+
    /** Whether the request is for the local server */
-   protected boolean isForLocalServer(Message req)
-   {  //boolean result=true;
-      SipURL target=req.getRequestLine().getAddress();
-      if (!isLocalDomain(target.getHost(),target.getPort())) return false;
-      //else, request-uri matches
+   /*protected boolean isTargetOf(Message req)
+   {  SipURL target=req.getRequestLine().getAddress();
+      if (!isResponsibleFor(target.getHost(),target.getPort())) return false;
+      // else, request-uri matches a domain the server is responsible for
       if (!req.hasRouteHeader()) return true; 
       // else, has route..
       MultipleHeader route=req.getRoutes();
       if (route.size()>1) return false;
-      // else, only 1 route
+      // else, only 1 route, check it
       target=(new RouteHeader(route.getTop())).getNameAddress().getAddress();
-      if (!isLocalDomain(target.getHost(),target.getPort()))  return false;
-      else return true;
-   }
+      if (!isResponsibleFor(target.getHost(),target.getPort()))  return false;
+      // else
+      return true;
+   }*/
 
    /** Gets a String of the list of local domain names. */
-   protected String localDomains()
+   protected String getLocalDomains()
    {  if (server_profile.domain_names.length>0)
       {  String str="";
          for (int i=0; i<server_profile.domain_names.length-1; i++)
@@ -240,26 +255,35 @@ public abstract class ServerEngine implements SipProviderListener
          if (mfh!=null && mfh.getNumber()==0) err_code=483;
       }
       // Loops
-      if (err_code==0 && server_profile.loop_detection) 
-      {  Vector v=msg.getVias().getHeaders();
-         for (int i=0; i<v.size(); i++)
-         {  ViaHeader vh=new ViaHeader((Header)v.elementAt(i));
-            // DEBUG:
-            //if (sip_provider==null) System.out.println("DEBUG: sipprovider==null");
-            //if (sip_provider.getAddress()==null) System.out.println("DEBUG: address==null");
-            //if (vh==null) System.out.println("DEBUG: via==null");
-            //if (vh.getHost()==null) System.out.println("DEBUG: host==null");
-            if (sip_provider.getViaAddress().equals(vh.getHost()) && sip_provider.getPort()==vh.getPort())
-            {  // possible loop
-               if (!vh.hasBranch()) err_code=482;
-               else
-               {  // compare branch
-                  String branch=vh.getBranch();
-                  if (branch.equals(sip_provider.pickBranch(msg))) err_code=482;
+      // Insert also a temporary Loop-Tag header field in order to correctly compose
+      // the branch field when forwarding the message.
+      // This behaviour has been choosen since the message validation is done
+      // when receiving the message while the information used for loop detection
+      // (the branch parameter) is calculated and added when sending the message.
+      // Note that the RFC suggests to calculate the branch parameter based on
+      // the original request-uri, but the request-uri has been already replaced
+      // and forgotten when processing the message for calculating the branch! ;)
+      if (err_code==0 && server_profile.loop_detection)
+      {  String loop_tag=pickLoopTag(msg);
+         // add temporary Loop-Tag header field
+         msg.setHeader(new Header(Loop_Tag,loop_tag));
+         // check for loop
+         if (!msg.hasRouteHeader()) 
+         {  Vector v=msg.getVias().getHeaders();
+            for (int i=0; i<v.size(); i++)
+            {  ViaHeader vh=new ViaHeader((Header)v.elementAt(i));
+               if (sip_provider.getViaAddress().equals(vh.getHost()) && sip_provider.getPort()==vh.getPort())
+               {  // possible loop
+                  if (!vh.hasBranch()) err_code=482;
+                  else
+                  {  // check branch
+                     String branch=vh.getBranch();
+                     if (branch.indexOf(loop_tag,branch.length()-loop_tag.length())>=0) err_code=482;
+                  }
                }
             }
          }
-      }
+      } 
             
       // Proxy-Require
 
@@ -268,12 +292,33 @@ public abstract class ServerEngine implements SipProviderListener
       if (err_code>0)
       {  String reason=SipResponses.reasonOf(err_code);
          printLog("Message validation failed ("+reason+"), message discarded",LogLevel.HIGH);
-         return MessageFactory.createResponse(msg,err_code,reason,null,null);
+         return MessageFactory.createResponse(msg,err_code,reason,null);
       }
       else return null;
    }
 
-   
+   /** Picks an unique branch value based on a SIP message.
+     * This value could also be used for loop detection. */
+   /*public String pickBranch(Message msg)
+   {  String branch=sip_provider.pickBranch(msg);
+      if (server_profile.loop_detection) branch+=pickLoopTag(msg);
+      return branch;
+   }*/
+
+   /** Picks the token used for loop detection. */
+   private String pickLoopTag(Message msg)
+   {  StringBuffer sb=new StringBuffer();
+      sb.append(msg.getToHeader().getTag());
+      sb.append(msg.getFromHeader().getTag());
+      sb.append(msg.getCallIdHeader().getCallId());
+      sb.append(msg.getRequestLine().getAddress().toString());
+      sb.append(msg.getCSeqHeader().getSequenceNumber());
+      MultipleHeader rr=msg.getRoutes();
+      if (rr!=null) sb.append(rr.size());
+      return (new SimpleDigest(7,sb.toString())).asHex();
+   }
+
+
    // ********************************* logs *********************************
 
    /** Adds a new string to the default Log */

@@ -22,6 +22,7 @@
 package local.server;
 
 
+import org.zoolu.net.SocketAddress;
 import org.zoolu.sip.address.*;
 import org.zoolu.sip.provider.*;
 import org.zoolu.sip.header.SipHeaders;
@@ -89,7 +90,7 @@ public class Registrar extends ServerEngine
    //public Registrar(SipProvider provider, String db_class, String db_name)
    public Registrar(SipProvider provider, ServerProfile profile)
    {  super(provider,profile);
-      printLog("Domains="+localDomains(),LogLevel.HIGH);
+      printLog("Domains="+getLocalDomains(),LogLevel.HIGH);
 
       // location service
       String location_service_class=profile.location_service;
@@ -137,7 +138,7 @@ public class Registrar extends ServerEngine
       printLog("LocationService ("+profile.authentication_service+"): size="+location_service.size()+"\r\n"+location_service.toString(),LogLevel.MEDIUM);
 
       // authentication server
-      if (server_profile.do_authentication)
+      if (server_profile.do_authentication || server_profile.do_proxy_authentication)
       {  // first, init the proper authentication service
          String realm=(server_profile.authentication_realm!=null)? server_profile.authentication_realm : sip_provider.getViaAddress();
          String authentication_service_class=profile.authentication_service;
@@ -202,9 +203,8 @@ public class Registrar extends ServerEngine
       {  TransactionServer t=new TransactionServer(sip_provider,msg,null);
          //t.listen();
    
-         if (as!=null)
-         { 
-            // check message authentication
+         if (server_profile.do_authentication)
+         {  // check message authentication
             Message err_resp=as.authenticateRequest(msg);  
             if (err_resp!=null)
             {  t.respondWith(err_resp);
@@ -215,7 +215,7 @@ public class Registrar extends ServerEngine
          Message resp=updateRegistration(msg);
          if (resp==null) return;
          
-         if (as!=null)
+         if (server_profile.do_authentication)
          {  // add Authentication-Info header field
             resp.setAuthenticationInfoHeader(as.getAuthenticationInfoHeader());
          }
@@ -223,9 +223,10 @@ public class Registrar extends ServerEngine
          t.respondWith(resp);
       }
       else
+      if (!msg.isAck())
       {  // send a stateless error response
          int result=501; // response code 501 ("Not Implemented")
-         Message resp=MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null,null);
+         Message resp=MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null);
          sip_provider.sendMessage(resp);
       }     
    }
@@ -235,7 +236,7 @@ public class Registrar extends ServerEngine
    public void processRequestToLocalUser(Message msg)
    {  printLog("inside processRequestToLocalUser(msg)",LogLevel.MEDIUM);
       // stateless-response (in order to avoid DoS attacks)
-      if (!msg.isAck()) sip_provider.sendMessage(MessageFactory.createResponse(msg,404,"Not found",null,null));
+      if (!msg.isAck()) sip_provider.sendMessage(MessageFactory.createResponse(msg,404,SipResponses.reasonOf(404),null));
       else printLog("message discarded",LogLevel.HIGH);
    }
  
@@ -244,7 +245,7 @@ public class Registrar extends ServerEngine
    public void processRequestToRemoteUA(Message msg)
    {  printLog("inside processRequestToRemoteUA(msg)",LogLevel.MEDIUM);
       // stateless-response (in order to avoid DoS attacks)
-      if (!msg.isAck()) sip_provider.sendMessage(MessageFactory.createResponse(msg,404,"Not found",null,null));
+      if (!msg.isAck()) sip_provider.sendMessage(MessageFactory.createResponse(msg,404,SipResponses.reasonOf(404),null));
       else printLog("message discarded",LogLevel.HIGH);
    }
 
@@ -271,28 +272,21 @@ public class Registrar extends ServerEngine
          return targets;
       }           
 
-      SipURL dest_uri=msg.getRequestLine().getAddress();
-      String username=dest_uri.getUserName();
+      SipURL request_uri=msg.getRequestLine().getAddress();
+      String username=request_uri.getUserName();
       if (username==null)
-      {  printLog("no user found",LogLevel.HIGH);
+      {  printLog("no username found",LogLevel.HIGH);
          return targets;
       }
-      String user=username+"@"+dest_uri.getHost();
-      printLog("user URI: "+user,LogLevel.MEDIUM);      
+      String user=username+"@"+request_uri.getHost();
+      printLog("user: "+user,LogLevel.MEDIUM); 
+           
       if (!location_service.hasUser(user))
       {  printLog("user "+user+" not found",LogLevel.HIGH);
-         // try with tel URIs
-         if (isPhoneNumber(username) && server_profile.pstn_gw_addr!=null)
-         {  SipURL url=new SipURL(server_profile.pstn_gw_prefix+username,server_profile.pstn_gw_addr,server_profile.pstn_gw_port);
-            targets.addElement(url.toString());
-         }
          return targets;
       }
 
-      // Get the "device" parameter. Set device=null if not present or not supported
-      //String device=null;
       SipURL to_url=msg.getToHeader().getNameAddress().getAddress();
-      //if (to_url.hasParameter("device")) app=to_url.getParameter("device");
       
       Enumeration e=location_service.getUserContactURLs(user);
       printLog("message targets: ",LogLevel.LOW);  
@@ -320,12 +314,12 @@ public class Registrar extends ServerEngine
       if (th==null)  
       {  printLog("ToHeader missed: message discarded",LogLevel.HIGH);
          int result=400;
-         return MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null,null);  
+         return MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null);  
       }         
       SipURL dest_uri=th.getNameAddress().getAddress();
       String user=dest_uri.getUserName()+"@"+dest_uri.getHost();
 
-      int exp_secs=SipStack.expires;
+      int exp_secs=server_profile.expires;
       // set the expire value
       ExpiresHeader eh=msg.getExpiresHeader();
       if (eh!=null)
@@ -334,7 +328,7 @@ public class Registrar extends ServerEngine
       // limit the expire value
       if (exp_secs<0) exp_secs=0;
       else
-      if (exp_secs>SipStack.expires) exp_secs=SipStack.expires;
+      if (exp_secs>server_profile.expires) exp_secs=server_profile.expires;
 
       // known user?
       if (!location_service.hasUser(user))
@@ -345,7 +339,7 @@ public class Registrar extends ServerEngine
          else
          {  printLog("user '"+user+"' unknown: message discarded.",LogLevel.HIGH);
             int result=404;
-            return MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null,null);  
+            return MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null);  
          }
       }
 
@@ -361,7 +355,7 @@ public class Registrar extends ServerEngine
          //return MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null,null);  
          printLog("no contact found: fetching bindings..",LogLevel.MEDIUM);
          int result=200;
-         Message resp=MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null,null);  
+         Message resp=MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null);  
          // add current contacts
          Vector v=new Vector();
          for (Enumeration e=location_service.getUserContactURLs(user); e.hasMoreElements(); )
@@ -381,7 +375,7 @@ public class Registrar extends ServerEngine
 
       Vector contacts=msg.getContacts().getHeaders();
       int result=200;
-      Message resp=MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null,null);  
+      Message resp=MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null);  
 
       ContactHeader contact_0=new ContactHeader((Header)contacts.elementAt(0));
       if (contact_0.isStar())
@@ -419,7 +413,7 @@ public class Registrar extends ServerEngine
             // limit the expire value
             if (exp_secs_i<0) exp_secs_i=0;
             else
-            if (exp_secs_i>SipStack.expires) exp_secs_i=SipStack.expires;
+            if (exp_secs_i>server_profile.expires) exp_secs_i=server_profile.expires;
                         
             // update db
             location_service.removeUserContact(user,url);
@@ -437,19 +431,6 @@ public class Registrar extends ServerEngine
       location_service.sync();  
       return resp;
    }
-
-
-   // ************************ private methods ************************
-
-   /** Gets the request's targets. */
-   private boolean isPhoneNumber(String str)
-   {  if (str==null || str.length()==0) return false;
-      for (int i=0; i<str.length(); i++)
-      {  char c=str.charAt(i);
-         if (c!='+' && c!='-' && (c<'0' || c>'9')) return false;
-      }
-      return true;
-   }   
 
 
    // ****************************** Logs *****************************

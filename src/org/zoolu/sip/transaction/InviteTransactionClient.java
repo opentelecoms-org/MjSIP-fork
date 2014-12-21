@@ -42,10 +42,10 @@ import org.zoolu.tools.LogLevel;
 public class InviteTransactionClient extends TransactionClient
 {      
    /** the TransactionClientListener that captures the events fired by the InviteTransactionClient */
-   TransactionClientListener transaction_listener=null;
+   TransactionClientListener transaction_listener;
 
    /** ack message */
-   Message ack=null;
+   Message ack;
 
    /** retransmission timeout ("Timer A" in RFC 3261) */
    //Timer retransmission_to;
@@ -56,36 +56,33 @@ public class InviteTransactionClient extends TransactionClient
 
       
    /** Creates a new ClientTransaction */
-   public InviteTransactionClient(SipProvider provider, Message request, TransactionClientListener tr_listener)
-   {  super(provider);
-      method=new Message(request);
-      transaction_id=method.getTransactionId();
-      init(tr_listener);
-      printLog("created",LogLevel.HIGH);
+   public InviteTransactionClient(SipProvider sip_provider, Message req, TransactionClientListener listener)
+   {  super(sip_provider);
+      request=new Message(req);
+      init(listener,request.getTransactionId());
    }  
 
    /** Initializes timeouts and listener. */
-   void init(TransactionClientListener tr_listener)
-   {  transaction_listener=tr_listener;
+   void init(TransactionClientListener listener, TransactionIdentifier transaction_id)
+   {  this.transaction_listener=listener;
+      this.transaction_id=transaction_id;
+      this.ack=null;
       retransmission_to=new Timer(SipStack.retransmission_timeout,"Retransmission",this);
       transaction_to=new Timer(SipStack.transaction_timeout,"Transaction",this);
       end_to=new Timer(SipStack.transaction_timeout,"End",this);
-      // (CHANGE-040905) now timeouts started in request()
-      //retransmission_to.start();
-      //transaction_to.start(); 
+      printLog("id: "+String.valueOf(transaction_id),LogLevel.HIGH);
+      printLog("created",LogLevel.HIGH);
    }   
    
    /** Starts the InviteTransactionClient and sends the invite request. */
    public void request()
    {  printLog("start",LogLevel.LOW);
       changeStatus(STATE_TRYING); 
-      // (CHANGE-040905) now timeouts started in request()
       retransmission_to.start();
       transaction_to.start(); 
       
       sip_provider.addSipProviderListener(transaction_id,this); 
-      connection_id=sip_provider.sendMessage(method);
-      //if (transaction_listener!=null) transaction_listener.onInvCltTrying(this);
+      connection_id=sip_provider.sendMessage(request);
    }  
       
    /** Method derived from interface SipListener.
@@ -100,22 +97,18 @@ public class InviteTransactionClient extends TransactionClient
                transaction_to.halt();
                changeStatus(STATE_PROCEEDING);
             }
-            if (transaction_listener!=null) transaction_listener.onCltProvisionalResponse(this,msg);
+            if (transaction_listener!=null) transaction_listener.onTransProvisionalResponse(this,msg);
             return;
          }
          if (code>=300 && code<700 && (statusIs(STATE_TRYING) || statusIs(STATE_PROCEEDING) || statusIs(STATE_COMPLETED)))
          {  if (statusIs(STATE_TRYING) || statusIs(STATE_PROCEEDING))
             {  retransmission_to.halt();
                transaction_to.halt();
-               // (CHANGE-040905) now end_to starts after sending ACK
-               //end_to.start();
-               ack=MessageFactory.createNon2xxAckRequest(sip_provider,method,msg);
+               ack=MessageFactory.createNon2xxAckRequest(sip_provider,request,msg);
                changeStatus(STATE_COMPLETED);
-               if (transaction_listener!=null) transaction_listener.onCltFailureResponse(this,msg);
-               // (CHANGE-040421) now it can free the link to transaction_listener
+               if (transaction_listener!=null) transaction_listener.onTransFailureResponse(this,msg);
                transaction_listener=null;
                connection_id=sip_provider.sendMessage(ack);
-               // (CHANGE-040905) end_to=0 for reliable transport 
                if (connection_id==null) end_to.start();
                else
                {  printLog("end_to=0 for reliable transport",LogLevel.LOW);
@@ -123,7 +116,7 @@ public class InviteTransactionClient extends TransactionClient
                }
             }
             else
-            {  // (CHANGE-040905) retransmit ACK only in case of unreliable transport 
+            {  // retransmit ACK only in case of unreliable transport 
                if (connection_id==null) sip_provider.sendMessage(ack);
             }
             return;
@@ -134,12 +127,8 @@ public class InviteTransactionClient extends TransactionClient
             end_to.halt();
             changeStatus(STATE_TERMINATED);
             sip_provider.removeSipProviderListener(transaction_id);
-            if (transaction_listener!=null) transaction_listener.onCltSuccessResponse(this,msg);
-            // (CHANGE-040421) now it can free links to transaction_listener and timers
+            if (transaction_listener!=null) transaction_listener.onTransSuccessResponse(this,msg);
             transaction_listener=null;
-            //retransmission_to=null;
-            //transaction_to=null;
-            //clearing_to=null;
             return;
          }
       }
@@ -151,9 +140,9 @@ public class InviteTransactionClient extends TransactionClient
    {  try
       {  if (to.equals(retransmission_to) && statusIs(STATE_TRYING))
          {  printLog("Retransmission timeout expired",LogLevel.HIGH);
-            // (CHANGE-040905) no retransmission for reliable transport 
+            // retransmission only in case of unreliable transport 
             if (connection_id==null)
-            {  sip_provider.sendMessage(method);
+            {  sip_provider.sendMessage(request);
                long timeout=2*retransmission_to.getTime();
                retransmission_to=new Timer(timeout,retransmission_to.getLabel(),this);
                retransmission_to.start();
@@ -166,12 +155,8 @@ public class InviteTransactionClient extends TransactionClient
             end_to.halt();
             sip_provider.removeSipProviderListener(transaction_id);
             changeStatus(STATE_TERMINATED);
-            if (transaction_listener!=null) transaction_listener.onCltTimeout(this);
-            // (CHANGE-040421) now it can free links to transaction_listener and timers
+            if (transaction_listener!=null) transaction_listener.onTransTimeout(this);
             transaction_listener=null;
-            //retransmission_to=null;
-            //transaction_to=null;
-            //clearing_to=null;
          }  
          if (to.equals(end_to))
          {  printLog("End timeout expired",LogLevel.HIGH);
@@ -179,12 +164,7 @@ public class InviteTransactionClient extends TransactionClient
             transaction_to.halt();
             sip_provider.removeSipProviderListener(transaction_id);
             changeStatus(STATE_TERMINATED);
-            //if (transaction_listener!=null) transaction_listener.onInvCltEndTimeout(this);
-            // (CHANGE-040421) now it can free links to transaction_listener and timers
-            transaction_listener=null; // p.s., already null..
-            //retransmission_to=null;
-            //transaction_to=null;
-            //clearing_to=null;
+            transaction_listener=null; // already null..
          }
       }
       catch (Exception e)
@@ -200,20 +180,8 @@ public class InviteTransactionClient extends TransactionClient
          end_to.halt();
          sip_provider.removeSipProviderListener(transaction_id);
          changeStatus(STATE_TERMINATED);
-         //if (transaction_listener!=null) transaction_listener.onInvCltTerminated(this);
-         // (CHANGE-040421) now it can free links to transaction_listener and timers
          transaction_listener=null;
-         //retransmission_to=null;
-         //transaction_to=null;
-         //clearing_to=null;
       }
    }
 
-
-   //**************************** Logs ****************************/
-
-   /** Adds a new string to the default Log */
-   void printLog(String str, int level)
-   {  super.printLog("Invite: "+str,level);
-   }
 }

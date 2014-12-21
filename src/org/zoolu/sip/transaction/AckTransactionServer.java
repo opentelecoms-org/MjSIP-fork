@@ -39,10 +39,10 @@ import org.zoolu.tools.LogLevel;
 public class AckTransactionServer extends Transaction
 {  
    /** the TransactionServerListener that captures the events fired by the AckTransactionServer */
-   AckTransactionServerListener transaction_listener=null;
+   AckTransactionServerListener transaction_listener;
 
    /** last response message */
-   Message response=null;
+   Message response;
    
    /** retransmission timeout */
    Timer retransmission_to;
@@ -52,38 +52,35 @@ public class AckTransactionServer extends Transaction
 
    /** Initializes timeouts and state */
    /** Creates a new AckTransactionServer.
-     * The AckTransactionServer starts sending a the <i>resp</i> messaage.
+     * The AckTransactionServer starts sending a the <i>resp</i> message.
      * It retransmits the resp several times if no ACK request is received. */
-   public AckTransactionServer(SipProvider provider, Message resp, AckTransactionServerListener tr_listener)
-   {  super(provider);
-      method=null;
+   public AckTransactionServer(SipProvider sip_provider, Message resp, AckTransactionServerListener listener)
+   {  super(sip_provider);
       response=resp;
-      transaction_id=new TransactionIdentifier(SipMethods.ACK);
-      init(tr_listener);
-      printLog("created",LogLevel.HIGH);
+      init(listener,new TransactionIdentifier(SipMethods.ACK),null);
    }  
 
    /** Creates a new AckTransactionServer.
      * The AckTransactionServer starts sending the response message <i>resp</i>
      * through the connection <i>conn_id</i>. */
-   public AckTransactionServer(SipProvider provider, ConnectionIdentifier conn_id, Message resp, AckTransactionServerListener tr_listener)
-   {  super(provider);
-      method=null;
+   public AckTransactionServer(SipProvider sip_provider, ConnectionIdentifier connection_id, Message resp, AckTransactionServerListener listener)
+   {  super(sip_provider);
       response=resp;
-      connection_id=conn_id;
-      transaction_id=new TransactionIdentifier(SipMethods.ACK);
-      init(tr_listener);
-      printLog("created",LogLevel.HIGH);
+      init(listener,new TransactionIdentifier(SipMethods.ACK),connection_id);
    }  
 
    /** Initializes timeouts and listener. */
-   void init(AckTransactionServerListener tr_listener)
-   {  transaction_listener=tr_listener;
+   void init(AckTransactionServerListener listener, TransactionIdentifier transaction_id, ConnectionIdentifier connaction_id)
+   {  this.transaction_listener=listener;
+      this.transaction_id=transaction_id;
+      this.connection_id=connection_id;
       transaction_to=new Timer(SipStack.transaction_timeout,"Transaction",this);
       retransmission_to=new Timer(SipStack.retransmission_timeout,"Retransmission",this);
       // (CHANGE-040905) now timeouts started in listen()
       //transaction_to.start();
       //if (connection_id==null) retransmission_to.start();
+      printLog("id: "+String.valueOf(transaction_id),LogLevel.HIGH);
+      printLog("created",LogLevel.HIGH);
    }    
 
    /** Starts the AckTransactionServer. */
@@ -106,14 +103,16 @@ public class AckTransactionServer extends Transaction
    {  try
       {  if (to.equals(retransmission_to) && statusIs(STATE_PROCEEDING))
          {  printLog("Retransmission timeout expired",LogLevel.HIGH);
-            retransmission_to=new Timer(retransmission_to.getTime(),retransmission_to.getLabel(),this);
+            long timeout=2*retransmission_to.getTime();
+            if (timeout>SipStack.max_retransmission_timeout) timeout=SipStack.max_retransmission_timeout;
+            retransmission_to=new Timer(timeout,retransmission_to.getLabel(),this);
             retransmission_to.start();
             sip_provider.sendMessage(response,connection_id);
          }  
          if (to.equals(transaction_to) && statusIs(STATE_PROCEEDING))
          {  printLog("Transaction timeout expired",LogLevel.HIGH);
             changeStatus(STATE_TERMINATED);
-            if (transaction_listener!=null) transaction_listener.onAckSrvTimeout(this);
+            if (transaction_listener!=null) transaction_listener.onTransAckTimeout(this);
             // (CHANGE-040421) now it can free links to transaction_listener and timers
             transaction_listener=null;
             //retransmission_to=null;
@@ -137,20 +136,12 @@ public class AckTransactionServer extends Transaction
       //transaction_to=null;
   }
 
-   /** Method used to drop an active transaction */
-   /*
-   public void ackReceived(Message ack)
-   {  retransmission_to.halt();
-      transaction_to.halt();  
-      changeStatus(STATE_TERMINATED);
-      transaction_listener.onAckSrvTerminated(this,ack);   
-   }*/
-
 
    //**************************** Logs ****************************/
 
    /** Adds a new string to the default Log */
-   void printLog(String str, int level)
-   {  super.printLog("Server: Ack: "+str,level);
+   protected void printLog(String str, int level)
+   {  if (log!=null) log.println("AckTransactionServer#"+transaction_sqn+": "+str,level+SipStack.LOG_LEVEL_TRANSACTION);  
    }
+
 }

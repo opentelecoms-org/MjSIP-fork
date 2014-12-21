@@ -50,19 +50,19 @@ public class UdpProvider extends Thread
    UdpSocket socket;  
 
    /** Maximum time that the UDP receiver can remain active after been halted (in milliseconds) */
-   int socket_timeout=DEFAULT_SOCKET_TIMEOUT;
+   int socket_timeout;
 
    /** Maximum time that the UDP receiver remains active without receiving UDP datagrams (in milliseconds) */
    long alive_time; 
 
    /** Minimum size for received packets. Shorter packets are silently discarded. */
-   int minimum_length=0; 
+   int minimum_length; 
 
    /** Whether it has been halted */
-   boolean stop=false; 
+   boolean stop; 
 
    /** Whether it is running */
-   boolean is_running=true; 
+   boolean is_running; 
 
    /** UdpProvider listener */
    UdpProviderListener listener;   
@@ -84,9 +84,13 @@ public class UdpProvider extends Thread
 
    /** Inits the UdpProvider */ 
    private void init(UdpSocket socket, long alive_time, UdpProviderListener listener)
-   {  this.socket=socket;
+   {  this.listener=listener;
+      this.socket=socket;
+      this.socket_timeout=DEFAULT_SOCKET_TIMEOUT;
       this.alive_time=alive_time;
-      this.listener=listener;
+      this.minimum_length=0; 
+      this.stop=false; 
+      this.is_running=true; 
    }
 
 

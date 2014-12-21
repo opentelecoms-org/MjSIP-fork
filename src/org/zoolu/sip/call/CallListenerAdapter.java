@@ -77,7 +77,7 @@ public abstract class CallListenerAdapter implements ExtendedCallListener
 
    /** Accepts an incoming call.
      * Callback function called when arriving a new INVITE method (incoming call) */
-   public void onCallIncoming(Call call, NameAddress caller, String sdp, Message invite)
+   public void onCallIncoming(Call call, NameAddress callee, NameAddress caller, String sdp, Message invite)
    {  //printLog("INCOMING");
       call.ring();
       String local_session;
@@ -195,6 +195,18 @@ public abstract class CallListenerAdapter implements ExtendedCallListener
    }
 
    /** Does nothing.
+     * Callback function called when a call transfer is accepted. */
+   public void onCallTransferAccepted(ExtendedCall call, Message resp)
+   {
+   }
+
+   /** Does nothing.
+     * Callback function called when a call transfer is refused. */
+   public void onCallTransferRefused(ExtendedCall call, String reason, Message resp)
+   {
+   }
+
+   /** Does nothing.
      * Callback function called when a call transfer is successfully completed */
    public void onCallTransferSuccess(ExtendedCall call, Message notify)
    {  //printLog("TRANSFER SUCCESS");
@@ -202,7 +214,7 @@ public abstract class CallListenerAdapter implements ExtendedCallListener
 
    /** Does nothing.
      * Callback function called when a call transfer is NOT sucessfully completed */
-   public void onCallTransferFailure(ExtendedCall call, int code, String reason, Message msg)
+   public void onCallTransferFailure(ExtendedCall call, String reason, Message notify)
    {  //printLog("TRANSFER FAILURE");
    }
 

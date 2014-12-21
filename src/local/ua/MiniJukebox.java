@@ -48,7 +48,7 @@ public class MiniJukebox extends CommandLineUA
    // ******************* UserAgent callback functions *******************
 
    /** When a new call is incoming */
-   public void onUaCallIncoming(UserAgent ua, NameAddress caller, NameAddress callee)
+   public void onUaCallIncoming(UserAgent ua, NameAddress callee, NameAddress caller)
    {  printOut("incoming call from "+caller.toString());
       String audio_file=callee.getAddress().getParameter(PARAM_RESOURCE);
       if (audio_file!=null)

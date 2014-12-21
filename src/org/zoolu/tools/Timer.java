@@ -42,9 +42,9 @@ public class Timer implements InnerTimerListener
 
    //HashSet listener_list=null;
    TimerListener listener;
-   long time=0;  
-   String label=null;
-   boolean active=false;
+   long time;  
+   String label;
+   boolean active;
 
 
    void init(long t_msec, String t_label, TimerListener t_listener)
@@ -53,6 +53,7 @@ public class Timer implements InnerTimerListener
       listener=t_listener;
       time=t_msec;
       label=t_label;
+      active=false;
    }  
 
    /** Creates a new Timer of <i>msec</i> milliseconds.

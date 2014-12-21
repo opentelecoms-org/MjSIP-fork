@@ -38,7 +38,7 @@ class UdpTransport implements Transport, UdpProviderListener
 
 
    /** UDP provider */
-   UdpProvider udp_provider=null;  
+   UdpProvider udp_provider;  
 
        
    /** The protocol type */ 

@@ -30,20 +30,20 @@ import java.lang.*;
 import java.util.*;
 
 
-/** Abstract ParametersHeader is the base class for all SIP Headers that include parameters */
-public abstract class ParametersHeader extends Header
+/** Abstract ParametricHeader is the base class for all SIP Headers that include parameters */
+public abstract class ParametricHeader extends Header
 {
-   //public ParametersHeader(String hname)
+   //public ParametricHeader(String hname)
    //{  super(hname);
    //}	
 
-   /** Costructs the abstract ParametersHeader. */
-   protected ParametersHeader(String hname, String hvalue)
+   /** Costructs the abstract ParametricHeader. */
+   protected ParametricHeader(String hname, String hvalue)
    {  super(hname,hvalue);
    }
 
-   /** Costructs the abstract ParametersHeader. */
-   protected ParametersHeader(Header hd)
+   /** Costructs the abstract ParametricHeader. */
+   protected ParametricHeader(Header hd)
    {  super(hd);
    }
    
@@ -73,7 +73,7 @@ public abstract class ParametersHeader extends Header
     
    /** Gets a String Vector of parameter names.
      * @returns a Vector of String */
-   public Vector getParameters() 
+   public Vector getParameterNames() 
    {  int index=indexOfFirstSemi();
       if (index<0) return new Vector();
       return (new SipParser((new Parser(getValue(),index)).skipChar().skipWSP())).getParameters();

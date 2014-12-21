@@ -80,4 +80,5 @@ public class OriginField extends SdpField
    public String getAddress()
    {  return (new Parser(value)).skipString().skipString().skipString().skipString().skipString().getString();
    }
+
 }

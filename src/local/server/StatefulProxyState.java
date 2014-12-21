@@ -58,10 +58,9 @@ public class StatefulProxyState
       if (hasServer(ts)) return;
       TransactionIdentifier sid=ts.getTransactionId();
       s_clients.put(sid,new HashSet());
-      Message request=new Message(ts.getMethodMessage());
+      Message request=new Message(ts.getRequestMessage());
       //printlog("creating a possible server 408 final response",LogLevel.LOW);
-      //request=Proxy.updateProxingRequest(request);
-      Message resp=MessageFactory.createResponse(request,408,"Request Timeout",null,null);
+      Message resp=MessageFactory.createResponse(request,408,SipResponses.reasonOf(408),null);
       //printlog("DEBUG: addServer()\r\n"+resp,LogLevel.LOW);
       s_response.put(sid,resp);
    }
@@ -76,10 +75,9 @@ public class StatefulProxyState
       if (clients==null) clients=new HashSet();
       clients.add(tc);
       s_clients.put(sid,clients);
-      Message request=new Message(ts.getMethodMessage());
+      Message request=new Message(ts.getRequestMessage());
       //printlog("creating a possible server 408 final response",LogLevel.LOW);
-      //request=Proxy.updateProxingRequest(request);
-      Message resp=MessageFactory.createResponse(request,408,"Request Timeout",null,null);
+      Message resp=MessageFactory.createResponse(request,408,SipResponses.reasonOf(408),null);
       //printlog("DEBUG addClient():\r\n"+resp,LogLevel.LOW);
       s_response.put(sid,resp);
    }

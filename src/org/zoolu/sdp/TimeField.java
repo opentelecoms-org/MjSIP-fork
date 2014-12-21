@@ -64,4 +64,5 @@ public class TimeField extends SdpField
    public String getStopTime()
    {  return (new Parser(value)).skipString().getString();
    }
+
 }

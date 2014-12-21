@@ -40,7 +40,7 @@ import org.zoolu.tools.LogLevel;
 public class TransactionClient extends Transaction
 {      
    /** the TransactionClientListener that captures the events fired by the TransactionClient */
-   TransactionClientListener transaction_listener=null;
+   TransactionClientListener transaction_listener;
 
    /** retransmission timeout ("Timer E" in RFC 3261) */
    Timer retransmission_to;
@@ -51,41 +51,38 @@ public class TransactionClient extends Transaction
 
  
    /** Costructs a new TransactionClient. */
-   protected TransactionClient(SipProvider provider)
-   {  super(provider);
+   protected TransactionClient(SipProvider sip_provider)
+   {  super(sip_provider);
+      transaction_listener=null;
    } 
 
    /** Creates a new TransactionClient */
-   public TransactionClient(SipProvider provider, Message request, TransactionClientListener tr_listener)
-   {  super(provider);
-      method=new Message(request);
-      transaction_id=method.getTransactionId();
-      init(tr_listener);
-      printLog("created",LogLevel.HIGH);
+   public TransactionClient(SipProvider sip_provider, Message req, TransactionClientListener listener)
+   {  super(sip_provider);
+      request=new Message(req);
+      init(listener,request.getTransactionId());
    }
    
    /** Initializes timeouts and listener. */
-   void init(TransactionClientListener tr_listener)
-   {  transaction_listener=tr_listener;
+   void init(TransactionClientListener listener, TransactionIdentifier transaction_id)
+   {  this.transaction_listener=listener;
+      this.transaction_id=transaction_id;
       retransmission_to=new Timer(SipStack.retransmission_timeout,"Retransmission",this);
       transaction_to=new Timer(SipStack.transaction_timeout,"Transaction",this);
       clearing_to=new Timer(SipStack.clearing_timeout,"Clearing",this);
-      // (CHANGE-040905) now timeouts started in request()
-      //retransmission_to.start();
-      //transaction_to.start(); 
+      printLog("id: "+String.valueOf(transaction_id),LogLevel.HIGH);
+      printLog("created",LogLevel.HIGH);
    }
 
    /** Starts the TransactionClient and sends the transaction request. */
    public void request()
    {  printLog("start",LogLevel.LOW);
       changeStatus(STATE_TRYING);
-      // (CHANGE-040905) now timeouts started in request()
       retransmission_to.start();
       transaction_to.start(); 
 
       sip_provider.addSipProviderListener(transaction_id,this); 
-      connection_id=sip_provider.sendMessage(method);
-      //if (transaction_listener!=null) transaction_listener.onCltTrying(this); 
+      connection_id=sip_provider.sendMessage(request);
    }
       
    /** Method derived from interface SipListener.
@@ -95,24 +92,20 @@ public class TransactionClient extends Transaction
       {  int code=msg.getStatusLine().getCode();
          if (code>=100 && code<200 && (statusIs(STATE_TRYING) || statusIs(STATE_PROCEEDING)))
          {  if (statusIs(STATE_TRYING)) changeStatus(STATE_PROCEEDING);
-            if (transaction_listener!=null) transaction_listener.onCltProvisionalResponse(this,msg);
+            if (transaction_listener!=null) transaction_listener.onTransProvisionalResponse(this,msg);
             return;
          }
          if (code>=200 && code<700 && (statusIs(STATE_TRYING) || statusIs(STATE_PROCEEDING)))
          {  retransmission_to.halt();
             transaction_to.halt();
-            // (CHANGE-040905) now clearing_to starts after callback functions 
-            //clearing_to.start();
             changeStatus(STATE_COMPLETED);
             if (code<300)
-            {  if (transaction_listener!=null) transaction_listener.onCltSuccessResponse(this,msg);
+            {  if (transaction_listener!=null) transaction_listener.onTransSuccessResponse(this,msg);
             }
             else 
-            {  if (transaction_listener!=null) transaction_listener.onCltFailureResponse(this,msg);
+            {  if (transaction_listener!=null) transaction_listener.onTransFailureResponse(this,msg);
             }
-            // (CHANGE-040421) now it can free the link with the transaction_listener
             transaction_listener=null;
-            // (CHANGE-040905) clearing_to=0 for reliable transport 
             if (connection_id==null) clearing_to.start();
             else
             {  printLog("clearing_to=0 for reliable transport",LogLevel.LOW);
@@ -129,9 +122,9 @@ public class TransactionClient extends Transaction
    {  try
       {  if (to.equals(retransmission_to) && (statusIs(STATE_TRYING) || statusIs(STATE_PROCEEDING)))
          {  printLog("Retransmission timeout expired",LogLevel.HIGH);
-            // (CHANGE-040905) no retransmission for reliable transport 
+            // retransmission only for unreliable transport 
             if (connection_id==null)
-            {  sip_provider.sendMessage(method);
+            {  sip_provider.sendMessage(request);
                long timeout=2*retransmission_to.getTime();
                if (timeout>SipStack.max_retransmission_timeout || statusIs(STATE_PROCEEDING)) timeout=SipStack.max_retransmission_timeout;
                retransmission_to=new Timer(timeout,retransmission_to.getLabel(),this);
@@ -145,12 +138,8 @@ public class TransactionClient extends Transaction
             clearing_to.halt();
             sip_provider.removeSipProviderListener(transaction_id);
             changeStatus(STATE_TERMINATED);
-            if (transaction_listener!=null) transaction_listener.onCltTimeout(this);
-            // (CHANGE-040421) now it can free links to transaction_listener and timers
+            if (transaction_listener!=null) transaction_listener.onTransTimeout(this);
             transaction_listener=null;
-            //retransmission_to=null;
-            //transaction_to=null;
-            //clearing_to=null;
          }  
          if (to.equals(clearing_to))
          {  printLog("Clearing timeout expired",LogLevel.HIGH);
@@ -158,11 +147,6 @@ public class TransactionClient extends Transaction
             transaction_to.halt();
             sip_provider.removeSipProviderListener(transaction_id);
             changeStatus(STATE_TERMINATED);
-            //if (transaction_listener!=null) transaction_listener.onCltClearingTimeout(this);
-            // (CHANGE-040421) now it can free links to timers
-            //retransmission_to=null;
-            //transaction_to=null;
-            //clearing_to=null;
          }
       }
       catch (Exception e)
@@ -178,12 +162,7 @@ public class TransactionClient extends Transaction
          clearing_to.halt();
          sip_provider.removeSipProviderListener(transaction_id);
          changeStatus(STATE_TERMINATED);
-         //if (transaction_listener!=null) transaction_listener.onCltTerminated(this);
-         // (CHANGE-040421) now it can free links to transaction_listener and timers
          transaction_listener=null;
-         //retransmission_to=null;
-         //transaction_to=null;
-         //clearing_to=null;
       }
    }
 
@@ -191,8 +170,8 @@ public class TransactionClient extends Transaction
    //**************************** Logs ****************************/
 
    /** Adds a new string to the default Log */
-   void printLog(String str, int level)
-   {  super.printLog("Client: "+str,level);
+   protected void printLog(String str, int level)
+   {  if (log!=null) log.println("TransactionClient#"+transaction_sqn+": "+str,level+SipStack.LOG_LEVEL_TRANSACTION);  
    }
-  
+
 }

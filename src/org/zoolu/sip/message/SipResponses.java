@@ -53,7 +53,6 @@ public class SipResponses extends BaseSipResponses
    }
 
 
-   
    /** Gets the reason phrase of a response code */
    public static String reasonOf(int code)
    {  if (!is_init) init();

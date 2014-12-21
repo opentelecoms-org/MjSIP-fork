@@ -3,15 +3,16 @@ __________________________________________________________________
 (by Luca Veltri, 16/10/2005)
 
 
-1) How to compile all packages:
+1) How to compile all packages under Windows OS (see section 3 for compiling without JMF support):
 --------------------------------------
 - just run 'make all'
+- otherwise you can separately do 'make' with the selected target (e.g. 'make server')
 
-
-2) How to compile under linux OS:
+2) How to compile all packages under linux OS (see section 3 for compiling without JMF support):
 --------------------------------------
-- in file 'build-config' set 'OS=Linux'
-- run the 'make' tool with the selected target (e.g.'make ua') 
+- in file 'makefile-config' set 'OS=Linux'
+- just run 'make all'
+- otherwise you can separately do 'make' with the selected target (e.g. 'make server')
 
 
 3) How to remove the dipendences to JMF in order to compile ua and media packages without JMF support:

@@ -60,6 +60,11 @@ public class RtpStreamSender extends Thread
    /** Whether it works synchronously with a local clock, or it it acts as slave of the InputStream  */
    boolean do_sync=true;
 
+   /** Synchronization correction value, in milliseconds.
+     * It accellarates the sending rate respect to the nominal value,
+     * in order to compensate program latencies. */
+   int sync_adj=0;
+
    /** Whether it is running */
    boolean running=false;   
 
@@ -134,6 +139,11 @@ public class RtpStreamSender extends Thread
    }          
 
 
+   /** Sets the synchronization adjustment time (in milliseconds). */
+   public void setSyncAdj(int millisecs)
+   {  sync_adj=millisecs;
+   }
+
    /** Whether is running */
    public boolean isRunning()
    {  return running;
@@ -155,7 +165,7 @@ public class RtpStreamSender extends Thread
       rtp_packet.setPayloadType(p_type);      
       int seqn=0;
       long time=0;
-      long start_time=System.currentTimeMillis();
+      //long start_time=System.currentTimeMillis();
       long byte_rate=frame_rate*frame_size;
       
       running=true;
@@ -174,11 +184,14 @@ public class RtpStreamSender extends Thread
                rtp_packet.setPayloadLength(num);
                rtp_socket.send(rtp_packet);
                // update rtp timestamp (in milliseconds)
-               time+=(num*1000)/byte_rate;
+               long frame_time=(num*1000)/byte_rate;
+               time+=frame_time;
                // wait fo next departure
                if (do_sync)
-               {  long frame_time=start_time+time-System.currentTimeMillis();
-                  // wait before next departure..
+               {  // wait before next departure..
+                  //long frame_time=start_time+time-System.currentTimeMillis();
+                  // accellerate in order to compensate possible program latency.. ;)
+                  frame_time-=sync_adj;
                   try {  Thread.sleep(frame_time);  } catch (Exception e) {}
                }
             }

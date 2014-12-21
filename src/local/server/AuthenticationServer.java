@@ -36,6 +36,12 @@ public interface AuthenticationServer
      * or null in case of authentication success. */
    public Message authenticateRequest(Message msg);
 
+   /** Authenticates a proxing SIP request.
+     * @param msg is the SIP request to be authenticated
+     * @return it returns the error Message in case of authentication failure,
+     * or null in case of authentication success. */
+   public Message authenticateProxyRequest(Message msg);
+
    /** Gets AuthenticationInfoHeader. */
    public AuthenticationInfoHeader getAuthenticationInfoHeader();
 

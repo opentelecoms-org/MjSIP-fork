@@ -44,8 +44,12 @@ import org.zoolu.tools.LogLevel;
   */
 public class InviteTransactionServer extends TransactionServer
 {     
+   /** Default behavior for automatically sending 100 Trying on INVITE. */
+   public static boolean AUTO_TRYING=true;
+
+
    /** the TransactionServerListener that captures the events fired by the InviteTransactionServer */
-   InviteTransactionServerListener transaction_listener=null;
+   InviteTransactionServerListener transaction_listener;
 
    /** last response message */
    //Message response=null;
@@ -57,71 +61,73 @@ public class InviteTransactionServer extends TransactionServer
    /** clearing timeout ("Timer I" in RFC 3261) */
    //Timer clearing_to; 
 
-   /** Whether sending automatically 100 trying on INVITE */
-   boolean auto_trying=true;
-   
-   /** Whether sending automatically 100 trying on INVITE.
-     * The default value is <b>true</b> */
-   public void setAuto100Trying(boolean auto_trying)
-   {  this.auto_trying=auto_trying;
-   }
-   
-   /** Creates a new InviteTransactionServer */
-   public InviteTransactionServer(SipProvider provider, InviteTransactionServerListener tr_listener)
-   {  super(provider);
-      transaction_id=new TransactionIdentifier(SipMethods.INVITE);
-      init(tr_listener);
-      printLog("created",LogLevel.HIGH);
+   /** Whether automatically sending 100 Trying on INVITE. */
+   boolean auto_trying;
+
+
+   /** Creates a new InviteTransactionServer. */
+   public InviteTransactionServer(SipProvider sip_provider, InviteTransactionServerListener listener)
+   {  super(sip_provider);
+      init(listener,new TransactionIdentifier(SipMethods.INVITE),null);
    }  
       
-   /** Creates a new InviteTransactionServer with an already incomed INVITE message. */
-   public InviteTransactionServer(SipProvider provider, Message invite, boolean auto_trying, InviteTransactionServerListener tr_listener)
-   {  super(provider);
-      method=new Message(invite);
-      connection_id=invite.getConnectionId();
-      transaction_id=method.getTransactionId();
-      init(tr_listener);
-      printLog("created",LogLevel.HIGH);
+   /** Creates a new InviteTransactionServer for the already received INVITE request <i>invite</i>. */
+   public InviteTransactionServer(SipProvider sip_provider, Message invite, InviteTransactionServerListener listener)
+   {  super(sip_provider);
+      request=new Message(invite);
+      init(listener,request.getTransactionId(),request.getConnectionId());
 
-      // CHANGE-050619: moved starting stuff here
       changeStatus(STATE_TRYING);
       sip_provider.addSipProviderListener(transaction_id,this);
-      //if (transaction_listener!=null) transaction_listener.onSrvRequest(this,method);
       // automatically send "100 Tryng" response and go to STATE_PROCEEDING
       if (auto_trying)
-      {  Message trying100=MessageFactory.createResponse(method,100,"Trying",null,"");
+      {  Message trying100=MessageFactory.createResponse(request,100,SipResponses.reasonOf(100),null);
+         respondWith(trying100); // this method makes it going automatically to STATE_PROCEEDING
+      }
+   }  
+
+   /** Creates a new InviteTransactionServer for the already received INVITE request <i>invite</i>. */
+   public InviteTransactionServer(SipProvider sip_provider, Message invite, boolean auto_trying, InviteTransactionServerListener listener)
+   {  super(sip_provider);
+      request=new Message(invite);
+      init(listener,request.getTransactionId(),request.getConnectionId());      
+      this.auto_trying=auto_trying;
+
+      changeStatus(STATE_TRYING);
+      sip_provider.addSipProviderListener(transaction_id,this);
+      // automatically send "100 Tryng" response and go to STATE_PROCEEDING
+      if (auto_trying)
+      {  Message trying100=MessageFactory.createResponse(request,100,SipResponses.reasonOf(100),null);
          respondWith(trying100); // this method makes it going automatically to STATE_PROCEEDING
       }
    }  
 
    /** Initializes timeouts and listener. */
-   void init(InviteTransactionServerListener tr_listener)
-   {  transaction_listener=tr_listener;
+   void init(InviteTransactionServerListener listener, TransactionIdentifier transaction_id, ConnectionIdentifier connaction_id)
+   {  this.transaction_listener=listener;
+      this.transaction_id=transaction_id;
+      this.connection_id=connection_id;
+      auto_trying=AUTO_TRYING;
       retransmission_to=new Timer(SipStack.retransmission_timeout,"Retransmission",this);
       end_to=new Timer(SipStack.transaction_timeout,"End",this);
       clearing_to=new Timer(SipStack.clearing_timeout,"Clearing",this);
+      printLog("id: "+String.valueOf(transaction_id),LogLevel.HIGH);
+      printLog("created",LogLevel.HIGH);
    }   
+
+   /** Whether automatically sending 100 Trying on INVITE. */
+   public void setAutoTrying(boolean auto_trying)
+   {  this.auto_trying=auto_trying;
+   }
+
 
    /** Starts the InviteTransactionServer. */
    public void listen()
    {  printLog("start",LogLevel.LOW);
-      // CHANGE-050619: moved starting stuff to the TransactionServer costructor..
-      //if (method==null)
       if (statusIs(STATE_IDLE))
       {  changeStatus(STATE_WAITING);  
          sip_provider.addSipProviderListener(new TransactionIdentifier(SipMethods.INVITE),this); 
       }
-      // CHANGE-050619: moved starting stuff to the TransactionServer costructor..
-      //else
-      //{  changeStatus(STATE_TRYING);
-      //   sip_provider.addSipProviderListener(transaction_id,this);
-      //   if (transaction_listener!=null) transaction_listener.onSrvRequest(this,method);
-      //   // automatically send "100 Tryng" response and go to STATE_PROCEEDING
-      //   if (auto_trying)
-      //   {  Message trying100=MessageFactory.createResponse(method,100,"Trying",null,"");
-      //      respondWith(trying100); // this method makes it going automatically to STATE_PROCEEDING
-      //   }
-      //}
    }  
 
    /** Sends a response message */
@@ -131,24 +137,17 @@ public class InviteTransactionServer extends TransactionServer
       if (statusIs(STATE_TRYING) || statusIs(STATE_PROCEEDING)) sip_provider.sendMessage(response,connection_id);         
       if (code>=100 && code<200 && statusIs(STATE_TRYING))
       {  changeStatus(STATE_PROCEEDING);
-         //if (transaction_listener!=null) transaction_listener.onInvSrvProceeding(this);     
          return;
       }
       if (code>=200 && code<300 && (statusIs(STATE_TRYING) || statusIs(STATE_PROCEEDING)))
       {  sip_provider.removeSipProviderListener(transaction_id);
          changeStatus(STATE_TERMINATED);
-         //if (transaction_listener!=null) transaction_listener.onInvSrvSuccessTerminated(this);
-         // (CHANGE-040421) now it can free links to transaction_listener and timers
          transaction_listener=null;
-         //retransmission_to=null;
-         //end_to=null;
-         //clearing_to=null;
          return;
       }
       if (code>=300 && code<700 && (statusIs(STATE_TRYING) || statusIs(STATE_PROCEEDING)))
       {  changeStatus(STATE_COMPLETED);
-         //if (transaction_listener!=null) transaction_listener.onInvSrvFailureCompleted(this);
-         // (CHANGE-040905) no retransmission for reliable transport 
+         // retransmission only in case of unreliable transport 
          if (connection_id==null)
          {  retransmission_to.start();
             end_to.start();
@@ -170,18 +169,18 @@ public class InviteTransactionServer extends TransactionServer
          if (req_method.equals(SipMethods.INVITE))
          {
             if (statusIs(STATE_WAITING))
-            {  method=new Message(msg);
-               connection_id=msg.getConnectionId();
-               transaction_id=method.getTransactionId();
+            {  request=new Message(msg);
+               connection_id=request.getConnectionId();
+               transaction_id=request.getTransactionId();
                sip_provider.addSipProviderListener(transaction_id,this); 
                sip_provider.removeSipProviderListener(new TransactionIdentifier(SipMethods.INVITE));
                changeStatus(STATE_TRYING);
                // automatically send "100 Tryng" response and go to STATE_PROCEEDING
                if (auto_trying)
-               {  Message trying100=MessageFactory.createResponse(method,100,"Trying",null,"");
+               {  Message trying100=MessageFactory.createResponse(request,100,SipResponses.reasonOf(100),null);
                   respondWith(trying100); // this method makes it going automatically to STATE_PROCEEDING
                }
-               if (transaction_listener!=null) transaction_listener.onSrvRequest(this,msg);
+               if (transaction_listener!=null) transaction_listener.onTransRequest(this,msg);
                return;            
             }
             if (statusIs(STATE_PROCEEDING) || statusIs(STATE_COMPLETED))
@@ -195,19 +194,10 @@ public class InviteTransactionServer extends TransactionServer
          {  retransmission_to.halt();
             end_to.halt();
             changeStatus(STATE_CONFIRMED);
-            if (transaction_listener!=null) transaction_listener.onSrvFailureAck(this,msg);
+            if (transaction_listener!=null) transaction_listener.onTransFailureAck(this,msg);
             clearing_to.start();
             return;
          }
-         // cancel received
-         /*
-         if (req_method.equals(SipMethods.CANCEL) && (statusIs(STATE_PROCEEDING) || statusIs(STATE_TRYING)))
-         {  // create a CANCEL TransactionServer and send a 200 OK (CANCEL)
-           (new TransactionServer(msg,null)).respondWith(MessageFactory.createResponse(msg,200,"OK",null,""));
-           // automatically sends a 487 Cancelled
-           respondWith(MessageFactory.createResponse(method,487,"Cancelled",null,""));
-         }
-         */
       }    
    }
 
@@ -228,23 +218,13 @@ public class InviteTransactionServer extends TransactionServer
             retransmission_to.halt();
             sip_provider.removeSipProviderListener(transaction_id);
             changeStatus(STATE_TERMINATED);
-            //if (transaction_listener!=null) transaction_listener.onInvSrvEndTimeout(this);
-            // (CHANGE-040421) now it can free links to transaction_listener and timers
             transaction_listener=null;
-            //retransmission_to=null;
-            //end_to=null;
-            //clearing_to=null;
          }  
          if (to.equals(clearing_to) && statusIs(STATE_CONFIRMED))
          {  printLog("Clearing timeout expired",LogLevel.HIGH);
             sip_provider.removeSipProviderListener(transaction_id);
             changeStatus(STATE_TERMINATED);
-            //if (transaction_listener!=null) transaction_listener.onInvSrvClearingTimeout(this);
-            // (CHANGE-040421) now it can free links to transaction_listener and timers
             transaction_listener=null;
-            //retransmission_to=null;
-            //end_to=null;
-            //clearing_to=null;
          }  
       }
       catch (Exception e)
@@ -260,26 +240,7 @@ public class InviteTransactionServer extends TransactionServer
       if (statusIs(STATE_TRYING)) sip_provider.removeSipProviderListener(new TransactionIdentifier(SipMethods.INVITE));
          else sip_provider.removeSipProviderListener(transaction_id);
       changeStatus(STATE_TERMINATED);
-      //if (transaction_listener!=null) transaction_listener.onInvSrvTerminated(this);
-      // (CHANGE-040421) now it can free links to transaction_listener and timers
       transaction_listener=null;
-      //retransmission_to=null;
-      //end_to=null;
-      //clearing_to=null;
    }
-   
-   /** Cancels the transaction.
-     * This methods should be called by the local CancelServer when a CANCEL request is received for this Transaction. */
-   /*public void cancelTransaction()
-   {  if (statusIs(STATE_TRYING) || statusIs(STATE_PROCEEDING))
-         respondWith(MessageFactory.createResponse(method,487,"Request Terminated",null,""));
-   }*/
 
-
-   //**************************** Logs ****************************/
-
-   /** Adds a new string to the default Log */
-   void printLog(String str, int level)
-   {  super.printLog("Invite: "+str,level);
-   }
 }

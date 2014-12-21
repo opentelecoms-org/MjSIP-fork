@@ -28,11 +28,11 @@ import org.zoolu.sip.message.Message;
 
 
 /** A TransactionServerListener listens for InviteTransactionServer events.
-  * It extends TransactionServerListener by adding the onSrvFailureAck(InviteTransactionServer,Message) method.
+  * It extends TransactionServerListener by adding the onTransFailureAck(InviteTransactionServer,Message) method.
   */
 public interface InviteTransactionServerListener extends TransactionServerListener
 {  
    /** When an InviteTransactionServer goes into the "Confirmed" state receining an ACK for NON-2xx response */
-   public void onSrvFailureAck(InviteTransactionServer transaction, Message ack);
+   public void onTransFailureAck(InviteTransactionServer ts, Message ack);
 
 }

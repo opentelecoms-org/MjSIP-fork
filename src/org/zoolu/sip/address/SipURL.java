@@ -30,8 +30,8 @@ import java.util.Vector;
 
 
 /**
-<P> Class <i>SipURL</i> implements sip URLs.
-<P> A sip URL is a string of the form of:
+<P> Class <i>SipURL</i> implements SIP URLs.
+<P> A SIP URL is a string of the form of:
 <BR><BLOCKQUOTE><PRE>&nbsp&nbsp sip:[user@]hostname[:port][;parameters] </PRE></BLOCKQUOTE>
 <P> If <i>port</i> number is ommitted, -1 is returned
 */
@@ -42,6 +42,7 @@ public class SipURL
    protected static final String transport_param="transport"; 
    protected static final String maddr_param="maddr"; 
    protected static final String ttl_param="ttl"; 
+   protected static final String lr_param="lr"; 
 
    /** Creates a new SipURL based on a hostname or on a sip url as sip:[user@]hostname[:port][;param1=value1].. */
    public SipURL(String sipurl)
@@ -51,19 +52,26 @@ public class SipURL
 
    /** Creates a new SipURL */
    public SipURL(String username, String hostname)
-   {  url="sip:"+username+"@"+hostname;
+   {  init(username,hostname,-1);
    }
 
    /** Creates a new SipURL */
    public SipURL(String hostname, int portnumber)
-   {  if (portnumber>=0) url="sip:"+hostname+":"+portnumber;
-      else url="sip:"+hostname;
+   {  init(null,hostname,portnumber);
    }
 
    /** Creates a new SipURL */
    public SipURL(String username, String hostname, int portnumber)
-   {  if (portnumber>=0) url="sip:"+username+"@"+hostname+":"+portnumber;
-      else url="sip:"+username+"@"+hostname;
+   {  init(username,hostname,portnumber);
+   }
+
+   /** Inits the SipURL */
+   private void init(String username, String hostname, int portnumber)
+   {  StringBuffer sb=new StringBuffer("sip:");
+      if (username!=null) sb.append(username).append('@');
+      sb.append(hostname);
+      if (portnumber>0) sb.append(":"+portnumber);
+      url=sb.toString();
    }
 
    /** Creates and returns a copy of the URL */
@@ -94,7 +102,6 @@ public class SipURL
          else begin++; // skip "@"
       par.setPos(begin);
       int end=par.indexOf(host_terminators);
-      //System.out.println("DEBUG: b="+begin+" e="+end);
       if (end<0) return url.substring(begin);
          else return url.substring(begin,end);
    }
@@ -109,7 +116,6 @@ public class SipURL
       {  begin++;
          par.setPos(begin);
          int end=par.indexOf(port_terminators);
-         //System.out.println(url+">>"+url.substring(begin));
          if (end<0) return Integer.parseInt(url.substring(begin));
          else return Integer.parseInt(url.substring(begin,end));
       }
@@ -195,7 +201,6 @@ public class SipURL
             if (par.hasMore()) bottom=url.substring(par.getPos()); 
             url=top.concat(bottom);
             return;
-            //par=new Parser(url,par.getPos());
          }
          par.goTo(';');
       }
@@ -231,6 +236,7 @@ public class SipURL
    {  addParameter(maddr_param,maddr);
    }
 
+
    /** Gets the value of ttl parameter.
      * @return 1 if no ttl parameter is present. */
    public int getTtl() 
@@ -244,7 +250,16 @@ public class SipURL
    public void addTtl(int ttl) 
    {  addParameter(ttl_param,Integer.toString(ttl));
    }
-   
+
+
+   /** Whether lr (loose-route) parameter is present */
+   public boolean hasLr()
+   {  return hasParameter(lr_param);
+   }
+   /** Adds lr parameter */
+   public void addLr() 
+   {  addParameter(lr_param);
+   }
 }
 
 

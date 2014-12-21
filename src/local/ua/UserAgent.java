@@ -56,7 +56,7 @@ import java.io.*;
 public class UserAgent extends CallListenerAdapter
 {           
    /** Event logger. */
-   Log log=null;
+   Log log;
 
    /** UserAgentProfile */
    protected UserAgentProfile user_profile;
@@ -80,7 +80,7 @@ public class UserAgent extends CallListenerAdapter
    protected String local_session=null;
 
    /** UserAgent listener */
-   protected UserAgentListener ua_listener=null;
+   protected UserAgentListener listener=null;
 
    /** Media file path */
    final String MEDIA_PATH="media/local/ua/";
@@ -98,10 +98,6 @@ public class UserAgent extends CallListenerAdapter
    AudioClipPlayer clip_on;
    /** Off sound */
    AudioClipPlayer clip_off;
-   
-   
-   /** RegisterAgent */
-   RegisterAgent register_agent=null;
 
 
    // *********************** Startup Configuration ***********************   
@@ -124,18 +120,18 @@ public class UserAgent extends CallListenerAdapter
    // *************************** Basic methods ***************************   
 
    /** Changes the call state */
-   public void changeStatus(String state)
+   protected void changeStatus(String state)
    {  call_state=state;
       //printLog("state: "+call_state,LogLevel.MEDIUM); 
    }
 
    /** Checks the call state */
-   public boolean statusIs(String state)
+   protected boolean statusIs(String state)
    {  return call_state.equals(state); 
    }
 
    /** Gets the call state */
-   public String getStatus()
+   protected String getStatus()
    {  return call_state; 
    }
    
@@ -227,16 +223,10 @@ public class UserAgent extends CallListenerAdapter
    public UserAgent(SipProvider sip_provider, UserAgentProfile user_profile, UserAgentListener listener)
    {  this.sip_provider=sip_provider;
       log=sip_provider.getLog();
+      this.listener=listener;
       this.user_profile=user_profile;
-      ua_listener=listener;
       // if no contact_url and/or from_url has been set, create it now
-      if (user_profile.contact_url==null)
-      {  user_profile.contact_url="sip:"+user_profile.username+"@"+sip_provider.getViaAddress();
-         if (sip_provider.getPort()!=SipStack.default_port) user_profile.contact_url+=":"+sip_provider.getPort();
-         if (!sip_provider.getDefaultTransport().equals(SipProvider.PROTO_UDP)) user_profile.contact_url+=";transport="+sip_provider.getDefaultTransport();
-      }
-      if (user_profile.from_url==null)
-         user_profile.from_url=user_profile.contact_url;
+      user_profile.initContactAddress(sip_provider);
 
       // load sounds  
 
@@ -286,7 +276,7 @@ public class UserAgent extends CallListenerAdapter
    /** Makes a new call (acting as UAC). */
    public void call(String target_url)
    {  changeStatus(UA_OUTGOING_CALL);
-      call=new ExtendedCall(sip_provider,user_profile.from_url,user_profile.contact_url,this);      
+      call=new ExtendedCall(sip_provider,user_profile.from_url,user_profile.contact_url,user_profile.username,user_profile.realm,user_profile.passwd,this);      
       // in case of incomplete url (e.g. only 'user' is present), try to complete it
       target_url=sip_provider.completeNameAddress(target_url).toString();
       if (user_profile.no_offer) call.call(target_url);
@@ -297,7 +287,7 @@ public class UserAgent extends CallListenerAdapter
    /** Waits for an incoming call (acting as UAS). */
    public void listen()
    {  changeStatus(UA_IDLE);
-      call=new ExtendedCall(sip_provider,user_profile.from_url,user_profile.contact_url,this);      
+      call=new ExtendedCall(sip_provider,user_profile.from_url,user_profile.contact_url,user_profile.username,user_profile.realm,user_profile.passwd,this);      
       call.listen();  
    } 
 
@@ -371,10 +361,10 @@ public class UserAgent extends CallListenerAdapter
          }
          else 
          if (user_profile.use_jmf)
-         {  // check if JMF is supported
+         {  // try to use JMF audio app
             try
             {  Class myclass=Class.forName("local.ua.JMFAudioLauncher");
-               Class[] parameter_types={ Class.forName("int"), Class.forName("java.lang.String"), Class.forName("int"), Class.forName("int"), Class.forName("org.zoolu.tools.Log") };
+               Class[] parameter_types={ java.lang.Integer.TYPE, Class.forName("java.lang.String"), java.lang.Integer.TYPE, java.lang.Integer.TYPE, Class.forName("org.zoolu.tools.Log") };
                Object[] parameters={ new Integer(local_audio_port), remote_media_address, new Integer(remote_audio_port), new Integer(dir), log };
                java.lang.reflect.Constructor constructor=myclass.getConstructor(parameter_types);
                audio_app=(MediaLauncher)constructor.newInstance(parameters);
@@ -404,22 +394,22 @@ public class UserAgent extends CallListenerAdapter
          }
          else 
          if (user_profile.use_jmf)
-         {  // check if JMF is supported
+         {  // try to use JMF video app
             try
             {  Class myclass=Class.forName("local.ua.JMFVideoLauncher");
-               Class[] parameter_types={ Class.forName("int"), Class.forName("java.lang.String"), Class.forName("int"), Class.forName("int"), Class.forName("org.zoolu.tools.Log") };
+               Class[] parameter_types={ java.lang.Integer.TYPE, Class.forName("java.lang.String"), java.lang.Integer.TYPE, java.lang.Integer.TYPE, Class.forName("org.zoolu.tools.Log") };
                Object[] parameters={ new Integer(local_video_port), remote_media_address, new Integer(remote_video_port), new Integer(dir), log };
                java.lang.reflect.Constructor constructor=myclass.getConstructor(parameter_types);
                video_app=(MediaLauncher)constructor.newInstance(parameters);
             }
             catch (Exception e)
             {  printException(e,LogLevel.HIGH);
-               printLog("Error trying to create the JMFAudioLauncher",LogLevel.HIGH);
+               printLog("Error trying to create the JMFVideoLauncher",LogLevel.HIGH);
             }
          }
          // else
          if (video_app==null)
-         {  printLog("No external video application nor JMF has been selected: Video not started",LogLevel.HIGH);
+         {  printLog("No external video application nor JMF has been provided: Video not started",LogLevel.HIGH);
             return;
          }
          video_app.startMedia();
@@ -443,7 +433,7 @@ public class UserAgent extends CallListenerAdapter
    // ********************** Call callback functions **********************
    
    /** Callback function called when arriving a new INVITE method (incoming call) */
-   public void onCallIncoming(Call call, NameAddress caller, NameAddress callee, String sdp, Message invite)
+   public void onCallIncoming(Call call, NameAddress callee, NameAddress caller, String sdp, Message invite)
    {  printLog("onCallIncoming()",LogLevel.LOW);
       if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
       printLog("INCOMING",LogLevel.HIGH);
@@ -462,7 +452,7 @@ public class UserAgent extends CallListenerAdapter
       }
       // play "ring" sound
       if (clip_ring!=null) clip_ring.loop();
-      if (ua_listener!=null) ua_listener.onUaCallIncoming(this,caller,callee);
+      if (listener!=null) listener.onUaCallIncoming(this,callee,caller);
    }  
 
 
@@ -484,7 +474,7 @@ public class UserAgent extends CallListenerAdapter
       printLog("RINGING",LogLevel.HIGH);
       // play "on" sound
       if (clip_on!=null) clip_on.replay();
-      if (ua_listener!=null) ua_listener.onUaCallRinging(this);
+      if (listener!=null) listener.onUaCallRinging(this);
    }
 
 
@@ -511,7 +501,7 @@ public class UserAgent extends CallListenerAdapter
       }
       // play "on" sound
       if (clip_on!=null) clip_on.replay();
-      if (ua_listener!=null) ua_listener.onUaCallAccepted(this);
+      if (listener!=null) listener.onUaCallAccepted(this);
 
       launchMediaApplication();
       
@@ -550,7 +540,7 @@ public class UserAgent extends CallListenerAdapter
    {  printLog("onCallReInviteRefused()",LogLevel.LOW);
       if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
       printLog("RE-INVITE-REFUSED ("+reason+")/CALL",LogLevel.HIGH);
-      if (ua_listener!=null) ua_listener.onUaCallFailed(this);
+      if (listener!=null) listener.onUaCallFailed(this);
    }
 
 
@@ -569,7 +559,7 @@ public class UserAgent extends CallListenerAdapter
       }
       // play "off" sound
       if (clip_off!=null) clip_off.replay();
-      if (ua_listener!=null) ua_listener.onUaCallFailed(this);
+      if (listener!=null) listener.onUaCallFailed(this);
    }
 
 
@@ -592,7 +582,7 @@ public class UserAgent extends CallListenerAdapter
       if (clip_ring!=null) clip_ring.stop();
       // play "off" sound
       if (clip_off!=null) clip_off.replay();
-      if (ua_listener!=null) ua_listener.onUaCallCancelled(this);
+      if (listener!=null) listener.onUaCallCancelled(this);
    }
 
 
@@ -611,7 +601,7 @@ public class UserAgent extends CallListenerAdapter
       closeMediaApplication();
       // play "off" sound
       if (clip_off!=null) clip_off.replay();
-      if (ua_listener!=null) ua_listener.onUaCallClosed(this);
+      if (listener!=null) listener.onUaCallClosed(this);
       changeStatus(UA_IDLE);
    }
 
@@ -621,7 +611,7 @@ public class UserAgent extends CallListenerAdapter
    {  printLog("onCallClosed()",LogLevel.LOW);
       if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
       printLog("CLOSE/OK",LogLevel.HIGH);
-      if (ua_listener!=null) ua_listener.onUaCallClosed(this);
+      if (listener!=null) listener.onUaCallClosed(this);
       changeStatus(UA_IDLE);
    }
 
@@ -639,7 +629,7 @@ public class UserAgent extends CallListenerAdapter
       }
       // play "off" sound
       if (clip_off!=null) clip_off.replay();
-      if (ua_listener!=null) ua_listener.onUaCallFailed(this);
+      if (listener!=null) listener.onUaCallFailed(this);
    }
 
 
@@ -656,22 +646,34 @@ public class UserAgent extends CallListenerAdapter
       call_transfer.call(refer_to.toString(),local_session);
    }
 
+   /** Callback function called when a call transfer is accepted. */
+   public void onCallTransferAccepted(ExtendedCall call, Message resp)
+   {  printLog("onCallTransferAccepted()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("Transfer accepted",LogLevel.HIGH);
+   }
+
+   /** Callback function called when a call transfer is refused. */
+   public void onCallTransferRefused(ExtendedCall call, String reason, Message resp)
+   {  printLog("onCallTransferRefused()",LogLevel.LOW);
+      if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
+      printLog("Transfer refused",LogLevel.HIGH);
+   }
+
    /** Callback function called when a call transfer is successfully completed */
    public void onCallTransferSuccess(ExtendedCall call, Message notify)
    {  printLog("onCallTransferSuccess()",LogLevel.LOW);
       if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
       printLog("Transfer successed",LogLevel.HIGH);
       call.hangup();
-      call_transfer=null;
-      if (ua_listener!=null) ua_listener.onUaCallTrasferred(this);
+      if (listener!=null) listener.onUaCallTrasferred(this);
    }
 
    /** Callback function called when a call transfer is NOT sucessfully completed */
-   public void onCallTransferFailure(ExtendedCall call, int code, String reason, Message msg)
+   public void onCallTransferFailure(ExtendedCall call, String reason, Message notify)
    {  printLog("onCallTransferFailure()",LogLevel.LOW);
       if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
       printLog("Transfer failed",LogLevel.HIGH);
-      call_transfer=null;
    }
 
 

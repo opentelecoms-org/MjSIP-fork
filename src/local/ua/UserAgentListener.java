@@ -8,7 +8,7 @@ import org.zoolu.sip.address.NameAddress;
 public interface UserAgentListener
 {
    /** When a new call is incoming */
-   public void onUaCallIncoming(UserAgent ua, NameAddress caller, NameAddress callee);
+   public void onUaCallIncoming(UserAgent ua, NameAddress callee, NameAddress caller);
    
    /** When an incoming call is cancelled */
    public void onUaCallCancelled(UserAgent ua);

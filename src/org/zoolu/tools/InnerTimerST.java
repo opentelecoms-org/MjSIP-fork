@@ -31,7 +31,7 @@ class InnerTimerST extends java.util.TimerTask
    static java.util.Timer single_timer=new java.util.Timer(true);
    
    //long timeout;
-   InnerTimerListener listener=null;
+   InnerTimerListener listener;
    
    public InnerTimerST(long timeout, InnerTimerListener listener)
    {  //this.timeout=timeout;

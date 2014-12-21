@@ -47,13 +47,35 @@ public class ExtendedCall extends Call implements ExtendedInviteDialogListener
 
    ExtendedCallListener xcall_listener;
 
-   Message refer=null;
+   Message refer;
    
    
+   /** User name. */
+   String username;
+
+   /** User name. */
+   String realm;
+
+   /** User's passwd. */
+   String passwd;
+
+   /** Nonce for the next authentication. */
+   String next_nonce;
+
+   /** Qop for the next authentication. */
+   String qop;
+
+
    /** Creates a new ExtendedCall. */
    public ExtendedCall(SipProvider sip_provider, String from_url, String contact_url, ExtendedCallListener call_listener)
    {  super(sip_provider,from_url,contact_url,call_listener);
-      xcall_listener=call_listener;
+      this.xcall_listener=call_listener;
+      this.refer=null;
+      this.username=null;
+      this.realm=null;
+      this.passwd=null;
+      this.next_nonce=null;
+      this.qop=null;
    }
 
 
@@ -64,9 +86,23 @@ public class ExtendedCall extends Call implements ExtendedInviteDialogListener
    }*/
 
          
+   /** Creates a new ExtendedCall. */
+   public ExtendedCall(SipProvider sip_provider, String from_url, String contact_url, String username, String realm, String passwd, ExtendedCallListener call_listener)
+   {  super(sip_provider,from_url,contact_url,call_listener);
+      this.xcall_listener=call_listener;
+      this.refer=null;
+      this.username=username;
+      this.realm=realm;
+      this.passwd=passwd;
+      this.next_nonce=null;
+      this.qop=null;
+   }
+
+
    /** Waits for an incoming call */
    public void listen()
-   {  dialog=new ExtendedInviteDialog(sip_provider,this);
+   {  if (username!=null) dialog=new ExtendedInviteDialog(sip_provider,username,realm,passwd,this);
+      else dialog=new ExtendedInviteDialog(sip_provider,this);
       dialog.listen();
    }
 
@@ -74,7 +110,8 @@ public class ExtendedCall extends Call implements ExtendedInviteDialogListener
    /** Starts a new call, inviting a remote user (<i>r_user</i>) */
    public void call(String r_user, String from, String contact, String sdp)
    {  printLog("calling "+r_user,LogLevel.MEDIUM);
-      dialog=new ExtendedInviteDialog(sip_provider,this);
+      if (username!=null) dialog=new ExtendedInviteDialog(sip_provider,username,realm,passwd,this);
+      else dialog=new ExtendedInviteDialog(sip_provider,this);
       if (from==null) from=from_url;
       if (contact==null) contact=contact_url;
       if (sdp!=null) local_sdp=sdp;
@@ -133,11 +170,11 @@ public class ExtendedCall extends Call implements ExtendedInviteDialogListener
    {  if (d!=dialog) {  printLog("NOT the current dialog",LogLevel.HIGH);  return;  }
       printLog("onDlgReferResponse("+code+" "+reason+")",LogLevel.LOW);       
       if (code>=200 && code <300)
-      {  // accepted
+      {  if(xcall_listener!=null) xcall_listener.onCallTransferAccepted(this,msg);
       }
       else
       if (code>=300)
-      {  if(xcall_listener!=null) xcall_listener.onCallTransferFailure(this,code,reason,msg);
+      {  if(xcall_listener!=null) xcall_listener.onCallTransferRefused(this,reason,msg);
       }
    }
 
@@ -159,7 +196,7 @@ public class ExtendedCall extends Call implements ExtendedInviteDialogListener
             else
             if (code>=300)
             {  printLog("Call NOT transferred",LogLevel.MEDIUM);
-               if(xcall_listener!=null) xcall_listener.onCallTransferFailure(this,code,reason,msg);
+               if(xcall_listener!=null) xcall_listener.onCallTransferFailure(this,reason,msg);
             }            
          }
       }
@@ -182,7 +219,7 @@ public class ExtendedCall extends Call implements ExtendedInviteDialogListener
 
    /** Adds a new string to the default Log */
    protected void printLog(String str, int level)
-   {  super.printLog("SIPX: "+str,level+SipStack.LOG_LEVEL_CALL);  
+   {  if (log!=null) log.println("ExtendedCall: "+str,level+SipStack.LOG_LEVEL_CALL);  
    }
 }
 

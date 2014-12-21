@@ -39,139 +39,135 @@ import java.util.Vector;
 /** Class Dialog maintains a complete information status of a generic SIP dialog.
   * It has the following attributes:
   * <ul>
+  * <li>sip-provider</li>
   * <li>call-id</li>
   * <li>local and remote URLs</li>
   * <li>local and remote contact URLs</li>
-  * <li>local and remote CSeqs</li>
+  * <li>local and remote cseqs</li>
   * <li>local and remote tags</li> 
   * <li>dialog-id</li>
   * <li>route set</li>
   * </ul>
   */
-public abstract class Dialog
+public abstract class Dialog extends DialogInfo implements SipProviderListener
 {  
    
    // ************************ Static attributes *************************
 
-   /** Identifier for the transaction client side of a dialog (CLIENT). */
-   public final static int T_CLIENT=0;
-   /** Identifier for the transaction server side of a dialog (SERVER). */
-   public final static int T_SERVER=1;
-   
+    /** Dialogs counter */
+   private static int dialog_counter=0;
+
+
+   /** Identifier for the transaction client side of a dialog (UAC). */
+   public final static int UAC=0;
+   /** Identifier for the transaction server side of a dialog (UAS). */
+   public final static int UAS=1;
+
 
    // *********************** Protected attributes ***********************
 
+   /** Dialog sequence number */
+   protected int dialog_sqn;
+
    /** Event logger. */
-   protected Log log=null;
+   protected Log log;
  
-    /** Dialogs sequence number */
-   protected static int dialog_counter=0;
-
-   /** This dialog number */
-   protected int d_number;
-
-  /** The SipProvider */
-   protected SipProvider sip_provider=null;
+  /** SipProvider */
+   protected SipProvider sip_provider;
 
    /** Internal dialog state. */
    protected int status;
-
-
-   // ************************ Private attributes ************************
-
-   /** Local name */
-   NameAddress local_name=null;
-
-   /** Remote name */
-   NameAddress remote_name=null;
-
-   /** Local contact url */
-   NameAddress local_contact=null;
-
-   /** Remote contact url */
-   NameAddress remote_contact=null;
-
-   /** call-id */
-   String call_id=null;
-
-   /** Local tag */
-   String local_tag=null;
-
-   /** Remote tag */
-   String remote_tag=null;
-   /** Sets the remote tag */
-
-   /** Local CSeq number */
-   long local_cseq=-1;
-
-   /** Remote CSeq number */
-   long remote_cseq=-1;
-
-   /** Route set (Vector of NameAddresses) */
-   Vector route=null; 
-
-
+   
+   /** Dialog identifier */
+   protected DialogIdentifier dialog_id;
 
 
    // ************************* Abstract methods *************************
 
    /** Gets the dialog state */
-   abstract public String getStatus();
+   abstract protected String getStatus();
+
+   /** Whether the dialog is in "early" state. */
+   abstract public boolean isEarly();
+
+   /** Whether the dialog is in "confirmed" state. */
+   abstract public boolean isConfirmed();
+
+   /** Whether the dialog is in "terminated" state. */
+   abstract public boolean isTerminated();
+
+   /** When a new Message is received by the SipProvider. */
+   abstract public void onReceivedMessage(SipProvider provider, Message message);
 
 
    // **************************** Costructors *************************** 
 
    /** Creates a new empty Dialog */
    protected Dialog(SipProvider provider)
-   {  sip_provider=provider;
-      log=sip_provider.getLog();
-      status=0;
-      d_number=dialog_counter++;
+   {  super(); 
+      this.sip_provider=provider;
+      this.log=sip_provider.getLog();
+      this.dialog_sqn=dialog_counter++;  
+      this.status=0;
+      this.dialog_id=null;
    }
-
-   /** Creates a new empty Dialog */
-   /*public Dialog(NameAddress contact)
-   {  local_contact=contact;
-   }*/
-
-   /** Creates a new Dialog based on Message <i>msg</i>;
-     * Parameter <i>side</i> indicates whether is the client Dialog (use value Dialog.CLIENT) or server Dialog (use flag Dialog.SERVER). */
-   /*public Dialog(int side, Message msg)
-   { init(side,msg);
-   }*/
  
 
-   // ************************** Public methods **************************
+   // ************************* Protected methods ************************
 
-  
    /** Changes the internal dialog state */
    protected void changeStatus(int newstatus)
    {  status=newstatus;
-      //if (statusIs(D_CALL)) in_call=true;
-      //if (statusIs(D_INIT) || statusIs(D_CLOSE)) in_call=false;
       printLog("changed dialog state: "+getStatus(),LogLevel.MEDIUM);
+      
+      // remove the sip_provider listener when going to "terminated" state
+      if (isTerminated())
+      {  if (dialog_id!=null && sip_provider.getListeners().containsKey(dialog_id)) sip_provider.removeSipProviderListener(dialog_id);
+      }
+      else
+      // add sip_provider listener when going to "early" or "confirmed" state
+      if (isEarly() || isConfirmed())
+      {  if (dialog_id!=null && !sip_provider.getListeners().containsKey(dialog_id)) sip_provider.addSipProviderListener(dialog_id,this);
+      }
    }
-   
+
+
    /** Whether the dialog state is equal to <i>st</i> */
-   public boolean statusIs(int st)
+   protected boolean statusIs(int st)
    {  return status==st;
    }
+
+
+   // ************************** Public methods **************************
 
    /** Gets the SipProvider of this Dialog. */
    public SipProvider getSipProvider()
    {  return sip_provider;
    }
 
-   /** Updates empty attributes (tag) and mutable attributes (cseq, contact, route), based on a new message.
-     * @param side indicates whether the Dialog is acting as transaction client or server (use constant values Dialog.T_CLIENT or Dialog.T_SERVER)
+
+   /** Gets the inique Dialog-ID </i> */
+   public DialogIdentifier getDialogID()
+   {  return dialog_id;
+   } 
+
+
+   /** Updates empty attributes (tags, route set) and mutable attributes (cseqs, contacts), based on a new message.
+     * @param side indicates whether the Dialog is acting as transaction client or server for the current message (use constant values Dialog.UAC or Dialog.UAS)
      * @param msg the message that is used to update the Dialog state */
    public void update(int side, Message msg)
-   {  // call_id
-      if (call_id==null)
-      {  call_id=msg.getCallIdHeader().getCallId();
+   {  
+      if (isTerminated())
+      {  printWarning("trying to update a terminated dialog: do nothing.",LogLevel.HIGH);
+         return;
       }
-      // names and tags
-      if (side==T_CLIENT)
+      // else
+      
+      // update call_id
+      if (call_id==null) call_id=msg.getCallIdHeader().getCallId();
+
+      // update names and tags
+      if (side==UAC)
       {  if (remote_name==null || remote_tag==null)
          {  ToHeader to=msg.getToHeader();
            if (remote_name==null) remote_name=to.getNameAddress();
@@ -199,19 +195,19 @@ public abstract class Dialog
          remote_cseq=msg.getCSeqHeader().getSequenceNumber();
          if (local_cseq==-1) local_cseq=SipProvider.pickInitialCSeq()-1;
       }
-      // contact
+      // update contact
       if (msg.hasContactHeader())
-      {  if ((side==T_CLIENT && msg.isRequest()) || (side==T_SERVER && msg.isResponse()))
+      {  if ((side==UAC && msg.isRequest()) || (side==UAS && msg.isResponse()))
             local_contact=msg.getContactHeader().getNameAddress();
          else
             remote_contact=msg.getContactHeader().getNameAddress();
       }
-      // route or record-route
-      if (side==T_CLIENT)
+      // update route or record-route
+      if (side==UAC)
       {  if (msg.isRequest() && msg.hasRouteHeader() && route==null)
          {  route=msg.getRoutes().getValues();
          }
-         if (side==T_CLIENT && msg.isResponse() && msg.hasRecordRouteHeader())
+         if (side==UAC && msg.isResponse() && msg.hasRecordRouteHeader())
          {  Vector rr=msg.getRecordRoutes().getHeaders();
             int size=rr.size();
             route=new Vector(size);
@@ -235,84 +231,23 @@ public abstract class Dialog
                route.insertElementAt((new RecordRouteHeader((Header)rr.elementAt(i))).getNameAddress(),i);
          }
       }
+
+      // update dialog_id and sip_provider listener
+      DialogIdentifier new_id=new DialogIdentifier(call_id,local_tag,remote_tag);
+      if (dialog_id==null || !dialog_id.equals(new_id))
+      {  if (dialog_id!=null && sip_provider!=null && sip_provider.getListeners().containsKey(dialog_id)) sip_provider.removeSipProviderListener(dialog_id);
+         dialog_id=new_id;
+         printLog("new dialog id: "+dialog_id,LogLevel.HIGH);
+         if (sip_provider!=null) sip_provider.addSipProviderListener(dialog_id,this);
+      }
    }
-
-        
-   /** Gets the inique Dialog-ID </i> */
-   public DialogIdentifier getDialogID()
-   {  return new DialogIdentifier(call_id,local_tag,remote_tag);
-   } 
-
-
-   /** Sets the local name */
-   public void setLocalName(NameAddress url) { local_name=url; }
-   /** Gets the local name */
-   public NameAddress getLocalName() { return local_name; }
-
-
-   /** Sets the remote name */
-   public void setRemoteName(NameAddress url) { remote_name=url; }
-   /** Gets the remote name */
-   public NameAddress getRemoteName() { return remote_name; }
-
-
-   /** Sets the local contact url */
-   public void setLocalContact(NameAddress name_address) { local_contact=name_address; }
-   /** Gets the local contact url */
-   public NameAddress getLocalContact() { return local_contact; }
-
-
-   /** Sets the remote contact url */
-   public void setRemoteContact(NameAddress name_address) { remote_contact=name_address; }
-   /** Gets the remote contact url */
-   public NameAddress getRemoteContact() { return remote_contact; }
-
-  
-   /** Sets the call-id */
-   public void setCallID(String id) { call_id=id; }
-   /** Gets the call-id */
-   public String getCallID() { return call_id; }
-
-   
-   /** Sets the local tag */
-   public void setLocalTag(String tag) { local_tag=tag; }
-   /** Gets the local tag */
-   public String getLocalTag() { return local_tag; }
-
-
-   public void setRemoteTag(String tag) { remote_tag=tag; }
-   /** Gets the remote tag */
-   public String getRemoteTag() { return remote_tag; }
-
-   
-   /** Sets the local CSeq number */
-   public void setLocalCSeq(long cseq) { local_cseq=cseq; }
-   /** Increments the local CSeq number */
-   public void incLocalCSeq() { local_cseq++; }
-   /** Gets the local CSeq number */
-   public long getLocalCSeq() { return local_cseq; }
-
-
-   /** Sets the remote CSeq number */
-   public void setRemoteCSeq(long cseq) { remote_cseq=cseq; }
-   /** Increments the remote CSeq number */
-   public void incRemoteCSeq() { remote_cseq++; }
-   /** Gets the remote CSeq number */
-   public long getRemoteCSeq() { return remote_cseq; }
-
-   
-   /** Sets the route set */
-   public void setRoute(Vector r) { route=r; }
-   /** Gets the route set */
-   public Vector getRoute() { return route; }
-
 
  
    //**************************** Logs ****************************/
 
    /** Adds a new string to the default Log */
    protected void printLog(String str, int level)
-   {  if (log!=null) log.println("Dialog#"+d_number+": "+str,level+SipStack.LOG_LEVEL_DIALOG);  
+   {  if (log!=null) log.println("Dialog#"+dialog_sqn+": "+str,level+SipStack.LOG_LEVEL_DIALOG);  
    }
 
    /** Adds a Warning message to the default Log */
@@ -338,5 +273,5 @@ public abstract class Dialog
       }
       return expression;
    }
-     
+
 }

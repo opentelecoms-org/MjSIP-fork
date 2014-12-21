@@ -34,7 +34,7 @@ import java.util.Vector;
 public class SdpTools
 {
    /** Costructs a new SessionDescriptor from a given SessionDescriptor
-     * with olny media types and attribute values specified with a MediaDescriptor Vector.
+     * with olny media types and attribute values specified by a MediaDescriptor Vector.
      * <p> If no attribute is specified for a particular media, all present attributes are kept.
      * <br>If no attribute is present for a selected media, the media is kept (regardless any sepcified attributes).
      * @param sdp the given SessionDescriptor

@@ -444,12 +444,13 @@ public class Parser
    /** Points to the next occurence of <i>char c</i> not in quotes. */
    public Parser goToSkippingQuoted(char c)
    {  boolean inside_quotes=false;
-      try {
-      while (index<str.length() && (!(nextChar()==c) || inside_quotes))
-      {  if (nextChar()=='"') inside_quotes=!inside_quotes;
-         index++;
+      try
+      {  while (index<str.length() && (!(nextChar()==c) || inside_quotes))
+         {  if (nextChar()=='"') inside_quotes=!inside_quotes;
+            index++;
+         }
       }
-      }  catch (RuntimeException e)
+      catch (RuntimeException e)
       {  System.out.println("len= "+str.length());
          System.out.println("index= "+index);
          throw e;

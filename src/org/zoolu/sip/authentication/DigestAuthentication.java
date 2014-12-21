@@ -3,6 +3,7 @@ package org.zoolu.sip.authentication;
 
 import org.zoolu.sip.header.AuthenticationHeader;
 import org.zoolu.sip.header.AuthorizationHeader;
+import org.zoolu.sip.header.ProxyAuthorizationHeader;
 import org.zoolu.sip.header.WwwAuthenticateHeader;
 import org.zoolu.tools.MD5;
 
@@ -115,6 +116,12 @@ public class DigestAuthentication
       String response=getResponse();
       ah.addResponseParam(response);
       return ah;
+   }
+
+
+   /** Gets a new ProxyAuthorizationHeader based on current authentication attributes. */
+   public ProxyAuthorizationHeader getProxyAuthorizationHeader()
+   {  return new ProxyAuthorizationHeader(getAuthorizationHeader().getValue());
    }
 
 

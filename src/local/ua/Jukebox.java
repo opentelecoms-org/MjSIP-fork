@@ -75,7 +75,7 @@ public class Jukebox implements UserAgentListener, RegisterAgentListener
    // ******************* UserAgent callback functions ******************
 
    /** When a new call is incoming */
-   public void onUaCallIncoming(UserAgent ua, NameAddress caller, NameAddress callee)
+   public void onUaCallIncoming(UserAgent ua, NameAddress callee, NameAddress caller)
    {  printOut("Incoming Call from "+caller.toString());
 
       String audio_file=callee.getAddress().getParameter(PARAM_RESOURCE);

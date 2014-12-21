@@ -40,22 +40,23 @@ public class AckTransactionClient extends Transaction
 {  
 
    /** the TransactionClientListener that captures the events fired by the AckTransactionClient */
-   TransactionClientListener transaction_listener=null;
+   TransactionClientListener transaction_listener;
 
 
    /** Creates a new AckTransactionClient. */
-   public AckTransactionClient(SipProvider provider, Message ack, TransactionClientListener tr_listener)
-   {  super(provider);
-      transaction_listener=tr_listener;
-      method=new Message(ack);
-      transaction_id=ack.getTransactionId();
+   public AckTransactionClient(SipProvider sip_provider, Message ack, TransactionClientListener listener)
+   {  super(sip_provider);
+      request=new Message(ack);
+      transaction_listener=listener;
+      transaction_id=request.getTransactionId();
+      printLog("id: "+String.valueOf(transaction_id),LogLevel.HIGH);
       printLog("created",LogLevel.HIGH);
    }
    
    /** Starts the AckTransactionClient and sends the ACK request. */
    public void request()
    {  printLog("start",LogLevel.LOW);
-      sip_provider.sendMessage(method);
+      sip_provider.sendMessage(request);
       changeStatus(STATE_TERMINATED);  
       //if (transaction_listener!=null) transaction_listener.onAckCltTerminated(this); 
       // (CHANGE-040421) free the link to transaction_listener
@@ -73,7 +74,8 @@ public class AckTransactionClient extends Transaction
    //**************************** Logs ****************************/
 
    /** Adds a new string to the default Log */
-   void printLog(String str, int level)
-   {  super.printLog("Client: Ack: "+str,level);
+   protected void printLog(String str, int level)
+   {  if (log!=null) log.println("AckTransactionClient#"+transaction_sqn+": "+str,level+SipStack.LOG_LEVEL_TRANSACTION);  
    }
+
 }

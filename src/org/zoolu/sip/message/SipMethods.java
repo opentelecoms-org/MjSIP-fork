@@ -54,8 +54,14 @@ public class SipMethods extends BaseSipMethods
    /** Whether <i>str</i> is REFER */
    public static boolean isRefer(String str) { return same(str,REFER); }
 
+   /** String "PUBLISH" for method PUBLISH defined in RFC3903 */
+   public static final String PUBLISH="PUBLISH";
+   /** Whether <i>str</i> is PUBLISH */
+   public static boolean isPublish(String str) { return same(str,PUBLISH); }
+
+
    /** Array of all methods ( standard (RFC3261) + new (RFC3428,..) ) */
-   public static final String[] methods={ INVITE,ACK,CANCEL,BYE,INFO,OPTION,REGISTER,UPDATE,SUBSCRIBE,NOTIFY,MESSAGE,REFER };
+   public static final String[] methods={ INVITE,ACK,CANCEL,BYE,INFO,OPTION,REGISTER,UPDATE,SUBSCRIBE,NOTIFY,MESSAGE,REFER,PUBLISH };
 
    /** Array of all methods that create a dialog */
    public static final String[] dialog_methods={ INVITE,SUBSCRIBE };

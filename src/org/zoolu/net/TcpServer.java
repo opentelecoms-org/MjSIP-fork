@@ -33,29 +33,29 @@ import java.io.InterruptedIOException;
   */
 public class TcpServer extends Thread
 {  
-   /** Default ServerSocket backlog value */
-   static int socket_backlog=50;
-
    /** Default value for the maximum time that the tcp server can remain active after been halted (in milliseconds) */
    public static final int DEFAULT_SOCKET_TIMEOUT=5000; // 5sec 
+
+   /** Default ServerSocket backlog value */
+   static int socket_backlog=50;
 
    /** The protocol type */ 
    //protected static final String PROTO="tcp";
 
    /** The TCP server socket */ 
-   ServerSocket server_socket=null;
+   ServerSocket server_socket;
 
    /** Maximum time that the connection can remain active after been halted (in milliseconds) */
-   int socket_timeout=DEFAULT_SOCKET_TIMEOUT;
+   int socket_timeout;
 
    /** Maximum time that the server remains active without incoming connections (in milliseconds) */
    long alive_time; 
 
    /** Whether it has been halted */
-   boolean stop=false; 
+   boolean stop; 
 
    /** Whether it is running */
-   boolean is_running=true; 
+   boolean is_running; 
 
    /** TcpServer listener */
    TcpServerListener listener;
@@ -84,10 +84,13 @@ public class TcpServer extends Thread
 
    /** Inits the TcpServer */
    private void init(int port, IpAddress bind_ipaddr, long alive_time, TcpServerListener listener) throws java.io.IOException
-   {  if (bind_ipaddr==null) server_socket=new ServerSocket(port);
+   {  this.listener=listener;
+      if (bind_ipaddr==null) server_socket=new ServerSocket(port);
       else server_socket=new ServerSocket(port,socket_backlog,bind_ipaddr.getInetAddress());
+      this.socket_timeout=DEFAULT_SOCKET_TIMEOUT;
       this.alive_time=alive_time;
-      this.listener=listener;
+      this.stop=false; 
+      this.is_running=true; 
    }
 
 

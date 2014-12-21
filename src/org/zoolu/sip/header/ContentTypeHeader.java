@@ -28,7 +28,7 @@ import org.zoolu.sip.provider.SipParser;
 
 
 /** SIP Header Content-Type */
-public class ContentTypeHeader extends ParametersHeader
+public class ContentTypeHeader extends ParametricHeader
 {
    //public ContentTypeHeader()
    //{  super(SipHeaders.Content_Type);

@@ -97,8 +97,8 @@ public class MessageFactory extends org.zoolu.sip.message.BaseMessageFactory
    }
 
    /** Creates a new SUBSCRIBE request (RFC3265) out of any pre-existing dialogs. */
-   public static Message createSubscribeRequest(SipProvider sip_provider, NameAddress recipient, NameAddress from, NameAddress contact, String event, String id, String content_type, String body)
-   {  Message req=createRequest(sip_provider,SipMethods.SUBSCRIBE,recipient,from,contact,null);
+   public static Message createSubscribeRequest(SipProvider sip_provider, SipURL recipient, NameAddress to, NameAddress from, NameAddress contact, String event, String id, String content_type, String body)
+   {  Message req=createRequest(sip_provider,SipMethods.SUBSCRIBE,recipient,to,from,contact,null);
       req.setEventHeader(new EventHeader(event,id));
       req.setBody(content_type,body);
       return req;
@@ -117,6 +117,7 @@ public class MessageFactory extends org.zoolu.sip.message.BaseMessageFactory
    /** Creates a new NOTIFY request (RFC3265) within a dialog */
    public static Message createNotifyRequest(Dialog dialog, String event, String id, String content_type, String body)
    {  Message req=createRequest(dialog,SipMethods.NOTIFY,null);
+      req.removeExpiresHeader();
       req.setEventHeader(new EventHeader(event,id));
       req.setBody(content_type,body);
       return req;
@@ -126,6 +127,7 @@ public class MessageFactory extends org.zoolu.sip.message.BaseMessageFactory
    /** Creates a new NOTIFY request (RFC3265) within a dialog */
    public static Message createNotifyRequest(Dialog dialog, String event, String id, String sipfragment)
    {  Message req=createRequest(dialog,SipMethods.NOTIFY,null);
+      req.removeExpiresHeader();
       req.setEventHeader(new EventHeader(event,id));
       req.setBody("message/sipfrag;version=2.0",sipfragment);
       return req;

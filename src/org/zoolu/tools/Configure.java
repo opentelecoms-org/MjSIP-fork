@@ -36,7 +36,7 @@ public class Configure
    public static String NONE="NONE";
 
    /** The object that should be configured */
-   Configurable configurable=null;
+   Configurable configurable;
 
    
    /** Parses a single text line (read from the config file) */
@@ -52,7 +52,7 @@ public class Configure
 
    /** Costructs a Configure container */
    protected Configure()
-   {
+   {  this.configurable=null;
    }
 
    /** Costructs a Configure container */

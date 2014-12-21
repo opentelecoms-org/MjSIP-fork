@@ -162,7 +162,7 @@ public class SipInterface implements SipProviderListener
    //************************* Callback methods *************************
    
    /** When a new Message is received by the SipProvider. */
-   public void onReceivedMessage(SipProvider provider, Message message)
+   public void onReceivedMessage(SipProvider sip_provider, Message message)
    {  if (listener!=null) listener.onReceivedMessage(this,message);
    }
 

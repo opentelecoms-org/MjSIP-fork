@@ -31,7 +31,7 @@ package org.zoolu.sip.provider;
 public class Identifier
 {
    /** The actual id */   
-   String id=null;
+   String id;
    
    /** Costructs a new void Identifier. */
    Identifier()

@@ -20,7 +20,7 @@
 # **********************************************************************
 
 ROOT= .
-include $(ROOT)/build-config
+include $(ROOT)/makefile-config
 
 
 DOCDIR= doc

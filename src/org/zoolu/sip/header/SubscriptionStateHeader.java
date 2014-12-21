@@ -28,16 +28,16 @@ import org.zoolu.tools.Parser;
 
 
 /** Subscription-State header (see RFC3265 for details). */
-public class SubscriptionStateHeader extends ParametersHeader
+public class SubscriptionStateHeader extends ParametricHeader
 {
    /** State "active" */
-   public static final String STATE_ACTIVE="active";
+   public static final String ACTIVE="active";
 
    /** State "pending" */
-   public static final String STATE_PENDING="pending";
+   public static final String PENDING="pending";
 
    /** State "terminated" */
-   public static final String STATE_TERMINATED="terminated";
+   public static final String TERMINATED="terminated";
 
    /** State delimiters. */
    private static final char [] delim={',', ';', ' ', '\t', '\n', '\r'};
@@ -60,17 +60,17 @@ public class SubscriptionStateHeader extends ParametersHeader
    
    /** Whether the subscription is active. */
    public boolean isActive()
-   {  return getState().equals(STATE_ACTIVE);
+   {  return getState().equals(ACTIVE);
    }
 
    /** Whether the subscription is pending. */
    public boolean isPending()
-   {  return getState().equals(STATE_PENDING);
+   {  return getState().equals(PENDING);
    }
 
    /** Whether the subscription is terminated. */
    public boolean isTerminated()
-   {  return getState().equals(STATE_TERMINATED);
+   {  return getState().equals(TERMINATED);
    }
    
    /** Sets the 'expires' param. */
@@ -106,5 +106,7 @@ public class SubscriptionStateHeader extends ParametersHeader
    public String getReason()
    {  return getParameter("reason");
    }
+
 }
+
 

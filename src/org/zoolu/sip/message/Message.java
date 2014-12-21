@@ -29,6 +29,7 @@ import org.zoolu.sip.header.MultipleHeader;
 import org.zoolu.sip.header.ReferToHeader;
 import org.zoolu.sip.header.ReferredByHeader;
 import org.zoolu.sip.header.EventHeader;
+import org.zoolu.sip.header.AllowEventsHeader;
 import org.zoolu.sip.header.SubscriptionStateHeader;
 import org.zoolu.sip.header.SipHeaders;
 import org.zoolu.net.UdpPacket;
@@ -98,6 +99,11 @@ public class Message extends org.zoolu.sip.message.BaseMessage
    {  return isRequest(SipMethods.SUBSCRIBE);
    }
 
+   /** Returns boolean value to indicate if Message is a PUBLISH request (RFC3903) */
+   public boolean isPublish() throws NullPointerException
+   {  return isRequest(SipMethods.PUBLISH);
+   }
+
 
    /** Whether the message has the Refer-To header */   
    public boolean hasReferToHeader()
@@ -105,7 +111,9 @@ public class Message extends org.zoolu.sip.message.BaseMessage
    }
    /** Gets ReferToHeader */
    public ReferToHeader getReferToHeader()
-   {  return new ReferToHeader(getHeader(SipHeaders.Refer_To));
+   {  Header h=getHeader(SipHeaders.Refer_To);
+      if (h==null) return null;
+      return new ReferToHeader(h);
    }  
    /** Sets ReferToHeader */
    public void setReferToHeader(ReferToHeader h) 
@@ -124,7 +132,9 @@ public class Message extends org.zoolu.sip.message.BaseMessage
    }
    /** Gets ReferredByHeader */
    public ReferredByHeader getReferredByHeader()
-   {  return new ReferredByHeader(getHeader(SipHeaders.Referred_By));
+   {  Header h=getHeader(SipHeaders.Referred_By);
+      if (h==null) return null;
+      return new ReferredByHeader(h);
    }  
    /** Sets ReferredByHeader */
    public void setReferredByHeader(ReferredByHeader h) 
@@ -137,13 +147,15 @@ public class Message extends org.zoolu.sip.message.BaseMessage
 
 
 
-   /** Whether the message has the Event header */   
-   public boolean hasEvent()
+   /** Whether the message has the EventHeader */   
+   public boolean hasEventHeader()
    {  return hasHeader(SipHeaders.Event);
    }
    /** Gets EventHeader */
    public EventHeader getEventHeader()
-   {  return new EventHeader(getHeader(SipHeaders.Event));
+   {  Header h=getHeader(SipHeaders.Event);
+      if (h==null) return null;
+      return new EventHeader(h);
    }  
    /** Sets EventHeader */
    public void setEventHeader(EventHeader h) 
@@ -155,13 +167,35 @@ public class Message extends org.zoolu.sip.message.BaseMessage
    }
 
 
+   /** Whether the message has the AllowEventsHeader */   
+   public boolean hasAllowEventsHeader()
+   {  return hasHeader(SipHeaders.Allow_Events);
+   }
+   /** Gets AllowEventsHeader */
+   public AllowEventsHeader getAllowEventsHeader()
+   {  Header h=getHeader(SipHeaders.Allow_Events);
+      if (h==null) return null;
+      return new AllowEventsHeader(h);
+   }  
+   /** Sets AllowEventsHeader */
+   public void setAllowEventsHeader(AllowEventsHeader h) 
+   {  setHeader(h);
+   } 
+   /** Removes AllowEventsHeader from Message (if it exists) */
+   public void removeAllowEventsHeader() 
+   {  removeHeader(SipHeaders.Allow_Events);
+   }
+
+
    /** Whether the message has the Subscription-State header */   
    public boolean hasSubscriptionStateHeader()
    {  return hasHeader(SipHeaders.Subscription_State);
    }
    /** Gets SubscriptionStateHeader */
    public SubscriptionStateHeader getSubscriptionStateHeader()
-   {  return new SubscriptionStateHeader(getHeader(SipHeaders.Subscription_State));
+   {  Header h=getHeader(SipHeaders.Subscription_State);
+      if (h==null) return null;
+      return new SubscriptionStateHeader(h);
    }  
    /** Sets SubscriptionStateHeader */
    public void setSubscriptionStateHeader(SubscriptionStateHeader h) 
@@ -171,4 +205,5 @@ public class Message extends org.zoolu.sip.message.BaseMessage
    public void removeSubscriptionStateHeader() 
    {  removeHeader(SipHeaders.Subscription_State);
    }
+
 }
