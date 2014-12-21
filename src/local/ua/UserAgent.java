@@ -47,9 +47,10 @@ import java.util.Vector;
 import java.io.*;
 
 
-/** Simple command-line-based SIP user agent (UA).
+/** Simple SIP user agent (UA).
   * It includes audio/video applications.
-  * <p>It can use external audio/video tools as media applications.
+  * <p>
+  * It can use external audio/video tools as media applications.
   * Currently only RAT (Robust Audio Tool) and VIC are supported as external applications.
   */
 public class UserAgent extends CallListenerAdapter
@@ -138,12 +139,12 @@ public class UserAgent extends CallListenerAdapter
    {  return call_state; 
    }
    
-   /** Sets the auto accept mode (default is false) */
-   public void setAutoAcceptMode(boolean accept)
-   {  user_profile.auto_accept=accept; 
+   /** Sets the automatic answer time (default is -1 that means no auto accept mode) */
+   public void setAcceptTime(int accept_time)
+   {  user_profile.accept_time=accept_time; 
    }
 
-   /** Sets the hangup time (default is 0, that corresponds to manual hangup mode) */
+   /** Sets the automatic hangup time (default is 0, that corresponds to manual hangup mode) */
    public void setHangupTime(int time)
    {  user_profile.hangup_time=time; 
    }
@@ -230,29 +231,42 @@ public class UserAgent extends CallListenerAdapter
       ua_listener=listener;
       // if no contact_url and/or from_url has been set, create it now
       if (user_profile.contact_url==null)
-      {  user_profile.contact_url="sip:"+user_profile.contact_user+"@"+sip_provider.getViaAddress();
+      {  user_profile.contact_url="sip:"+user_profile.username+"@"+sip_provider.getViaAddress();
          if (sip_provider.getPort()!=SipStack.default_port) user_profile.contact_url+=":"+sip_provider.getPort();
          if (!sip_provider.getDefaultTransport().equals(SipProvider.PROTO_UDP)) user_profile.contact_url+=";transport="+sip_provider.getDefaultTransport();
       }
       if (user_profile.from_url==null)
          user_profile.from_url=user_profile.contact_url;
+
       // load sounds  
-      try
-      {  String jar_file=user_profile.ua_jar;
-         clip_on=new AudioClipPlayer(Archive.getAudioInputStream(Archive.getJarURL(jar_file,CLIP_ON)),null);
-         clip_off=new AudioClipPlayer(Archive.getAudioInputStream(Archive.getJarURL(jar_file,CLIP_OFF)),null);
-         clip_ring=new AudioClipPlayer(Archive.getAudioInputStream(Archive.getJarURL(jar_file,CLIP_RING)),null);
+
+      // ################# patch to make audio working with javax.sound.. #################
+      // currently AudioSender must be started before any AudioClipPlayer is initialized,
+      // since there is a problem with the definition of the audio format
+      if (!user_profile.use_rat && !user_profile.use_jmf)
+      {  if (user_profile.audio && !user_profile.recv_only && user_profile.send_file==null && !user_profile.send_tone) local.media.AudioInput.initAudioLine();
+         if (user_profile.audio && !user_profile.send_only && user_profile.recv_file==null) local.media.AudioOutput.initAudioLine();
       }
-      catch (Exception e)
-      {  printException(e,LogLevel.HIGH);
+      // ################# patch to make rat working.. #################
+      // in case of rat, do not load and play audio clips
+      if (!user_profile.use_rat)
+      {  try
+         {  String jar_file=user_profile.ua_jar;
+            clip_on=new AudioClipPlayer(Archive.getAudioInputStream(Archive.getJarURL(jar_file,CLIP_ON)),null);
+            clip_off=new AudioClipPlayer(Archive.getAudioInputStream(Archive.getJarURL(jar_file,CLIP_OFF)),null);
+            clip_ring=new AudioClipPlayer(Archive.getAudioInputStream(Archive.getJarURL(jar_file,CLIP_RING)),null);
+         }
+         catch (Exception e)
+         {  printException(e,LogLevel.HIGH);
+         }
+         //clip_ring=new AudioClipPlayer(CLIP_RING,null);
+         //clip_on=new AudioClipPlayer(CLIP_ON,null);
+         //clip_off=new AudioClipPlayer(CLIP_OFF,null);
       }
-      //clip_ring=new AudioClipPlayer(CLIP_RING,null);
-      //clip_on=new AudioClipPlayer(CLIP_ON,null);
-      //clip_off=new AudioClipPlayer(CLIP_OFF,null);
 
       // set local sdp
       initSessionDescriptor();
-      if (user_profile.audio || !user_profile.video) addMediaDescriptor("audio",user_profile.audio_port,user_profile.audio_avp,user_profile.audio_codec,user_profile.audio_rate);
+      if (user_profile.audio || !user_profile.video) addMediaDescriptor("audio",user_profile.audio_port,user_profile.audio_avp,user_profile.audio_codec,user_profile.audio_sample_rate);
       if (user_profile.video) addMediaDescriptor("video",user_profile.video_port,user_profile.video_avp,null,0);     
    } 
    
@@ -290,7 +304,7 @@ public class UserAgent extends CallListenerAdapter
 
    /** Closes an ongoing, incoming, or pending call */
    public void hangup()
-   {  clip_ring.stop();      
+   {  if (clip_ring!=null) clip_ring.stop();      
       closeMediaApplication();
       if (call!=null) call.hangup();
       changeStatus(UA_IDLE);
@@ -299,14 +313,14 @@ public class UserAgent extends CallListenerAdapter
 
    /** Closes an ongoing, incoming, or pending call */
    public void accept()
-   {  clip_ring.stop();
+   {  if (clip_ring!=null) clip_ring.stop();
       if (call!=null) call.accept(local_session);
    }   
 
 
    /** Redirects an incoming call */
    public void redirect(String redirection)
-   {  clip_ring.stop();
+   {  if (clip_ring!=null) clip_ring.stop();
       if (call!=null) call.redirect(redirection);
    }   
 
@@ -316,7 +330,7 @@ public class UserAgent extends CallListenerAdapter
    {
       // exit if the Media Application is already running  
       if (audio_app!=null || video_app!=null)
-      {  printLog("DEBUG: media application is already running",LogLevel.LOW);
+      {  printLog("DEBUG: media application is already running",LogLevel.HIGH);
          return;
       }
       SessionDescriptor local_sdp=new SessionDescriptor(call.getLocalSessionDescriptor());
@@ -351,11 +365,27 @@ public class UserAgent extends CallListenerAdapter
       if (user_profile.send_only) dir=1;
       
       if (user_profile.audio && local_audio_port!=0 && remote_audio_port!=0)
-      {  // create a audio_app and start it
-         if (user_profile.use_rat) audio_app=new RATLauncher(user_profile.bin_rat,local_audio_port,remote_media_address,remote_audio_port,log);
+      {  // create an audio_app and start it
+         if (user_profile.use_rat)
+         {  audio_app=new RATLauncher(user_profile.bin_rat,local_audio_port,remote_media_address,remote_audio_port,log);
+         }
          else 
-         if (user_profile.use_jmf) audio_app=new JMFAudioLauncher(local_audio_port,remote_media_address,remote_audio_port,dir,log);
-         else
+         if (user_profile.use_jmf)
+         {  // check if JMF is supported
+            try
+            {  Class myclass=Class.forName("local.ua.JMFAudioLauncher");
+               Class[] parameter_types={ Class.forName("int"), Class.forName("java.lang.String"), Class.forName("int"), Class.forName("int"), Class.forName("org.zoolu.tools.Log") };
+               Object[] parameters={ new Integer(local_audio_port), remote_media_address, new Integer(remote_audio_port), new Integer(dir), log };
+               java.lang.reflect.Constructor constructor=myclass.getConstructor(parameter_types);
+               audio_app=(MediaLauncher)constructor.newInstance(parameters);
+            }
+            catch (Exception e)
+            {  printException(e,LogLevel.HIGH);
+               printLog("Error trying to create the JMFAudioLauncher",LogLevel.HIGH);
+            }
+         }
+         // else
+         if (audio_app==null)
          {  // for testing..
             String audio_in=null;
             if (user_profile.send_tone) audio_in=JAudioLauncher.TONE;
@@ -363,16 +393,32 @@ public class UserAgent extends CallListenerAdapter
             String audio_out=null;
             if (user_profile.recv_file!=null) audio_out=user_profile.recv_file;        
             //audio_app=new JAudioLauncher(local_audio_port,remote_media_address,remote_audio_port,dir,log);
-            audio_app=new JAudioLauncher(local_audio_port,remote_media_address,remote_audio_port,dir,audio_in,audio_out,log);
+            audio_app=new JAudioLauncher(local_audio_port,remote_media_address,remote_audio_port,dir,audio_in,audio_out,user_profile.audio_sample_rate,user_profile.audio_sample_size,user_profile.audio_frame_size,log);
          }
          audio_app.startMedia();
       }
       if (user_profile.video && local_video_port!=0 && remote_video_port!=0)
       {  // create a video_app and start it
-         if (user_profile.use_vic) video_app=new VICLauncher(user_profile.bin_vic,local_video_port,remote_media_address,remote_video_port,log);
+         if (user_profile.use_vic)
+         {  video_app=new VICLauncher(user_profile.bin_vic,local_video_port,remote_media_address,remote_video_port,log);
+         }
          else 
-         if (user_profile.use_jmf)  video_app=new JMFVideoLauncher(local_video_port,remote_media_address,remote_video_port,dir,log);
-         else
+         if (user_profile.use_jmf)
+         {  // check if JMF is supported
+            try
+            {  Class myclass=Class.forName("local.ua.JMFVideoLauncher");
+               Class[] parameter_types={ Class.forName("int"), Class.forName("java.lang.String"), Class.forName("int"), Class.forName("int"), Class.forName("org.zoolu.tools.Log") };
+               Object[] parameters={ new Integer(local_video_port), remote_media_address, new Integer(remote_video_port), new Integer(dir), log };
+               java.lang.reflect.Constructor constructor=myclass.getConstructor(parameter_types);
+               video_app=(MediaLauncher)constructor.newInstance(parameters);
+            }
+            catch (Exception e)
+            {  printException(e,LogLevel.HIGH);
+               printLog("Error trying to create the JMFAudioLauncher",LogLevel.HIGH);
+            }
+         }
+         // else
+         if (video_app==null)
          {  printLog("No external video application nor JMF has been selected: Video not started",LogLevel.HIGH);
             return;
          }
@@ -397,7 +443,7 @@ public class UserAgent extends CallListenerAdapter
    // ********************** Call callback functions **********************
    
    /** Callback function called when arriving a new INVITE method (incoming call) */
-   public void onCallIncoming(Call call, NameAddress caller, String sdp, Message invite)
+   public void onCallIncoming(Call call, NameAddress caller, NameAddress callee, String sdp, Message invite)
    {  printLog("onCallIncoming()",LogLevel.LOW);
       if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
       printLog("INCOMING",LogLevel.HIGH);
@@ -415,8 +461,8 @@ public class UserAgent extends CallListenerAdapter
          local_session=new_sdp.toString();
       }
       // play "ring" sound
-      clip_ring.loop();
-      if (ua_listener!=null) ua_listener.onUaCallIncoming(this,caller);
+      if (clip_ring!=null) clip_ring.loop();
+      if (ua_listener!=null) ua_listener.onUaCallIncoming(this,caller,callee);
    }  
 
 
@@ -437,7 +483,7 @@ public class UserAgent extends CallListenerAdapter
       if (call!=this.call && call!=call_transfer) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
       printLog("RINGING",LogLevel.HIGH);
       // play "on" sound
-      clip_on.replay();
+      if (clip_on!=null) clip_on.replay();
       if (ua_listener!=null) ua_listener.onUaCallRinging(this);
    }
 
@@ -464,7 +510,7 @@ public class UserAgent extends CallListenerAdapter
          call.ackWithAnswer(local_session);
       }
       // play "on" sound
-      clip_on.replay();
+      if (clip_on!=null) clip_on.replay();
       if (ua_listener!=null) ua_listener.onUaCallAccepted(this);
 
       launchMediaApplication();
@@ -485,8 +531,9 @@ public class UserAgent extends CallListenerAdapter
       printLog("CONFIRMED/CALL",LogLevel.HIGH);
       changeStatus(UA_ONCALL);
       // play "on" sound
-      clip_on.replay();
+      if (clip_on!=null) clip_on.replay();
       launchMediaApplication();
+      if (user_profile.hangup_time>0) this.automaticHangup(user_profile.hangup_time); 
    }
 
 
@@ -521,7 +568,7 @@ public class UserAgent extends CallListenerAdapter
          call_transfer=null;
       }
       // play "off" sound
-      clip_off.replay();
+      if (clip_off!=null) clip_off.replay();
       if (ua_listener!=null) ua_listener.onUaCallFailed(this);
    }
 
@@ -542,9 +589,9 @@ public class UserAgent extends CallListenerAdapter
       printLog("CANCEL",LogLevel.HIGH);
       changeStatus(UA_IDLE);
       // stop ringing
-      clip_ring.stop();
+      if (clip_ring!=null) clip_ring.stop();
       // play "off" sound
-      clip_off.replay();
+      if (clip_off!=null) clip_off.replay();
       if (ua_listener!=null) ua_listener.onUaCallCancelled(this);
    }
 
@@ -563,8 +610,8 @@ public class UserAgent extends CallListenerAdapter
       printLog("CLOSE",LogLevel.HIGH);
       closeMediaApplication();
       // play "off" sound
-      clip_off.replay();
-      if (ua_listener!=null) ua_listener.onUaCallClosing(this);
+      if (clip_off!=null) clip_off.replay();
+      if (ua_listener!=null) ua_listener.onUaCallClosed(this);
       changeStatus(UA_IDLE);
    }
 
@@ -574,6 +621,7 @@ public class UserAgent extends CallListenerAdapter
    {  printLog("onCallClosed()",LogLevel.LOW);
       if (call!=this.call) {  printLog("NOT the current call",LogLevel.LOW);  return;  }
       printLog("CLOSE/OK",LogLevel.HIGH);
+      if (ua_listener!=null) ua_listener.onUaCallClosed(this);
       changeStatus(UA_IDLE);
    }
 
@@ -590,7 +638,7 @@ public class UserAgent extends CallListenerAdapter
          call_transfer=null;
       }
       // play "off" sound
-      clip_off.replay();
+      if (clip_off!=null) clip_off.replay();
       if (ua_listener!=null) ua_listener.onUaCallFailed(this);
    }
 
@@ -669,6 +717,43 @@ public class UserAgent extends CallListenerAdapter
    }
 
 
+   /** Schedules an automatic answer event after <i>delay_time</i> secs. */
+   void automaticAccept(final int delay_time)
+   {  (new Thread() {  public void run() {  runAutomaticAccept(delay_time);  }  }).start();
+   }
+
+   /** Automatic answer. */
+   private void runAutomaticAccept(int delay_time)
+   {  try
+      {  if (delay_time>0) Thread.sleep(delay_time*1000);
+         if (call!=null)
+         {  printLog("AUTOMATIC-ANSWER");
+            accept();
+         }
+      }
+      catch (Exception e) { e.printStackTrace(); }
+   }
+
+
+   /** Schedules an automatic hangup event after <i>delay_time</i> secs. */
+   void automaticHangup(final int delay_time)
+   {  (new Thread() {  public void run() {  runAutomaticHangup(delay_time);  }  }).start();
+   }
+
+   /** Automatic hangup. */
+   private void runAutomaticHangup(int delay_time)
+   {  try
+      {  if (delay_time>0) Thread.sleep(delay_time*1000);
+         if (call!=null && call.isOnCall())
+         {  printLog("AUTOMATIC-HANGUP");
+            hangup();
+            listen();
+         }
+      }
+      catch (Exception e) { e.printStackTrace(); }
+   }
+
+
    // ****************************** Logs *****************************
 
    /** Adds a new string to the default Log */
@@ -679,7 +764,7 @@ public class UserAgent extends CallListenerAdapter
    /** Adds a new string to the default Log */
    void printLog(String str, int level)
    {  if (log!=null) log.println("UA: "+str,level+SipStack.LOG_LEVEL_UA);  
-      if (level<=LogLevel.HIGH) System.out.println("UA: "+str);
+      if ((user_profile==null || !user_profile.no_prompt) && level<=LogLevel.HIGH) System.out.println("UA: "+str);
    }
 
    /** Adds the Exception message to the default Log */

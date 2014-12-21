@@ -148,43 +148,48 @@ public class InviteTransactionClient extends TransactionClient
    /** Method derived from interface TimerListener.
      * It's fired from an active Timer. */
    public void onTimeout(Timer to)
-   {  if (to.equals(retransmission_to) && statusIs(STATE_TRYING))
-      {  printLog("Retransmission timeout expired",LogLevel.HIGH);
-         // (CHANGE-040905) no retransmission for reliable transport 
-         if (connection_id==null)
-         {  sip_provider.sendMessage(method);
-            long timeout=2*retransmission_to.getTime();
-            retransmission_to=new Timer(timeout,retransmission_to.getLabel(),this);
-            retransmission_to.start();
+   {  try
+      {  if (to.equals(retransmission_to) && statusIs(STATE_TRYING))
+         {  printLog("Retransmission timeout expired",LogLevel.HIGH);
+            // (CHANGE-040905) no retransmission for reliable transport 
+            if (connection_id==null)
+            {  sip_provider.sendMessage(method);
+               long timeout=2*retransmission_to.getTime();
+               retransmission_to=new Timer(timeout,retransmission_to.getLabel(),this);
+               retransmission_to.start();
+            }
+            else printLog("No retransmissions for reliable transport ("+connection_id+")",LogLevel.LOW);
+         } 
+         if (to.equals(transaction_to))
+         {  printLog("Transaction timeout expired",LogLevel.HIGH);
+            retransmission_to.halt();
+            end_to.halt();
+            sip_provider.removeSipProviderListener(transaction_id);
+            changeStatus(STATE_TERMINATED);
+            if (transaction_listener!=null) transaction_listener.onCltTimeout(this);
+            // (CHANGE-040421) now it can free links to transaction_listener and timers
+            transaction_listener=null;
+            //retransmission_to=null;
+            //transaction_to=null;
+            //clearing_to=null;
+         }  
+         if (to.equals(end_to))
+         {  printLog("End timeout expired",LogLevel.HIGH);
+            retransmission_to.halt();
+            transaction_to.halt();
+            sip_provider.removeSipProviderListener(transaction_id);
+            changeStatus(STATE_TERMINATED);
+            //if (transaction_listener!=null) transaction_listener.onInvCltEndTimeout(this);
+            // (CHANGE-040421) now it can free links to transaction_listener and timers
+            transaction_listener=null; // p.s., already null..
+            //retransmission_to=null;
+            //transaction_to=null;
+            //clearing_to=null;
          }
-         else printLog("No retransmissions for reliable transport ("+connection_id+")",LogLevel.LOW);
-      } 
-      if (to.equals(transaction_to))
-      {  printLog("Transaction timeout expired",LogLevel.HIGH);
-         retransmission_to.halt();
-         end_to.halt();
-         sip_provider.removeSipProviderListener(transaction_id);
-         changeStatus(STATE_TERMINATED);
-         if (transaction_listener!=null) transaction_listener.onCltTimeout(this);
-         // (CHANGE-040421) now it can free links to transaction_listener and timers
-         transaction_listener=null;
-         //retransmission_to=null;
-         //transaction_to=null;
-         //clearing_to=null;
-      }  
-      if (to.equals(end_to))
-      {  printLog("End timeout expired",LogLevel.HIGH);
-         retransmission_to.halt();
-         transaction_to.halt();
-         sip_provider.removeSipProviderListener(transaction_id);
-         changeStatus(STATE_TERMINATED);
-         //if (transaction_listener!=null) transaction_listener.onInvCltEndTimeout(this);
-         // (CHANGE-040421) now it can free links to transaction_listener and timers
-         transaction_listener=null; // p.s., already null..
-         //retransmission_to=null;
-         //transaction_to=null;
-         //clearing_to=null;
-      }  
+      }
+      catch (Exception e)
+      {  printException(e,LogLevel.HIGH);
+      }
    }
 
    /** Terminates the transaction. */

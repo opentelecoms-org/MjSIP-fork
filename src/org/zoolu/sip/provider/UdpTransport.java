@@ -31,7 +31,7 @@ import java.io.IOException;
 
 /** UdpTransport provides an UDP transport service for SIP.
   */
-class UdpTransport implements SipTransport, UdpProviderListener
+class UdpTransport implements Transport, UdpProviderListener
 {
    /** UDP protocol type */
    public static final String PROTO_UDP="udp";
@@ -44,26 +44,26 @@ class UdpTransport implements SipTransport, UdpProviderListener
    /** The protocol type */ 
    String proto;
 
-   /** SipTransport listener */
-   SipTransportListener listener;   
+   /** Transport listener */
+   TransportListener listener;   
 
 
    /** Creates a new UdpTransport */ 
-   public UdpTransport(int port, SipTransportListener listener) throws IOException
+   public UdpTransport(int port, TransportListener listener) throws IOException
    {  this.listener=listener;
       UdpSocket socket=new UdpSocket(port);
       udp_provider=new UdpProvider(socket,this);
    }
 
    /** Creates a new UdpTransport */ 
-   public UdpTransport(int port, IpAddress ipaddr, SipTransportListener listener) throws IOException
+   public UdpTransport(int port, IpAddress ipaddr, TransportListener listener) throws IOException
    {  this.listener=listener;
       UdpSocket socket=new UdpSocket(port,ipaddr);
       udp_provider=new UdpProvider(socket,this);
    }
 
    /** Creates a new UdpTransport */ 
-   public UdpTransport(UdpSocket socket, SipTransportListener listener)
+   public UdpTransport(UdpSocket socket, TransportListener listener)
    {  this.listener=listener;
       udp_provider=new UdpProvider(socket,this);
    }
@@ -114,7 +114,7 @@ class UdpTransport implements SipTransport, UdpProviderListener
 
    /** When DatagramService stops receiving UDP datagrams. */
    public void onServiceTerminated(UdpProvider udp, Exception error)
-   {  if (listener!=null) listener.onSipTransportTerminated(this,error);
+   {  if (listener!=null) listener.onTransportTerminated(this,error);
       UdpSocket socket=udp.getUdpSocket();
       if (socket!=null) try { socket.close(); } catch (Exception e) {}
       this.udp_provider=null;

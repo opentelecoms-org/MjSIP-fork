@@ -25,24 +25,15 @@ package org.zoolu.sip.provider;
 
 
 import org.zoolu.sip.message.Message;
-import org.zoolu.net.IpAddress;
-import java.io.IOException;
 
 
-/** SipConnection is a generic CO transport service for SIP.
+/** Listener for Transport events.
   */
-interface SipConnection extends SipTransport
+interface TransportListener
 {
-   /** Gets the remote IpAddress */
-   public IpAddress getRemoteAddress();
-   
-   /** Gets the remote port */
-   public int getRemotePort();
+   /** When a new SIP message is received. */
+   public void onReceivedMessage(Transport transport, Message msg);
 
-   /** Gets the last time the SipConnection has been used (in millisconds) */
-   public long getLastTimeMillis();
-
-   /** Sends a Message */      
-   public void sendMessage(Message msg) throws IOException;
-
+   /** When Transport terminates. */
+   public void onTransportTerminated(Transport transport, Exception error);
 }

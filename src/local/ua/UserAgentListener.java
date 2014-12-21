@@ -8,7 +8,7 @@ import org.zoolu.sip.address.NameAddress;
 public interface UserAgentListener
 {
    /** When a new call is incoming */
-   public void onUaCallIncoming(UserAgent ua, NameAddress caller);
+   public void onUaCallIncoming(UserAgent ua, NameAddress caller, NameAddress callee);
    
    /** When an incoming call is cancelled */
    public void onUaCallCancelled(UserAgent ua);
@@ -25,7 +25,7 @@ public interface UserAgentListener
    /** When an ougoing call has been refused or timeout */
    public void onUaCallFailed(UserAgent ua);
 
-   /** When a call is beeing remotly closed */
-   public void onUaCallClosing(UserAgent ua);
+   /** When a call has been locally or remotly closed */
+   public void onUaCallClosed(UserAgent ua);
    
 }

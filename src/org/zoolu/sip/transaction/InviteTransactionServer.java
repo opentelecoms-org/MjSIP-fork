@@ -214,37 +214,42 @@ public class InviteTransactionServer extends TransactionServer
    /** Method derived from interface TimerListener.
      * It's fired from an active Timer. */
    public void onTimeout(Timer to)
-   {  if (to.equals(retransmission_to) && statusIs(STATE_COMPLETED))
-      {  printLog("Retransmission timeout expired",LogLevel.HIGH);
-         long timeout=2*retransmission_to.getTime();
-         if (timeout>SipStack.max_retransmission_timeout) timeout=SipStack.max_retransmission_timeout;
-         retransmission_to=new Timer(timeout,retransmission_to.getLabel(),this);
-         retransmission_to.start();
-         sip_provider.sendMessage(response,connection_id);
+   {  try
+      {  if (to.equals(retransmission_to) && statusIs(STATE_COMPLETED))
+         {  printLog("Retransmission timeout expired",LogLevel.HIGH);
+            long timeout=2*retransmission_to.getTime();
+            if (timeout>SipStack.max_retransmission_timeout) timeout=SipStack.max_retransmission_timeout;
+            retransmission_to=new Timer(timeout,retransmission_to.getLabel(),this);
+            retransmission_to.start();
+            sip_provider.sendMessage(response,connection_id);
+         }
+         if (to.equals(end_to) && statusIs(STATE_COMPLETED))
+         {  printLog("End timeout expired",LogLevel.HIGH);
+            retransmission_to.halt();
+            sip_provider.removeSipProviderListener(transaction_id);
+            changeStatus(STATE_TERMINATED);
+            //if (transaction_listener!=null) transaction_listener.onInvSrvEndTimeout(this);
+            // (CHANGE-040421) now it can free links to transaction_listener and timers
+            transaction_listener=null;
+            //retransmission_to=null;
+            //end_to=null;
+            //clearing_to=null;
+         }  
+         if (to.equals(clearing_to) && statusIs(STATE_CONFIRMED))
+         {  printLog("Clearing timeout expired",LogLevel.HIGH);
+            sip_provider.removeSipProviderListener(transaction_id);
+            changeStatus(STATE_TERMINATED);
+            //if (transaction_listener!=null) transaction_listener.onInvSrvClearingTimeout(this);
+            // (CHANGE-040421) now it can free links to transaction_listener and timers
+            transaction_listener=null;
+            //retransmission_to=null;
+            //end_to=null;
+            //clearing_to=null;
+         }  
       }
-      if (to.equals(end_to) && statusIs(STATE_COMPLETED))
-      {  printLog("End timeout expired",LogLevel.HIGH);
-         retransmission_to.halt();
-         sip_provider.removeSipProviderListener(transaction_id);
-         changeStatus(STATE_TERMINATED);
-         //if (transaction_listener!=null) transaction_listener.onInvSrvEndTimeout(this);
-         // (CHANGE-040421) now it can free links to transaction_listener and timers
-         transaction_listener=null;
-         //retransmission_to=null;
-         //end_to=null;
-         //clearing_to=null;
-      }  
-      if (to.equals(clearing_to) && statusIs(STATE_CONFIRMED))
-      {  printLog("Clearing timeout expired",LogLevel.HIGH);
-         sip_provider.removeSipProviderListener(transaction_id);
-         changeStatus(STATE_TERMINATED);
-         //if (transaction_listener!=null) transaction_listener.onInvSrvClearingTimeout(this);
-         // (CHANGE-040421) now it can free links to transaction_listener and timers
-         transaction_listener=null;
-         //retransmission_to=null;
-         //end_to=null;
-         //clearing_to=null;
-      }  
+      catch (Exception e)
+      {  printException(e,LogLevel.HIGH);
+      }
    }   
 
    /** Method used to drop an active transaction */

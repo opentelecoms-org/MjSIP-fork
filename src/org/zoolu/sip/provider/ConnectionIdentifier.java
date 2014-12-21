@@ -47,7 +47,7 @@ public class ConnectionIdentifier extends Identifier
    }
    
    /** Costructs a new ConnectionIdentifier. */
-   public ConnectionIdentifier(SipConnection conn)
+   public ConnectionIdentifier(ConnectedTransport conn)
    {  super(getId(conn.getProtocol(),conn.getRemoteAddress(),conn.getRemotePort()));
    }
 

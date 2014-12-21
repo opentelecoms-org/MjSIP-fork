@@ -103,22 +103,26 @@ public class AckTransactionServer extends Transaction
      * It's fired from an active Timer.
      */
    public void onTimeout(Timer to)
-   {  //System.out.println("DEBUG: timeout: "+to_event);
-      if (to.equals(retransmission_to) && statusIs(STATE_PROCEEDING))
-      {  printLog("Retransmission timeout expired",LogLevel.HIGH);
-         retransmission_to=new Timer(retransmission_to.getTime(),retransmission_to.getLabel(),this);
-         retransmission_to.start();
-         sip_provider.sendMessage(response,connection_id);
-      }  
-      if (to.equals(transaction_to) && statusIs(STATE_PROCEEDING))
-      {  printLog("Transaction timeout expired",LogLevel.HIGH);
-         changeStatus(STATE_TERMINATED);
-         if (transaction_listener!=null) transaction_listener.onAckSrvTimeout(this);
-         // (CHANGE-040421) now it can free links to transaction_listener and timers
-         transaction_listener=null;
-         //retransmission_to=null;
-         //transaction_to=null;
-      }  
+   {  try
+      {  if (to.equals(retransmission_to) && statusIs(STATE_PROCEEDING))
+         {  printLog("Retransmission timeout expired",LogLevel.HIGH);
+            retransmission_to=new Timer(retransmission_to.getTime(),retransmission_to.getLabel(),this);
+            retransmission_to.start();
+            sip_provider.sendMessage(response,connection_id);
+         }  
+         if (to.equals(transaction_to) && statusIs(STATE_PROCEEDING))
+         {  printLog("Transaction timeout expired",LogLevel.HIGH);
+            changeStatus(STATE_TERMINATED);
+            if (transaction_listener!=null) transaction_listener.onAckSrvTimeout(this);
+            // (CHANGE-040421) now it can free links to transaction_listener and timers
+            transaction_listener=null;
+            //retransmission_to=null;
+            //transaction_to=null;
+         }  
+      }
+      catch (Exception e)
+      {  printException(e,LogLevel.HIGH);
+      }
    }   
 
    /** Method used to drop an active transaction. */

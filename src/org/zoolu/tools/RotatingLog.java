@@ -82,7 +82,7 @@ public class RotatingLog extends Log
             rename(file_name+i,file_name+(i+1));
          }
          // save and close current log file
-         out_stream.close();
+         if (out_stream!=null) out_stream.close();
          // rename current log file
          if (num_rotations>1) rename(file_name,file_name+1);
          // reset the log

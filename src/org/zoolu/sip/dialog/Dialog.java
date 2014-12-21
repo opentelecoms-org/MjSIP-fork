@@ -73,11 +73,11 @@ public abstract class Dialog
   /** The SipProvider */
    protected SipProvider sip_provider=null;
 
+   /** Internal dialog state. */
+   protected int status;
+
 
    // ************************ Private attributes ************************
-
-   /** Internal dialog state. */
-   int status;
 
    /** Local name */
    NameAddress local_name=null;

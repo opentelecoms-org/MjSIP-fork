@@ -217,10 +217,10 @@ public class Call implements InviteDialogListener
    // ************** Inherited from InviteDialogListener **************
 
    /** Inherited from class InviteDialogListener and called by an InviteDialag. Normally you should not use it. Use specific callback methods instead (e.g. onCallIncoming()). */ 
-   public void onDlgInvite(InviteDialog d, NameAddress caller, String sdp, Message msg)
+   public void onDlgInvite(InviteDialog d, NameAddress caller, NameAddress callee, String sdp, Message msg)
    {  if (d!=dialog) {  printLog("NOT the current dialog",LogLevel.HIGH);  return;  }
       if (sdp!=null && sdp.length()!=0) remote_sdp=sdp;
-      if (listener!=null) listener.onCallIncoming(this,caller,sdp,msg);
+      if (listener!=null) listener.onCallIncoming(this,caller,callee,sdp,msg);
    }
 
    /** Inherited from class InviteDialogListener and called by an InviteDialag. Normally you should not use it. Use specific callback methods instead (e.g. onCallModifying()). */ 

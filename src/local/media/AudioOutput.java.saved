@@ -22,8 +22,13 @@
 package local.media;
 
 
+import local.net.RtpPacket;
+import local.net.RtpSocket;
+
 import javax.sound.sampled.*;
 import java.io.*;
+import java.net.InetAddress;
+import java.net.DatagramSocket;
 
 
 /** AudioOutput allows the access of system audio output in pure-java manner.
@@ -39,7 +44,10 @@ public class AudioOutput
    static final int INTERNAL_BUFFER_SIZE=40960;
    
    private static SourceDataLine source_line;
+   
+   private static AudioFormat line_format;
 
+   static final int RESILIENCE_TIME=50; // milliseconds
    
    /** Init the static system audio output line */
    public static void initAudioLine()
@@ -63,9 +71,9 @@ public class AudioOutput
 
       // 8000 Hz, Linear, 16bit, Mono :
       float fFrameRate=8000.0F;
-      AudioFormat format=new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, fFrameRate, 16, 1, 2, fFrameRate, false);
+      line_format=new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, fFrameRate, 16, 1, 2, fFrameRate, false);
       
-      DataLine.Info lineInfo=new DataLine.Info(SourceDataLine.class, format, INTERNAL_BUFFER_SIZE);
+      DataLine.Info lineInfo=new DataLine.Info(SourceDataLine.class, line_format, INTERNAL_BUFFER_SIZE);
 
       if (!AudioSystem.isLineSupported(lineInfo))
       {  System.err.println("ERROR: AudioLine not supported by this System.");
@@ -73,7 +81,7 @@ public class AudioOutput
       try
       {  source_line=(SourceDataLine)AudioSystem.getLine(lineInfo);
          if (DEBUG) println("SourceDataLine: "+source_line);
-         source_line.open(format,INTERNAL_BUFFER_SIZE);
+         source_line.open(line_format,INTERNAL_BUFFER_SIZE);
       }
       catch (LineUnavailableException e) 
       {  System.err.println("ERROR: LineUnavailableException at AudioReceiver()");
@@ -90,7 +98,13 @@ public class AudioOutput
    // ######################## END STATIC ########################
 
 
-   AudioOutputStream audio_output_stream=null;
+   AudioInputStream audio_input_stream=null;
+
+   PipedOutputStream output_stream=null;   
+   
+   /** The internal AudioPlayer */
+   AudioPlayer audio_player=null;
+
 
 
    /** Constructs an AudioOutput with audio_format=[8000 Hz, ULAW, 8bit, Mono] */
@@ -114,50 +128,113 @@ public class AudioOutput
          format=new AudioFormat(AudioFormat.Encoding.ULAW, fFrameRate, 8, 1, 1, fFrameRate, false);
       }
       
-      if (source_line.isOpen())
-      {  // convert the audio stream to the selected format
-         try
-         {  audio_output_stream=new AudioOutputStream(source_line,format);
-         }
-         catch (Exception e)
-         {  e.printStackTrace();
-         }
-      }
-      else
-      {  System.err.print("WARNING: Audio init error: source line is not open.");
-      }
+      try
+      {  
+         PipedInputStream input_stream=new PipedInputStream();
+         output_stream=new PipedOutputStream(input_stream);
+         
+         audio_input_stream=new AudioInputStream(input_stream,format,-1);
+         if (audio_input_stream==null) println("ERROR: audio stream null");
+         audio_input_stream=AudioSystem.getAudioInputStream(line_format,audio_input_stream);
+         if (audio_input_stream==null) println("ERROR: audio stream null (after codec conversion)");
+      } 
+      catch (Exception e) {  e.printStackTrace();  }
       
    } 
    
    
    /** Gets the audio OuputStream */
    public OutputStream getOuputStream()
-   {  //return output_stream;
-      return audio_output_stream;
+   {  return output_stream;
    }
   
 
    /** Starts playing */
    public void play()
-   {  if (source_line.isOpen()) source_line.start();
-      else
-      {  System.err.print("WARNING: Audio play error: source line is not open.");
-      }
+   {  audio_player=new AudioPlayer(audio_input_stream);
    }
-
 
    /** Stops playing */
    public void stop()
-   {  if (source_line.isOpen())
-      {  source_line.drain();
-         source_line.stop();
+   {  if (audio_player!=null)
+      {  // stop the player
+         audio_player.halt();
+         // wait in order to not break the pipe (i think it is a java bug..)
+         while (audio_player.isRunning());
       }
-      else
-      {  System.err.print("WARNING: Audio stop error: source line is not open.");
-      }
-      //source_line.close();
    }
 
+
+   // ************ Begin of class AudioPlayer ************
+
+   /** Size of the read buffer */
+   //private static final int BUFFER_SIZE=200;
+   private static final int BUFFER_SIZE=40960;
+
+   /** AudioPlayer */
+   class AudioPlayer extends Thread
+   { 
+      /** The AudioInputStream to be played */
+      AudioInputStream audio_input_stream;
+      
+      /** Whether the player is running */
+      boolean running=false;
+
+      /** Whether the player has to stop */
+      boolean stop;
+
+     /** Costructs a new AudioPlayer */
+      AudioPlayer (AudioInputStream audio_input_stream)
+      {  this.audio_input_stream=audio_input_stream;
+         start();
+      }
+      
+      /** Whether is running */
+      public boolean isRunning()
+      {  return running;
+      }
+
+
+      /** Stops playing */
+      public void halt()
+      {  stop=true;
+      }
+    
+      /** Play it in a new Thread. */
+      public void run()
+      {      
+         AudioOutput.source_line.start();
+                           
+         byte[] buffer=new byte[BUFFER_SIZE];
+   
+         running=true;
+         stop=false;
+   
+         try
+         {  while (!stop)
+            {  if (audio_input_stream.available()>0)
+               {  System.out.println("DEBUG AudioOutput: "+audio_input_stream.available());
+                  int num=audio_input_stream.read(buffer, 0, buffer.length);
+                  AudioOutput.source_line.write(buffer,0,num);
+               }
+               else
+               {  // wait a while beafore check for new samples, otherwise it starves the CPU
+                  try { Thread.sleep(AudioOutput.RESILIENCE_TIME); } catch (Exception e) {}
+               }
+            }
+         }
+         catch (IOException e)  {  e.printStackTrace();  }
+         running=false;
+            
+         AudioOutput.source_line.stop();
+         //AudioOutput.source_line.close();
+   
+         if (DEBUG) AudioOutput.println("audio terminated");
+      }
+   }
+
+   // ************* End of class AudioPlayer *************
+   
 
    /** Debug output */
    private static void println(String str)

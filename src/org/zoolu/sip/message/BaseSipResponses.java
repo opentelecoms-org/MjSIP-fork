@@ -100,7 +100,7 @@ public abstract class BaseSipResponses
       reasons[501]="Not Implemented";
       reasons[502]="Bad Gateway";
       reasons[503]="Service Unavailable";
-      reasons[504]="erver Time-out";
+      reasons[504]="Server Time-out";
       reasons[505]="SIP Version not supported";
       reasons[513]="Message Too Large";
 

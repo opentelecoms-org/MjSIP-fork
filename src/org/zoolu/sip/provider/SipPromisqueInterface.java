@@ -24,46 +24,20 @@
 package org.zoolu.sip.provider;
 
 
+import org.zoolu.sip.message.Message;
 
 
-/** Generic Identifier.
+/** SipPromisqueInterface is the SipInterface for capturing
+  * all SIP messages in PROMISQUE mode.
+  * All incoming messages are passed to the listener associated to the SipPromisqueInterface
+  * regardless of any other opened SipInterface.
+  * <p/>
+  * More than one SipPromisqueInterface can be open concurrently.
   */
-public class Identifier
+public class SipPromisqueInterface extends SipInterface
 {
-   /** The actual id */   
-   String id=null;
-   
-   /** Costructs a new void Identifier. */
-   Identifier()
-   {
-   }
-
-   /** Costructs a new Identifier. */
-   Identifier(String id)
-   {  this.id=id;
-   }
-
-   /** Costructs a new Identifier. */
-   Identifier(Identifier i)
-   {  this.id=i.id;
-   }
-
-   /** Whether the Identifier equals to <i>obj</i>. */
-   public boolean equals(Object obj)
-   {  try
-      {  Identifier i=(Identifier)obj;
-         return id.equals(i.id);
-      }
-      catch (Exception e) {  return false;  }
-   }
-
-   /** Gets an int hashCode for the Identifier. */
-   public int hashCode()
-   {  return id.hashCode();
-   }
-
-   /** Gets a String value for the Identifier */ 
-   public String toString()
-   {  return id;
+   /** Creates a new SipPromisqueInterface. */ 
+   public SipPromisqueInterface(SipProvider sip_provider, SipInterfaceListener listener)
+   {  super(sip_provider,SipProvider.PROMISQUE,listener);
    }
 }

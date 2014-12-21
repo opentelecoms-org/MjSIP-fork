@@ -35,7 +35,7 @@ import org.zoolu.sip.header.MultipleHeader;
 public interface InviteDialogListener
 {  
    /** When an incoming INVITE is received */ 
-   public void onDlgInvite(InviteDialog dialog, NameAddress caller, String body, Message msg);
+   public void onDlgInvite(InviteDialog dialog, NameAddress caller, NameAddress callee, String body, Message msg);
  
    /** When an incoming Re-INVITE is received */ 
    public void onDlgReInvite(InviteDialog dialog, String body, Message msg);

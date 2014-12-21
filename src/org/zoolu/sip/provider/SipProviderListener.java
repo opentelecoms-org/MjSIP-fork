@@ -27,7 +27,7 @@ package org.zoolu.sip.provider;
 import org.zoolu.sip.message.Message;
 
 
-/** A SipProviderListener listens for SipProvider onReceivedMessage(SipProvider, Message) events.
+/** A SipProviderListener listens for SipProvider onReceivedMessage(SipProvider,Message) events.
  */
 public interface SipProviderListener
 {

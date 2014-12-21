@@ -38,11 +38,11 @@ public class UdpRelay extends Thread
    //public static final int MAX_PKT_SIZE=65536;
    public static final int MAX_PKT_SIZE=2000;
 
-   /** Receiver local port */
+   /** Local receiver/sender port */
    int local_port;  
-   /** Source address */
+   /** Remote source address */
    String src_addr;
-   /** Source port */
+   /** Remote source port */
    int src_port;  
    /** Destination address */
    String dest_addr;
@@ -79,25 +79,25 @@ public class UdpRelay extends Thread
       this.dest_port=dest_port;
       this.alive_to=alive_time;
       this.listener=listener;
-      src_addr=null;
+      src_addr="0.0.0.0";
       src_port=0;
       stop=false;
    }
 
-   /** Gets the local port */
+   /** Gets the local receiver/sender port */
    public int getLocalPort()
    {  return local_port;
    }
 
    /** Gets the destination address */
-   public String getDestAddress()
+   /*public String getDestAddress()
    {  return dest_addr;
-   }
+   }*/
 
    /** Gets the destination port */
-   public int getDestPort()
+   /*public int getDestPort()
    {  return dest_port;
-   }
+   }*/
 
    /** Sets a new destination address */
    public UdpRelay setDestAddress(String dest_addr)
@@ -131,12 +131,12 @@ public class UdpRelay extends Thread
    {  return socket_to;
    }
        
-   /** Redirect packets from source addr/port to destination addr/port  */
+   /** Redirect packets received from remote source addr/port to destination addr/port  */
    public void run()
    {  //System.out.println("DEBUG: starting UdpRelay "+toString()+" (it expires after "+alive_to+" sec)");     
       try   
       {  DatagramSocket socket=new DatagramSocket(local_port);
-         byte []buf = new byte[MAX_PKT_SIZE];
+         byte []buf=new byte[MAX_PKT_SIZE];
                            
          socket.setSoTimeout(socket_to);
          // datagram packet

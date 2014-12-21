@@ -27,18 +27,18 @@ import java.io.InterruptedIOException;
 import java.util.Vector;
 
 
-/** UdpMRelay implements an UDP multiple relay agent. 
+/** UdpMultiRelay implements an UDP multiple relay agent. 
   * It receives UDP packets at a local port and relays them
   * toward a list of remote UDP sockets (a list of address/port pairs).
   */
-public class UdpMRelay extends Thread
+public class UdpMultiRelay extends Thread
 {
    /** Source port */
    int local_port;  
    /** Destination sockets */
    Vector dest_sockets;  
    /** Destination socket of remote host to which the packets must not be relayed */
-   SocketAddress no_relay;  
+   SocketAddress no_relay_dest_socket;  
 
    /** Whether it is running */
    boolean stop;
@@ -47,22 +47,22 @@ public class UdpMRelay extends Thread
 
   
    /** Creates a new UDP relay and starts it */
-   public UdpMRelay(int local_port, Vector dest_sockets, SocketAddress no_relay_socket)
-   {  init(local_port,dest_sockets,no_relay_socket);
+   public UdpMultiRelay(int local_port, Vector dest_sockets, SocketAddress no_dest_socket)
+   {  init(local_port,dest_sockets,no_dest_socket);
       start();
    }
     
    /** Creates a new UDP relay and starts it */
-   public UdpMRelay(int local_port, Vector dest_sockets)
+   public UdpMultiRelay(int local_port, Vector dest_sockets)
    {  init(local_port,dest_sockets,null);
       start();
    }
 
    /** Inits a new UDP relay and starts it */
-   private void init(int local_port, Vector dest_sockets, SocketAddress no_relay)
+   private void init(int local_port, Vector dest_sockets, SocketAddress no_dest_socket)
    {  this.local_port=local_port;     
       this.dest_sockets=dest_sockets;
-      this.no_relay=no_relay;
+      this.no_relay_dest_socket=no_dest_socket;
       stop=false;
    }
 
@@ -76,9 +76,9 @@ public class UdpMRelay extends Thread
    {  return dest_sockets;
    }
 
-   /** Gets the Destination socket to which the packets must not be relayed */
-   public SocketAddress getNoRelaySocket()
-   {  return no_relay;
+   /** Gets the destination socket to which the packets must not be relayed */
+   public SocketAddress getNoRelayDestSocket()
+   {  return no_relay_dest_socket;
    }
 
    /** Stops the UDP relay */
@@ -115,7 +115,7 @@ public class UdpMRelay extends Thread
             for (int i=0; i<dest_sockets.size(); i++)
             {  try
                {  SocketAddress dest=(SocketAddress)dest_sockets.elementAt(i);
-                  if (no_relay==null || !dest.equals(no_relay))
+                  if (no_relay_dest_socket==null || !dest.equals(no_relay_dest_socket))
                   {  packet.setIpAddress(dest.getAddress());
                      packet.setPort(dest.getPort());
                      socket.send(packet);

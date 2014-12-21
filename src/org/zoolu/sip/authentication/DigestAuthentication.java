@@ -1,4 +1,4 @@
-package local.auth;
+package org.zoolu.sip.authentication;
 
 
 import org.zoolu.sip.header.AuthenticationHeader;
@@ -8,6 +8,12 @@ import org.zoolu.tools.MD5;
 
 
 /** The HTTP Digest Authentication as defined in RFC2617.
+  * It can be used to i) calculate an authentication response
+  * from an authentication request, or ii) validate an authentication response.
+  * <br/> in the former case the DigestAuthentication is created based on
+  * a WwwAuthenticationHeader (or ProxyAuthenticationHeader),
+  * while in the latter case it is created based on an AuthorizationHeader
+  * (or ProxyAuthorizationHeader).
   */
 public class DigestAuthentication
 {
@@ -91,12 +97,12 @@ public class DigestAuthentication
    /** Whether the digest-response in the 'response' parameter in correct. */
    public boolean checkResponse()
    {  if (response==null) return false;
-      else return response.equals(calcResponse());
+      else return response.equals(getResponse());
    }
 
 
-   /** Calculates the AuthorizationHeader. */
-   public AuthorizationHeader calcAuthorizationHeader()
+   /** Gets a new AuthorizationHeader based on current authentication attributes. */
+   public AuthorizationHeader getAuthorizationHeader()
    {  AuthorizationHeader ah=new AuthorizationHeader("Digest");
       ah.addUsernameParam(username);
       ah.addRealmParam(realm);
@@ -106,7 +112,7 @@ public class DigestAuthentication
       if (opaque!=null) ah.addOpaqueParam(opaque);
       if (qop!=null) ah.addQopParam(qop);
       if (nc!=null) ah.addNcParam(nc);
-      String response=calcResponse();
+      String response=getResponse();
       ah.addResponseParam(response);
       return ah;
    }
@@ -119,7 +125,7 @@ public class DigestAuthentication
      * <p> If the "qop" directive is not present:
      * <br>   KD ( H(A1), unq(nonce) ":" H(A2) )
      */
-   public String calcResponse()
+   public String getResponse()
    {  String secret=HEX(MD5(A1()));
       StringBuffer sb=new StringBuffer();
       if (nonce!=null) sb.append(nonce);
@@ -251,7 +257,7 @@ public class DigestAuthentication
       a.cnonce="0a4f113b";
       a.username="Mufasa";
       
-      String response1=a.calcResponse();
+      String response1=a.getResponse();
       String response2="6629fae49393a05397450978507c4ef1";
       System.out.println(response1);
       System.out.println(response2);
@@ -263,7 +269,7 @@ public class DigestAuthentication
                  
       AuthorizationHeader ah=new AuthorizationHeader(ah_str);
       a=new DigestAuthentication("GET",ah,null,"Circle Of Life");
-      response1=a.calcResponse();
+      response1=a.getResponse();
       response2="6629fae49393a05397450978507c4ef1";
       System.out.println(response1);
       System.out.println(response2);

@@ -19,24 +19,41 @@
  * Luca Veltri (luca.veltri@unipr.it)
  */
 
-package local.server;
+package local.ua;
 
 
-import org.zoolu.sip.header.AuthenticationInfoHeader;
-import org.zoolu.sip.message.*;
+import org.zoolu.sip.provider.*;
+import java.applet.*;
+
+/*
+import org.zoolu.sip.address.*;
+import org.zoolu.tools.Archive;
+import org.zoolu.tools.Log;
+import org.zoolu.tools.LogLevel;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.awt.*;
+import javax.swing.*;
+import java.awt.event.*;
+import javax.swing.plaf.basic.BasicComboBoxEditor;
+import java.util.Vector;
+*/
 
 
-/** AuthenticationServer is the interface used by a SIP server to authenticate SIP requests.
-  */
-public interface AuthenticationServer
-{   
-   /** Authenticates a SIP request.
-     * @param msg is the SIP request to be authenticated
-     * @return it returns the error Message in case of authentication failure,
-     * or null in case of authentication success. */
-   public Message authenticateRequest(Message msg);
+/** Simple Applet-based SIP user agent (UA). */
+public class AppletUA extends Applet
+{
 
-   /** Gets AuthenticationInfoHeader. */
-   public AuthenticationInfoHeader getAuthenticationInfoHeader();
+   //Initialize the applet (when running as applet)
+   public void init()
+   {  
+      SipStack.init();
+      SipStack.debug_level=0;
+      SipProvider sip_provider=new SipProvider("7.7.7.7",5077);
+      UserAgentProfile user_profile=new UserAgentProfile();
+      user_profile.ua_jar="mjapplet.jar";
+      new GraphicalUA(sip_provider,user_profile);
+   }
 
 }

@@ -53,7 +53,7 @@ public class SipStack extends Configure
    // *********************** software release ***********************
 
    /** Release */
-   public static final String release="MjSip 1.5.1";
+   public static final String release="MjSip 1.5.3";
    /** Authors */
    public static final String authors="Luca Veltri - University of Parma (Italy)";
 
@@ -106,11 +106,11 @@ public class SipStack extends Configure
    /** Default 'expires' value in seconds. RFC2361 suggests 3600s as default value. */
    public static int expires=3600;
 
-   /** UA info included in request messages in the User-Agent header field.
-     * Use 'NONE' string or let it blank if the User-Agent header filed must be added. */
+   /** UA info included in request messages in the 'User-Agent' header field.
+     * Use "NONE" if the 'User-Agent' header filed must not be added. */
    public static String ua_info=release;
-   /** Server info included in response messages in the Server header field
-     * Use 'NONE' string or let it blank if the User-Agent header filed must be added. */
+   /** Server info included in response messages in the 'Server' header field
+     * Use "NONE" if the 'Server' header filed must not be added. */
    public static String server_info=release;
    
 
@@ -131,7 +131,7 @@ public class SipStack extends Configure
    public static int debug_level=1;
    /** Path for the log folder where log files are written.
      * By default, it is used the "./log" folder.
-     * Use ".", to store logs in the root folder. */
+     * Use ".", to store logs in the current root folder. */
    public static String log_path="log";
    /** The size limit of the log file [kB] */
    public static int max_logsize=2048; // 2MB

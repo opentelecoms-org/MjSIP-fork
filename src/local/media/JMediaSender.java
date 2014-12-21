@@ -194,7 +194,7 @@ public class JMediaSender
    { 
       if (format!=null) System.out.println("Selected format: "+format.toString());
       else System.out.println("Selected format: any");
-      // Get the CaptureDeviceInfo for the live audio or video  capture device
+      // Get the CaptureDeviceInfo for the live audio or video capture device
       Vector deviceList = CaptureDeviceManager.getDeviceList(format);
       System.out.println("List of devices: "+deviceList.size());
       if (deviceList.size()==0)

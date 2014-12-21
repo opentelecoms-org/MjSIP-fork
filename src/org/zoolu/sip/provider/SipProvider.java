@@ -57,31 +57,38 @@ import java.util.Date;
   * sending and receiving SIP messages. Messages are received by the callback function
   * defined in the interface SipProviderListener.
   * <p>
+  * SipProvider implements also multiplexing/demultiplexing service through the use of
+  * SIP interface identifiers and <i>onReceivedMessage()<i/> callback function
+  * of specific SipProviderListener.
+  * <p>
   * A SipProviderListener can be added to a SipProvider through the
-  * addSipProviderListener(id,listener) method.
-  * When adding a new listener, the type of messages the listener has to be bound to
-  * has to be specified.
-  * Three 'classes' of messages can be associated to a SipProviderListener:
-  * <br> - a transaction client or transaction server,
-  * <br> - a dialog,
-  * <br> - a specific method (SIP request),
-  * <br> - all messages (requests and responses)
-  *        that are out of any transactions, dialogs, or already specified method types.
+  * addSipProviderListener(id,listener) method, where:
+  * <b> - <i>id<i/> is the SIP interface identifier the listener has to be bound to,
+  * <b> - <i>listener<i/> is the SipProviderListener that received messages are passed to.
+  * <p/>
+  * The SIP interface identifier specifies the type of messages the listener is going to
+  * receive for. Together with the specific SipProvider, it represents the complete SIP
+  * Service Access Point (SAP) address/identifier used for demultiplexing SIP messages
+  * at receiving side. 
+  * <p/>
+  * The identifier can be of one of the three following types: transaction_id, dialog_id,
+  * or method_id. These types of identifiers characterize respectively:
+  * <br> - messages within a specific transaction,
+  * <br> - messages within a specific dialog,
+  * <br> - messages related to a specific SIP method.
+  * It is also possible to use the the identifier ANY to specify 
+  * <br> - all messages that are out of any transactions, dialogs, or already specified
+  *        method types.
   * <p>
-  * When receiving a message, the SipProvider first try to look for a matching  
-  * transaction, then looks for a matching dialog, then for a matching UAS, and finally for
-  * a default UA. For the matched SipProviderListener, the method onReceivedMessage()
-  * is fired.
+  * When receiving a message, the SipProvider first tries to look for a matching  
+  * transaction, then looks for a matching dialog, then for a matching method type,
+  * and finally for a default listener (i.e. that with identifier ANY).
+  * For the matched SipProviderListener, the method  <i>onReceivedMessage()</i> is fired.
   * <p>
-  * The previous search is based on:
-  * <br> i) a list of listener_ids kept by the SipProvider,
-  * <br> ii) transaction_id, dialog_id, or UAS_id guessed for each incoming message.
-  * <p>  
   * Note: no 482 (Loop Detected) responses are generated for requests that does not
-  * properly match any ongoing transactions, dialogs, UASs.
+  * properly match any ongoing transactions, dialogs, nor method types.
   */
-//public class SipProvider extends Configure implements SipTransportListener, TcpServerListener
-public class SipProvider implements Configurable, SipTransportListener, TcpServerListener
+public class SipProvider implements Configurable, TransportListener, TcpServerListener
 {
 
    // **************************** Constants ****************************
@@ -104,15 +111,18 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
    /** String value "NO-OUTBOUND" used for setting no outbound proxy. */
    //public static final String NO_OUTBOUND="NO-OUTBOUND";
 
-   /** Identifier used as listener_id for capturing ANY incoming messages
+   /** Identifier used as listener id for capturing ANY incoming messages
      * that does not match any active method_id, transaction_id, nor dialog_id.
      * <br> In this context, "active" means that there is a active listener
      * for that specific method, transaction, or dialog. */
    public static final Identifier ANY=new Identifier("ANY"); 
 
-   /** Identifier used as listener_id for capturing any incoming messages in PROMISQUE mode,
-     * that means that message are passed to the present listener regardless
-     * any other active SipProviderListeners for specific messages. */
+   /** Identifier used as listener id for capturing any incoming messages in PROMISQUE mode,
+     * that means that messages are passed to the present listener regardless of
+     * any other active SipProviderListeners for specific messages.
+     * <p/>
+     * More than one SipProviderListener can be added and be active concurrently
+     * for capturing messages in PROMISQUE mode. */
    public static final Identifier PROMISQUE=new Identifier("PROMISQUE"); 
 
 
@@ -189,50 +199,63 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
 
    // *************************** Costructors ***************************
 
-   /** Costructs a void SipProvider. */ 
+   /** Creates a void SipProvider. */ 
    /*protected SipProvider()
    {  
    }*/
 
-   /** Costructs a new SipProvider. */ 
+   /** Creates a new SipProvider. */ 
    public SipProvider(String via_addr, int port)
-   {  init(via_addr,port,null,0,null,null,0);
+   {  //init(via_addr,port,null,0,null,null,0);
+      init(via_addr,port,null,null);
       initlog();
       startTrasport();
    }
 
 
-   /** Costructs a new SipProvider. 
-     * Creates the SipProvider, initializing the SipProviderListeners, the transport protocols, and other attributes. */ 
-   public SipProvider(String via_addr, int port, String[] protocols, int nmax_connections)
+   /** Creates a new SipProvider. 
+     * Costructs the SipProvider, initializing the SipProviderListeners, the transport protocols, and other attributes. */ 
+   public SipProvider(String via_addr, int port, String[] protocols, String ifaddr)
+   {  //init(via_addr,port,protocols,0,null,null,0);
+      init(via_addr,port,protocols,ifaddr);
+      initlog();
+      startTrasport();
+   }
+
+
+   /** Creates a new SipProvider. 
+     * Costructs the SipProvider, initializing the SipProviderListeners, the transport protocols, and other attributes. */ 
+   /*public SipProvider(String via_addr, int port, String[] protocols, int nmax_connections)
    {  init(via_addr,port,protocols,nmax_connections,null,null,0);
       initlog();
       startTrasport();
-   }
+   }*/
 
 
-   /** Costructs a new SipProvider. 
-     * Creates the SipProvider, initializing the SipProviderListeners, the transport protocols, the outbound proxy, and other attributes. */ 
-   public SipProvider(String via_addr, int port, String[] protocols, int nmax_connections, String host_ifaddr, String outbound_addr, int outbound_port)
+   /** Creates a new SipProvider. 
+     * Costructs the SipProvider, initializing the SipProviderListeners, the transport protocols, the outbound proxy, and other attributes. */ 
+   /*public SipProvider(String via_addr, int port, String[] protocols, int nmax_connections, String host_ifaddr, String outbound_addr, int outbound_port)
    {  init(via_addr,port,protocols,nmax_connections,host_ifaddr,outbound_addr,outbound_port);
       initlog();
       startTrasport();
-   }
+   }*/
 
 
-   /** Costructs a new SipProvider. 
+   /** Creates a new SipProvider. 
      * The SipProvider attributres are read from file. */ 
    public SipProvider(String file)
    {  if (!SipStack.isInit()) SipStack.init(file);
       new Configure(this,file);
-      init(via_addr,host_port,transport_protocols,nmax_connections,host_ifaddr,outbound_addr,outbound_port);
+      //init(via_addr,host_port,transport_protocols,nmax_connections,host_ifaddr,outbound_addr,outbound_port);
+      init(via_addr,host_port,transport_protocols,host_ifaddr);
       initlog();
       startTrasport();
    }
 
 
    /** Inits the SipProvider, initializing the SipProviderListeners, the transport protocols, the outbound proxy, and other attributes. */ 
-   private void init(String viaddr, int port, String[] protocols, int nmaxconns, String ifaddr, String outboundaddr, int outboundport)
+   //private void init(String viaddr, int port, String[] protocols, int nmaxconns, String ifaddr, String outboundaddr, int outboundport)
+   private void init(String viaddr, int port, String[] protocols, String ifaddr)
    {  if (!SipStack.isInit()) SipStack.init();
       via_addr=viaddr;
       if (via_addr==null || via_addr.equalsIgnoreCase(AUTO_CONFIGURATION)) via_addr=IpAddress.getLocalHostAddress().toString();
@@ -240,7 +263,8 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
       if (host_port<=0) host_port=SipStack.default_port;
       host_ipaddr=null;
       if (ifaddr!=null && !ifaddr.equalsIgnoreCase(ALL_INTERFACES))
-         try {  host_ipaddr=IpAddress.getByName(ifaddr);  } catch (IOException e) {  e.printStackTrace(); host_ipaddr=null;  }
+      {  try {  host_ipaddr=IpAddress.getByName(ifaddr);  } catch (IOException e) {  e.printStackTrace(); host_ipaddr=null;  }
+      }
       transport_protocols=protocols;
       if (transport_protocols==null) transport_protocols=SipStack.default_transport_protocols;
       default_transport=transport_protocols[0];
@@ -256,18 +280,15 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
          if (transport_protocols[i].equals(PROTO_SCTP)) transport_sctp=true;
          */
       }
-      nmax_connections=nmaxconns;
       if (nmax_connections<=0) nmax_connections=SipStack.default_nmax_connections;
-      outbound_addr=outboundaddr;
       if (outbound_addr!=null && (outbound_addr.equalsIgnoreCase(Configure.NONE) || outbound_addr.equalsIgnoreCase("NO-OUTBOUND"))) outbound_addr=null;
-      outbound_port=outboundport;
       if (outbound_port==0) outbound_port=SipStack.default_port;  
       
       rport=SipStack.use_rport; 
       force_rport=SipStack.force_rport; 
       
-      listeners=new Hashtable();
       exception_listeners=new HashSet();
+      listeners=new Hashtable();
 
       connections=new Hashtable();
    }
@@ -333,7 +354,7 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
       if (connections!=null)
       {  printLog("connections are going down",LogLevel.LOWER);
          for (Enumeration e=connections.elements(); e.hasMoreElements(); )
-         {  SipConnection c=(SipConnection)e.nextElement();
+         {  ConnectedTransport c=(ConnectedTransport)e.nextElement();
             c.halt();
          }
          connections=null;
@@ -500,7 +521,22 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
    }   
 
 
-   /** Adds a new listener to the SipProvider for ANY messages.
+   /** Adds a new listener to the SipProvider for caputering any message in PROMISQUE mode.
+     * It is the same as using method addSipProviderListener(SipProvider.PROMISQUE,listener).
+     * <p/>
+     * When capturing messages in promisque mode all messages are passed to the SipProviderListener
+     * before passing them to the specific listener (if present).
+     * <br/> Note that more that one SipProviderListener can be active in promisque mode
+     * at the same time;in that case the same message is passed to all PROMISQUE
+     * SipProviderListeners.
+     * @param listener is the SipProviderListener.
+     * @return It returns <i>true</i> if the SipProviderListener is added,
+     * <i>false</i> if the listener_ID is already in use. */
+   public boolean addSipProviderPromisqueListener(SipProviderListener listener)
+   {  return addSipProviderListener(PROMISQUE,listener);
+   }
+
+   /** Adds a new listener to the SipProvider for caputering ANY message.
      * It is the same as using method addSipProviderListener(SipProvider.ANY,listener).
      * @param listener is the SipProviderListener.
      * @return It returns <i>true</i> if the SipProviderListener is added,
@@ -667,7 +703,7 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
          else
          {  printLog("active connection found matching "+conn_id,LogLevel.MEDIUM);
          }
-         SipConnection conn=(SipConnection)connections.get(conn_id);
+         ConnectedTransport conn=(ConnectedTransport)connections.get(conn_id);
          if (conn!=null)
          {  printLog("sending data through conn "+conn,LogLevel.MEDIUM);
             try
@@ -794,7 +830,7 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
       if (conn_id!=null && connections.containsKey(conn_id))
       {  // connection exists
          printLog("active connection found matching "+conn_id,LogLevel.MEDIUM);
-         SipConnection conn=(SipConnection)connections.get(conn_id);
+         ConnectedTransport conn=(ConnectedTransport)connections.get(conn_id);
          try
          {  conn.sendMessage(msg);
             // logs
@@ -947,13 +983,13 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
 
 
    /** Adds a new Connection */ 
-   private void addConnection(SipConnection conn)
+   private void addConnection(ConnectedTransport conn)
    {  ConnectionIdentifier conn_id=new ConnectionIdentifier(conn);
       if (connections.containsKey(conn_id))
       {  // remove the previous connection
          printLog("trying to add the already established connection "+conn_id,LogLevel.HIGH);
          printLog("connection "+conn_id+" will be replaced",LogLevel.HIGH);
-         SipConnection old_conn=(SipConnection)connections.get(conn_id);
+         ConnectedTransport old_conn=(ConnectedTransport)connections.get(conn_id);
          old_conn.halt();
          connections.remove(conn_id);
       }
@@ -964,19 +1000,19 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
          long older_time=System.currentTimeMillis();
          ConnectionIdentifier older_id=null;
          for (Enumeration e=connections.elements(); e.hasMoreElements(); )
-         {  SipConnection co=(SipConnection)e.nextElement();
+         {  ConnectedTransport co=(ConnectedTransport)e.nextElement();
             if (co.getLastTimeMillis()<older_time) older_id=new ConnectionIdentifier(co);
          }
          if (older_id!=null) removeConnection(older_id);
       }
       connections.put(conn_id,conn);
       conn_id=new ConnectionIdentifier(conn);
-      conn=(SipConnection)connections.get(conn_id);
+      conn=(ConnectedTransport)connections.get(conn_id);
       // DEBUG log:
       printLog("active connenctions:",LogLevel.LOW);
       for (Enumeration e=connections.keys(); e.hasMoreElements(); )
       {  ConnectionIdentifier id=(ConnectionIdentifier)e.nextElement();
-         printLog("conn-id="+id+": "+((SipConnection)connections.get(id)).toString(),LogLevel.LOW);
+         printLog("conn-id="+id+": "+((ConnectedTransport)connections.get(id)).toString(),LogLevel.LOW);
       }
    }
 
@@ -984,13 +1020,13 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
    /** Removes a Connection */ 
    private void removeConnection(ConnectionIdentifier conn_id)
    {  if (connections.containsKey(conn_id))
-      {  SipConnection conn=(SipConnection)connections.get(conn_id);
+      {  ConnectedTransport conn=(ConnectedTransport)connections.get(conn_id);
          conn.halt();
          connections.remove(conn_id);
          // DEBUG log:
          printLog("active connenctions:",LogLevel.LOW);
          for (Enumeration e=connections.elements(); e.hasMoreElements(); )
-         {  SipConnection co=(SipConnection)e.nextElement();
+         {  ConnectedTransport co=(ConnectedTransport)e.nextElement();
             printLog("conn "+co.toString(),LogLevel.LOW);
          }
       }
@@ -1000,16 +1036,16 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
    //************************* Callback methods *************************
    
    /** When a new SIP message is received. */
-   public void onReceivedMessage(SipTransport transport, Message msg)
+   public void onReceivedMessage(Transport transport, Message msg)
    {  processReceivedMessage(msg);
    }   
 
 
-   /** When SipTransport terminates. */
-   public void onSipTransportTerminated(SipTransport transport, Exception error)
+   /** When Transport terminates. */
+   public void onTransportTerminated(Transport transport, Exception error)
    {  printLog("transport "+transport+" terminated",LogLevel.MEDIUM);
       if (transport.getProtocol().equals(PROTO_TCP))
-      {  ConnectionIdentifier conn_id=new ConnectionIdentifier((SipConnection)transport);
+      {  ConnectionIdentifier conn_id=new ConnectionIdentifier((ConnectedTransport)transport);
          removeConnection(conn_id);
       }
       if (error!=null)
@@ -1020,7 +1056,7 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
    /** When a new incoming Connection is established */ 
    public void onIncomingConnection(TcpServer tcp_server, TcpSocket socket)
    {  printLog("incoming connection from "+socket.getAddress()+":"+socket.getPort(),LogLevel.MEDIUM);
-      SipConnection conn=new TcpTransport(socket,this);
+      ConnectedTransport conn=new TcpTransport(socket,this);
       printLog("tcp connection "+conn+" opened",LogLevel.MEDIUM);
       addConnection(conn);
    }
@@ -1190,7 +1226,7 @@ public class SipProvider implements Configurable, SipTransportListener, TcpServe
    }
 
    /** Adds the Exception message to the default Log */
-   private final void printException(Exception e,int level)
+   private final void printException(Exception e, int level)
    {  if (event_log!=null) event_log.printException(e,level+SipStack.LOG_LEVEL_TRANSPORT);
    }
   

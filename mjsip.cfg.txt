@@ -106,7 +106,7 @@
 
 # Path for the log folder where log files are written.
 # By default, it is used the "./log" folder
-# Use ".", to store logs in the root folder
+# Use ".", to store logs in the current root folder
 # Default value: log_path=./log
 #log_path= .
 
@@ -197,7 +197,9 @@ domain_names=wonderland.net biloxi.example.com
 # Default value: is_open_proxy=yes
 #is_open_proxy=no
 
-# The type of location service (local, ldap, radius, mysql).
+# The type of location service.
+# You can specify the location service type (e.g. local, ldap, radius, mysql)
+# or the class name (e.g. local.server.LocationServiceImpl).
 # Default value: location_service=local
 #location_service=ldap
 
@@ -214,6 +216,8 @@ domain_names=wonderland.net biloxi.example.com
 #do_authentication=yes
 
 # The authentication scheme.
+# You can specify the authentication scheme name (e.g. Digest, AKA, etc.)
+# or the class name (e.g. local.server.AuthenticationServerImpl).
 # Default value: authentication_scheme=Digest
 #authentication_scheme=AKA
 
@@ -222,7 +226,9 @@ domain_names=wonderland.net biloxi.example.com
 # Default value: authentication_realm=NONE
 #authentication_realm=wonderland.net
 
-# The type of authentication service (local, ldap, radius, mysql).
+# The type of authentication service.
+# You can specify the authentication service type (e.g. local, ldap, radius, mysql)
+# or the class name (e.g. local.server.AuthenticationServiceImpl).
 # Default value: authentication_service=local
 #authentication_service=ldap
 
@@ -238,10 +244,26 @@ domain_names=wonderland.net biloxi.example.com
 # Default value: on_route=no
 #on_route=yes
 
-# Whether refer to the RFC3261 Loose Route (or RFC2543 Strict Route) rule.
+# Whether implementing the RFC3261 Loose Route (or RFC2543 Strict Route) rule.
 # Default value: loose_route=yes
 #loose_route=no
 
+# Whether checking for forwarding loops before forwarding a request (Loop Detection). In RFC3261 it is optional.
+# Default value: loop_detection=yes
+#loop_detection=no
+
+# PSTN GW address.
+# Use 'NONE' for not using a PSTN GW.
+# Default value: pstn_gw_addr=NONE
+#pstn_gw_addr=10.0.0.5
+
+# PSTN GW port.
+# Default value: pstn_gw_port=5060
+#pstn_gw_port=5069
+
+# PSTN GW telephone prefix to be added to the phone number.
+# Default value: pstn_gw_prefix=
+#pstn_gw_prefix=9
 
 
 # ________________________________________________________________
@@ -255,7 +277,9 @@ domain_names=wonderland.net biloxi.example.com
 #
 
 # User's AOR (Address Of Record), used also as From URL.
-# If not defined (default), it equals the contact_url
+# The AOR is the SIP address used to register with the user's registrar server (if requested).
+# The address of the registrar is taken from the hostport field of the AOR, i.e. the value(s) host[:port] after the '@' character.
+# If not defined (default), it equals the 'contact_url' parameter
 #from_url=sip:alice@wonderland.net
 
 # Contact URL.
@@ -296,35 +320,35 @@ domain_names=wonderland.net biloxi.example.com
 # Default value: call_to=NONE
 #call_to=sip:alice@wonderland.net   
    
-# Whether it is in automatic respond mode.
-# Default value: auto_accept=no
-#auto_accept=yes
+# Automatic answer time in seconds; time<0 corresponds to manual answer mode.
+# Default value: accept_time=-1       
+#accept_time=0
 
-# Automatic hangup time (call duartion) in seconds; time=0 corresponds to manual hangup mode.
-# Default value: hangup_time=0
+# Automatic hangup time (call duartion) in seconds; time<=0 corresponds to manual hangup mode.
+# Default value: hangup_time=-1
 #hangup_time=10
+
+# Automatic call transfer time in seconds; time<0 corresponds to no auto transfer mode.
+# Default value: transfer_time=-1
+#transfer_time=10
+
+# Automatic re-inviting time in seconds; time<0 corresponds to no auto re-invite mode.
+# Default value: re_invite_time=-1
+#re_invite_time=10
 
 # Redirect incoming call to the secified url.
 # Use value 'NONE' for not redirecting incoming calls (or let it undefined).
 # Default value: redirect_to=NONE
 #redirect_to=sip:alice@wonderland.net
 
-# No offer in the invite.
-# Default value: no_offer=no
-#no_offer=yes
-
 # Transfer calls to the secified url.
 # Use value 'NONE' for not transferring calls (or let it undefined).
 # Default value: transfer_to=NONE
 #transfer_to=sip:alice@wonderland.net
 
-# Time waited beafore tranferring the call. Value '0' means no transfer.
-# Default value: transfer_time=0
-#transfer_time=10
-
-# Time waited beafore reinviting the remote party. Value '0' means no re-invite.
-# Default value: re_invite_time=0
-#re_invite_time=10
+# No offer in the invite.
+# Default value: no_offer=no
+#no_offer=yes
 
 # Whether using audio.
 # Default value: audio=no

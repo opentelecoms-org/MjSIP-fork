@@ -31,7 +31,7 @@ import java.io.IOException;
 
 /** TcpTransport provides a TCP trasport service for SIP.
   */
-class TcpTransport implements SipConnection, TcpConnectionListener
+class TcpTransport implements ConnectedTransport, TcpConnectionListener
 {
    /** TCP protocol type */
    public static final String PROTO_TCP="tcp";
@@ -49,12 +49,12 @@ class TcpTransport implements SipConnection, TcpConnectionListener
    String text="";
 
        
-   /** SipTransport listener */
-   SipTransportListener listener;   
+   /** Transport listener */
+   TransportListener listener;   
 
 
    /** Creates a new TcpTransport */ 
-   public TcpTransport(IpAddress remote_ipaddr, int remote_port, SipTransportListener listener) throws IOException
+   public TcpTransport(IpAddress remote_ipaddr, int remote_port, TransportListener listener) throws IOException
    {  this.listener=listener;
       TcpSocket socket=new TcpSocket(remote_ipaddr,remote_port);
       tcp_conn=new TcpConnection(socket,this);
@@ -64,7 +64,7 @@ class TcpTransport implements SipConnection, TcpConnectionListener
 
 
    /** Costructs a new TcpTransport */
-   public TcpTransport(TcpSocket socket, SipTransportListener listener)
+   public TcpTransport(TcpSocket socket, TransportListener listener)
    {  this.listener=listener;
       tcp_conn=new TcpConnection(socket,this);
       last_time=System.currentTimeMillis();
@@ -155,7 +155,7 @@ class TcpTransport implements SipConnection, TcpConnectionListener
 
    /** When TcpConnection terminates. */
    public void onConnectionTerminated(TcpConnection tcp_conn, Exception error)  
-   {  if (listener!=null) listener.onSipTransportTerminated(this,error);
+   {  if (listener!=null) listener.onTransportTerminated(this,error);
       TcpSocket socket=tcp_conn.getSocket();
       if (socket!=null) try { socket.close(); } catch (Exception e) {}
       this.tcp_conn=null;

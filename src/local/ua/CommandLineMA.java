@@ -24,9 +24,6 @@ package local.ua;
 
 import org.zoolu.sip.address.*;
 import org.zoolu.sip.provider.*;
-import org.zoolu.sip.transaction.*;
-import org.zoolu.sip.header.StatusLine;
-import org.zoolu.sip.message.*;
 import org.zoolu.tools.Log;
 import org.zoolu.tools.LogLevel;
 
@@ -93,7 +90,7 @@ public class CommandLineMA implements RegisterAgentListener, MessageAgentListene
    // *********************** callback functions *********************
  
    /** When a new Message is received. */
-   public void onMaReceivedMessage(MessageAgent ma, NameAddress sender, String subject, String content_type, String content)
+   public void onMaReceivedMessage(MessageAgent ma, NameAddress sender, NameAddress recipient, String subject, String content_type, String content)
    {  remote_user=sender;
       printLog("NEW MESSAGE:");
       printLog("From: "+sender);

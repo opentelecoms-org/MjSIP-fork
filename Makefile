@@ -86,6 +86,7 @@ sip:
 	cd ..
 
 
+
 # ************************** Creates server.jar ************************
 server:
 	@echo ----------------- MAKING SERVER ----------------
@@ -96,12 +97,13 @@ server:
 	cd ..
 
 
+
 # **************************** Creates ua.jar **************************
 ua:
 	@echo ------------------- MAKING UA ------------------
-#	$(JAVAC) -classpath "$(MJSIP_LIBS)" -d $(CLASSDIR) $(SRCDIR)/local/ua/*.java
 	$(JAVAC) -classpath "$(MJSIP_LIBS)" -d $(CLASSDIR) $(addsuffix /*.java,$(addprefix $(SRCDIR)/local/,net media ua))
 
 	cd $(CLASSDIR);	\
 	$(JAR) -cf ../$(LIBDIR)/ua.jar $(addprefix local/,net media ua) -C .. /media/local/ua;	\
 	cd ..
+

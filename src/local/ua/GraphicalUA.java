@@ -56,7 +56,7 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
    UserAgentProfile user_profile;
 
    /** Title */
-   String user_name=app_name;
+   //String user_name=app_name;
 
    /** Recent contacts */
    protected static final int NMAX_CONTACTS=10;
@@ -106,17 +106,13 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
       
       ua=new UserAgent(sip_provider,user_profile,this);
       ua.listen();
-
-      SipURL AOR=(new NameAddress(user_profile.from_url)).getAddress();
-      String username=AOR.getUserName();
-      String realm=AOR.getHost();
-      ra=new RegisterAgent(sip_provider,user_profile.from_url,user_profile.contact_url,username,realm,user_profile.passwd,this);
+      ra=new RegisterAgent(sip_provider,user_profile.from_url,user_profile.contact_url,user_profile.username,user_profile.realm,user_profile.passwd,this);
       
       String jar_file=user_profile.ua_jar;
       icon_call=Archive.getImageIcon(Archive.getJarURL(jar_file,CALL_GIF));
       icon_hangup=Archive.getImageIcon(Archive.getJarURL(jar_file,HANGUP_GIF));
 
-      user_name=user_profile.contact_url;
+      //user_name=user_profile.contact_url;
       contact_list=new StringList(user_profile.contacts_file);
       jComboBox1=new JComboBox(contact_list.getElements());
 
@@ -126,7 +122,7 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
       }
       catch(Exception e) { e.printStackTrace(); }
             
-      //Image image=Archive.getImage(Archive.getJarURL(jar_file,"media/local/ua/zoolu.gif"));
+      //Image image=Archive.getImage(Archive.getJarURL(jar_file,"media/local/ua/intro.gif"));
       //PopupFrame about=new PopupFrame("About",image,this);
       //try  {  Thread.sleep(3000);  } catch(Exception e) {  }
       //about.closeWindow();
@@ -146,7 +142,7 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
       this.setLocation((screenSize.width - frameSize.width)/2 - 40, (screenSize.height - frameSize.height)/2 - 40);
       this.setResizable(false);
 
-      this.setTitle(user_name);
+      this.setTitle(user_profile.contact_url);
       this.addWindowListener(new java.awt.event.WindowAdapter()
       {  public void windowClosing(WindowEvent e) { this_windowClosing(e); }
       });
@@ -373,18 +369,19 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
 
 
    /** When a new call is incoming */
-   public void onUaCallIncoming(UserAgent ua, NameAddress caller)
+   public void onUaCallIncoming(UserAgent ua, NameAddress caller, NameAddress callee)
    {      
       if (ua.user_profile.redirect_to!=null) // redirect the call
       {  display.setText("CALL redirected to "+ua.user_profile.redirect_to);
          ua.redirect(ua.user_profile.redirect_to);
       }         
       else
-      if (ua.user_profile.auto_accept) // automatically accept the call
+      if (ua.user_profile.accept_time>=0) // automatically accept the call
       {  display.setText("ON CALL");
          jComboBox1.setSelectedItem(null);
          comboBoxEditor1.setItem(caller.toString());
-         ua.accept();
+         //ua.accept();
+         ua.automaticAccept(ua.user_profile.accept_time);
       }
       else
       {  display.setText("INCOMING CALL");
@@ -428,8 +425,8 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
       ua.listen();
    }
 
-   /** When a call is beeing remotly closed */
-   public void onUaCallClosing(UserAgent ua)
+   /** When a call has been locally or remotely closed */
+   public void onUaCallClosed(UserAgent ua)
    {
       display.setText("BYE");
       ua.listen();
@@ -441,11 +438,13 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
    /** When a UA has been successfully (un)registered. */
    public void onUaRegistrationSuccess(RegisterAgent ra, NameAddress target, NameAddress contact, String result)
    {  ua.printLog("Registration success: "+result,LogLevel.HIGH);
+      this.setTitle(user_profile.from_url);
    }
 
    /** When a UA failed on (un)registering. */
    public void onUaRegistrationFailure(RegisterAgent ra, NameAddress target, NameAddress contact, String result)
    {  ua.printLog("Registration failure: "+result,LogLevel.HIGH);
+      this.setTitle(user_profile.contact_url);
    }
 
 
@@ -462,22 +461,33 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
       boolean opt_unregist_all=false;
       int     opt_expires=0;
       String  opt_call_to=null;      
-      boolean opt_auto_accept=false;      
-      int     opt_hangup_time=0;
+      int     opt_accept_time=-1;      
+      int     opt_hangup_time=-1;
       boolean opt_no_offer=false;
       String  opt_redirect_to=null;
       boolean opt_audio=false;
       boolean opt_video=false;
+      int     opt_media_port=0;
       boolean opt_recv_only=false;
       boolean opt_send_only=false;
       boolean opt_send_tone=false;
       String  opt_send_file=null;
       String  opt_recv_file=null;
-      int     opt_media_port=21068;
       String  opt_transfer_to=null;
-      int     opt_transfer_time=0;
-      int     opt_re_invite_time=0;
+      int     opt_transfer_time=-1;
+      int     opt_re_invite_time=-1;
+      boolean opt_no_prompt=false;
 
+      String opt_from_url=null;
+      String opt_contact_url=null;
+      String opt_username=null;
+      String opt_realm=null;
+      String opt_passwd=null;
+
+      int opt_debug_level=-1;
+      String opt_log_path=null;
+      String opt_via_addr=SipProvider.AUTO_CONFIGURATION;
+      int opt_host_port=SipStack.default_port;
 
       try
       {
@@ -487,12 +497,8 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
             {  file=args[++i];
                continue;
             }
-            if (args[i].equals("-s")) // automatic accept incoming call
-            {  opt_auto_accept=true;
-               continue;
-            }
-            if (args[i].equals("-p") && args.length>(i+1)) // set the local port
-            {  opt_media_port=Integer.parseInt(args[++i]);
+            if (args[i].equals("-s") && args.length>(i+1)) // set automatic accept time
+            {  opt_accept_time=Integer.parseInt(args[++i]);
                continue;
             }
             if (args[i].equals("-g") && args.length>(i+1)) // registrate the contact url
@@ -518,12 +524,8 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
             {  opt_re_invite_time=Integer.parseInt(args[++i]);
                continue;
             }
-            if (args[i].equals("-o")) // no offer in the invite
-            {  opt_no_offer=true;
-               continue;
-            }
             if (args[i].equals("-r") && args.length>(i+1)) // redirect the call to a new url
-            {  opt_auto_accept=true;
+            {  opt_accept_time=0;
                opt_redirect_to=args[++i];
                continue;
             }
@@ -532,12 +534,48 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
                opt_transfer_time=Integer.parseInt(args[++i]);
                continue;
             }
+            if (args[i].equals("-o")) // no offer in the invite
+            {  opt_no_offer=true;
+               continue;
+            }
             if (args[i].equals("-a")) // use audio
             {  opt_audio=true;
                continue;
             }
             if (args[i].equals("-v")) // use video
             {  opt_video=true;
+               continue;
+            }
+            if (args[i].equals("-m") && args.length>(i+1)) // set the local media port
+            {  opt_media_port=Integer.parseInt(args[++i]);
+               continue;
+            }
+            if (args[i].equals("--via-addr") && args.length>(i+1)) // via addr
+            {  opt_via_addr=args[++i];
+               continue;
+            }
+            if (args[i].equals("-p") && args.length>(i+1)) // set the local sip port
+            {  opt_host_port=Integer.parseInt(args[++i]);
+               continue;
+            }
+            if (args[i].equals("--from-url") && args.length>(i+1)) // user's AOR
+            {  opt_from_url=args[++i];
+               continue;
+            }
+            if (args[i].equals("--contact-url") && args.length>(i+1)) // user's contact_url
+            {  opt_contact_url=args[++i];
+               continue;
+            }
+            if (args[i].equals("--username") && args.length>(i+1)) // username
+            {  opt_username=args[++i];
+               continue;
+            }
+            if (args[i].equals("--realm") && args.length>(i+1)) // realm
+            {  opt_realm=args[++i];
+               continue;
+            }
+            if (args[i].equals("--passwd") && args.length>(i+1)) // passwd
+            {  opt_passwd=args[++i];
                continue;
             }
             if (args[i].equals("--recv-only")) // receive only mode
@@ -553,12 +591,24 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
                opt_send_tone=true;
                continue;
             }
-            if (args[i].equals("--send-file")) // send audio file
+            if (args[i].equals("--send-file") && args.length>(i+1)) // send audio file
             {  opt_send_file=args[++i];
                continue;
             }
-            if (args[i].equals("--recv-file")) // receive audio file
+            if (args[i].equals("--recv-file") && args.length>(i+1)) // receive audio file
             {  opt_recv_file=args[++i];
+               continue;
+            }
+            if (args[i].equals("--debug-level") && args.length>(i+1)) // debug level
+            {  opt_debug_level=Integer.parseInt(args[++i]);
+               continue;
+            }
+            if (args[i].equals("--log-path") && args.length>(i+1)) // log path
+            {  opt_log_path=args[++i];
+               continue;
+            }
+            if (args[i].equals("--no-prompt")) // do not prompt
+            {  opt_no_prompt=true;
                continue;
             }
 
@@ -568,63 +618,79 @@ public class GraphicalUA extends JFrame implements UserAgentListener, RegisterAg
 
             System.out.println("usage:\n   java GraphicalUA [options]");
             System.out.println("   options:");
-            System.out.println("   -h                 this help");
-            System.out.println("   -f <config_file>   specifies a configuration file");
-            System.out.println("   -s                 auto accept incoming calls");
-            System.out.println("   -t <secs>          specipies the call duration (0 means manual hangup)");
-            System.out.println("   -p <port>          local media port");
-            System.out.println("   -g <time>          registers the contact URL with the registrar server");
-            System.out.println("                      where time is the duration of the registration, and can be");
-            System.out.println("                      in seconds (default) or hours ( -r 7200 is the same as -r 2h )");
-            System.out.println("   -u                 unregisters the contact URL with the registrar server");
-            System.out.println("                      (is the same as -r 0)");
-            System.out.println("   -z                 unregisters ALL the contact URLs");
-            System.out.println("   -r <url>           redirects the call to a new user");
-            System.out.println("   -o                 no offer in invite (offer/answer in 2xx/ack)");
-            System.out.println("   -a                 audio");
-            System.out.println("   -v                 video");
-            System.out.println("   --recv-only        receive only mode, no media is sent");
-            System.out.println("   --send-only        send only mode, no media is received");
-            System.out.println("   --send-tone        send only mode, an audio test tone is generated");
-            System.out.println("   --send-file <file> audio is played from the specified file");
-            System.out.println("   --recv-file <file> audio is recorded to the specified file");
+            System.out.println("   -h              this help");
+            System.out.println("   -f <file>       specifies a configuration file");
+            System.out.println("   -s <secs>       auto answer time");
+            System.out.println("   -t <secs>       auto hangup time (0 means manual hangup)");
+            System.out.println("   -g <time>       registers the contact URL with the registrar server");
+            System.out.println("                   where time is the duration of the registration, and can be");
+            System.out.println("                   in seconds (default) or hours (-g 7200 is the same as -g 2h)");
+            System.out.println("   -u              unregisters the contact URL with the registrar server");
+            System.out.println("                   (is the same as -g 0)");
+            System.out.println("   -z              unregisters ALL the contact URLs");
+            System.out.println("   -i <secs>       re-invite after <secs> seconds");
+            System.out.println("   -r <url>        redirects the call to new user <url>");
+            System.out.println("   -q <url> <secs> transfers the call to <url> after <secs> seconds");
+            System.out.println("   -o              no offer in invite (offer/answer in 2xx/ack)");
+            System.out.println("   -a              audio");
+            System.out.println("   -v              video");
+            System.out.println("   -m <port>       (first) local media port");
+            System.out.println("   -p <port>       local SIP port, used ONLY without -f option");
+            System.out.println("   --via-addr <addr>   host via address, used ONLY without -f option");
+            System.out.println("   --from-url <url>    user's address-of-record (AOR)");
+            System.out.println("   --contact-url <url> user's contact url");
+            System.out.println("   --username <addr>   user name used for authentication");
+            System.out.println("   --real <addr>       realm used for authentication");
+            System.out.println("   --passwd <addr>     passwd used for authentication");
+            System.out.println("   --recv-only         receive only mode, no media is sent");
+            System.out.println("   --send-only         send only mode, no media is received");
+            System.out.println("   --send-tone         send only mode, an audio test tone is generated");
+            System.out.println("   --send-file <file>  audio is played from the specified file");
+            System.out.println("   --recv-file <file>  audio is recorded to the specified file");
+            System.out.println("   --debug-level <n>   debug level (level=0 means no log)");
+            System.out.println("   --log-path <path>   base path for all logs (./log is the default value)");
+            System.out.println("   --no-prompt         do not prompt");
             System.exit(0);
          }
 
          SipStack.init(file);
-         SipProvider sip_provider=new SipProvider(file);
+         if (opt_debug_level>=0) SipStack.debug_level=opt_debug_level;
+         if (opt_log_path!=null) SipStack.log_path=opt_log_path;
+         SipProvider sip_provider;
+         if (file!=null) sip_provider=new SipProvider(file); else sip_provider=new SipProvider(opt_via_addr,opt_host_port);
          UserAgentProfile user_profile=new UserAgentProfile(file);         
 
          if (opt_regist) user_profile.do_register=true;
          if (opt_unregist) user_profile.do_unregister=true;
          if (opt_unregist_all) user_profile.do_unregister_all=true;
          if (opt_expires>0) user_profile.expires=opt_expires;
-         if (opt_call_to!=null) user_profile.call_to=opt_call_to;
-         if (opt_auto_accept) user_profile.auto_accept=true;
+         if (opt_accept_time>=0) user_profile.accept_time=opt_accept_time;
          if (opt_hangup_time>0) user_profile.hangup_time=opt_hangup_time;
          if (opt_redirect_to!=null) user_profile.redirect_to=opt_redirect_to;
          if (opt_re_invite_time>0) user_profile.re_invite_time=opt_re_invite_time;
+         if (opt_transfer_to!=null) user_profile.transfer_to=opt_transfer_to;
+         if (opt_transfer_time>0) user_profile.transfer_time=opt_transfer_time;
          if (opt_no_offer) user_profile.no_offer=true;
-         if (opt_media_port!=21068) user_profile.video_port=(user_profile.audio_port=opt_media_port)+2;
          if (opt_audio) user_profile.audio=true;
          if (opt_video) user_profile.video=true;
+         if (opt_media_port>0) user_profile.video_port=(user_profile.audio_port=opt_media_port)+2;
+         if (opt_from_url!=null) user_profile.from_url=opt_from_url;
+         if (opt_contact_url!=null) user_profile.contact_url=opt_contact_url;
+         if (opt_username!=null) user_profile.username=opt_username;
+         if (opt_realm!=null) user_profile.realm=opt_realm;
+         if (opt_passwd!=null) user_profile.passwd=opt_passwd;
          if (opt_recv_only) user_profile.recv_only=true;
          if (opt_send_only) user_profile.send_only=true;             
          if (opt_send_tone) user_profile.send_tone=true;
          if (opt_send_file!=null) user_profile.send_file=opt_send_file;
          if (opt_recv_file!=null) user_profile.recv_file=opt_recv_file;
+         if (opt_no_prompt) user_profile.no_prompt=true;
+         if (opt_call_to!=null) user_profile.call_to=opt_call_to;
 
-         // ################# patch to make audio working with javax.sound.. #################
-         // # currently AudioSender must be started before any AudioClipPlayer is initialized,
-         // # since there is a problem with the definition of the audio format
-         // ##################################################################################
-         if (!user_profile.use_rat && !user_profile.use_jmf)
-         //{  if (user_profile.audio && !user_profile.recv_only) local.media.AudioInput.initAudioLine();
-         {  if (user_profile.audio && !user_profile.recv_only && user_profile.send_file==null && !user_profile.send_tone) local.media.AudioInput.initAudioLine();
-            if (user_profile.audio && !user_profile.send_only && user_profile.recv_file==null) local.media.AudioOutput.initAudioLine();
-         }
+         // use audio as default media in case of..
+         if ((opt_recv_only || opt_send_only || opt_send_tone || opt_send_file!=null || opt_recv_file!=null) && !opt_video) user_profile.audio=true;
 
-         GraphicalUA visual_ua=new GraphicalUA(sip_provider,user_profile);
+         new GraphicalUA(sip_provider,user_profile);
       }
       catch (Exception e) { e.printStackTrace(); }
    }

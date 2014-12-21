@@ -64,13 +64,19 @@ public class CSeqHeader extends Header
    }
 
    /** Sets method of CSeqHeader */
-   public void SetMethod(String method)
+   public void setMethod(String method)
    {  value=getSequenceNumber()+" "+method;
    }
 
    /** Sets sequence number of CSeqHeader */
    public void setSequenceNumber(long sequenceNumber)
    {  value=String.valueOf(sequenceNumber)+" "+getMethod();
+   }
+
+   /** Increments sequence number of CSeqHeader */
+   public CSeqHeader incSequenceNumber()
+   {  value=String.valueOf(getSequenceNumber()+1)+" "+getMethod();
+      return this;
    }
 }
 

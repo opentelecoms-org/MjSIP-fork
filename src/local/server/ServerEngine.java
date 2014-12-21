@@ -235,19 +235,30 @@ public abstract class ServerEngine implements SipProviderListener
       int err_code=0;
       
       // Max-Forwads
-      MaxForwardsHeader mfh=msg.getMaxForwardsHeader();
-      if (mfh!=null && mfh.getNumber()==0) err_code=483;
-
+      if (err_code==0) 
+      {  MaxForwardsHeader mfh=msg.getMaxForwardsHeader();
+         if (mfh!=null && mfh.getNumber()==0) err_code=483;
+      }
       // Loops
-      Vector v=msg.getVias().getHeaders();
-      for (int i=0; i<v.size(); i++)
-      {  ViaHeader vh=new ViaHeader((Header)v.elementAt(i));
-         // DEBUG:
-         //if (sip_provider==null) System.out.println("DEBUG: sipprovider==null");
-         //if (sip_provider.getAddress()==null) System.out.println("DEBUG: address==null");
-         //if (vh==null) System.out.println("DEBUG: via==null");
-         //if (vh.getHost()==null) System.out.println("DEBUG: host==null");
-         if (sip_provider.getViaAddress().equals(vh.getHost()) && sip_provider.getPort()==vh.getPort()) err_code=482;
+      if (err_code==0 && server_profile.loop_detection) 
+      {  Vector v=msg.getVias().getHeaders();
+         for (int i=0; i<v.size(); i++)
+         {  ViaHeader vh=new ViaHeader((Header)v.elementAt(i));
+            // DEBUG:
+            //if (sip_provider==null) System.out.println("DEBUG: sipprovider==null");
+            //if (sip_provider.getAddress()==null) System.out.println("DEBUG: address==null");
+            //if (vh==null) System.out.println("DEBUG: via==null");
+            //if (vh.getHost()==null) System.out.println("DEBUG: host==null");
+            if (sip_provider.getViaAddress().equals(vh.getHost()) && sip_provider.getPort()==vh.getPort())
+            {  // possible loop
+               if (!vh.hasBranch()) err_code=482;
+               else
+               {  // compare branch
+                  String branch=vh.getBranch();
+                  if (branch.equals(sip_provider.pickBranch(msg))) err_code=482;
+               }
+            }
+         }
       }
             
       // Proxy-Require

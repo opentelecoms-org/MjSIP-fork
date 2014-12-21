@@ -36,7 +36,7 @@ import java.util.Vector;
 public interface CallListener
 {  
    /** Callback function called when arriving a new INVITE method (incoming call) */
-   public void onCallIncoming(Call call, NameAddress caller, String sdp, Message invite);
+   public void onCallIncoming(Call call, NameAddress caller, NameAddress callee, String sdp, Message invite);
 
    /** Callback function called when arriving a new Re-INVITE method (re-inviting/call modify) */
    public void onCallModifying(Call call, String sdp, Message invite);

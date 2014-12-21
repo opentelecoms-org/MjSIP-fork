@@ -58,6 +58,7 @@ public class JAudioLauncher implements MediaLauncher
    
    int dir; // duplex= 0, recv-only= -1, send-only= +1; 
 
+   DatagramSocket socket=null;
    RtpStreamSender sender=null;
    RtpStreamReceiver receiver=null;
    AudioInput audio_input=null;
@@ -77,7 +78,7 @@ public class JAudioLauncher implements MediaLauncher
    public JAudioLauncher(int local_port, String remote_addr, int remote_port, int direction, Log logger)
    {  log=logger;
       try
-      {  DatagramSocket socket=new DatagramSocket(local_port);
+      {  socket=new DatagramSocket(local_port);
          dir=direction;
          // sender
          if (dir>=0)
@@ -96,15 +97,16 @@ public class JAudioLauncher implements MediaLauncher
             receiver=new RtpStreamReceiver(audio_output.getOuputStream(),socket);
          }
       }
-      catch (Exception e) {  e.printStackTrace();  }
+      catch (Exception e) {  printException(e,LogLevel.HIGH);  }
    }
 
 
    /** Costructs the audio launcher */
-   public JAudioLauncher(int local_port, String remote_addr, int remote_port, int direction, String audiofile_in, String audiofile_out, Log logger)
+   public JAudioLauncher(int local_port, String remote_addr, int remote_port, int direction, String audiofile_in, String audiofile_out, int sample_rate, int sample_size, int frame_size, Log logger)
    {  log=logger;
+      frame_rate=sample_rate/frame_size;
       try
-      {  DatagramSocket socket=new DatagramSocket(local_port);
+      {  socket=new DatagramSocket(local_port);
          dir=direction;
          // sender
          if (dir>=0 && audiofile_in!=null && audiofile_in.equals(JAudioLauncher.TONE))
@@ -153,21 +155,21 @@ public class JAudioLauncher implements MediaLauncher
             receiver=new RtpStreamReceiver(audio_output.getOuputStream(),socket);
          }
       }
-      catch (Exception e) {  e.printStackTrace();  }
+      catch (Exception e) {  printException(e,LogLevel.HIGH);  }
    }
 
 
    /** Starts media application */
    public boolean startMedia()
-   {  printLog("starting java audio..",1);
+   {  printLog("starting java audio..",LogLevel.HIGH);
 
       if (sender!=null)
-      {  printLog("audio: start sending",LogLevel.LOW);
+      {  printLog("start sending",LogLevel.LOW);
          sender.start();
          if (audio_input!=null) audio_input.play();
       }
       if (receiver!=null)
-      {  printLog("audio: start receiving",LogLevel.LOW);
+      {  printLog("start receiving",LogLevel.LOW);
          receiver.start();
          if (audio_output!=null) audio_output.play();
       }
@@ -178,21 +180,26 @@ public class JAudioLauncher implements MediaLauncher
 
    /** Stops media application */
    public boolean stopMedia()
-   {  printLog("halting java audio..",1);    
+   {  printLog("halting java audio..",LogLevel.HIGH);    
       if (sender!=null)
       {  sender.halt(); sender=null;
+         printLog("sender halted",LogLevel.LOW);
       }      
       if (audio_input!=null)
       {  audio_input.stop(); audio_output=null;
       }      
       if (receiver!=null)
       {  receiver.halt(); receiver=null;
+         printLog("receiver halted",LogLevel.LOW);
       }      
       if (audio_output!=null)
       {  audio_output.stop(); audio_output=null;
-      }      
-      printLog("done",1);
-      return true;      
+      }
+      // take into account the resilience of RtpStreamSender
+      // (NOTE: it does not take into acconunt the resilience of RtpStreamReceiver; this can cause SocketException)
+      try { Thread.sleep(RtpStreamReceiver.SO_TIMEOUT); } catch (Exception e) {}
+      socket.close();
+      return true;
    }
 
 
@@ -209,6 +216,12 @@ public class JAudioLauncher implements MediaLauncher
    private void printLog(String str, int level)
    {  if (log!=null) log.println("AudioLauncher: "+str,level+SipStack.LOG_LEVEL_UA);  
       if (level<=LogLevel.HIGH) System.out.println("AudioLauncher: "+str);
+   }
+
+   /** Adds the Exception message to the default Log */
+   void printException(Exception e,int level)
+   {  if (log!=null) log.printException(e,level+SipStack.LOG_LEVEL_UA);
+      if (level<=LogLevel.HIGH) e.printStackTrace();
    }
 
 }

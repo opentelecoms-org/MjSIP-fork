@@ -1,5 +1,53 @@
 Changes:
 ----------------------------------------------------
+28/11/2005
+-change: AuthenticationService,AuthenticationServiceImpl,LdapAuthenticationServiceImpl: removed user attributes 'rand' and 'seqn'
+-add: AuthenticationServiceImpl: file aaa.db now can contain passwd in plain text (passwd=<passwd>)
+
+27/11/2005
+-change: AuthenticationServer,Registrar: AuthenticationServer becomes an interface
+-add: AuthenticationServerImpl: new class 
+
+24/11/2005
+-change: UserAgentProfile,: renamed attribute audio_rate to audio_sample_rate
+-add: UserAgentProfile,JAudioLauncher,UserAgent: in UserAgentProfile new attributes audio_sample_size and audio_frame_size
+
+21/11/2005
+-change: Dialog: status becomes protected (it was private)
+
+19/11/2005
+-fix: JAdudioLauncher: fixed a problem with DatagramSocket: the socket was not explicitly closed when halting audio; fixed
+-add: UserAgentProfile,CommandLineUA,GraphicalUA: added command-line parameters -d (debug level) and --log-path 
+
+18/11/2005
+-change: UserAgent,UserAgentProfile,CommandLineUA,GraphicalUA: added auto-accept time; UserAgentProfile.auto_accept replaced by UserAgentProfile.accept_time 
+
+13/11/2005
+-change: RtpStreamSender,RtpStreamReceiver: by default, the debug mode is disabled (DEBUG=false)
+-change: RtpStreamSender,RtpStreamReceiver: attribute DEBUG is now public and not final
+-change: RtpStreamReceiver: attributes BUFFER_SIZE and SO_TIMEOUT are now public
+-change: RtpSocket: now method close() does not close the DatagramSocket
+-add: media: new classes MixerLine, SplitterLine, Mixer, ExtendedPipedInputStream, ExtendedPipedOutputStream
+
+12/11/2005
+-add: added new class AudioOutputStream for audio conversion and output (javax.sound contains only AudioInputStream, and no conversion seems to be possible in output)  
+-change: AudioOutput: new AudioOutput class, without the internal Thread for audio playback  
+-change: UserAgentProfile: removed SipStack initialization (and dependaces)
+-change: UserAgentProfile: added costructor UserAgentProfile()
+
+11/11/2005
+-add: GraphicalUA, CommandLineUA: use audio as default media in case of..
+-fix: GraphicalUA, CommandLineUA: some command-line option was not used (such as transfer_to); fixed
+-add: GraphicalUA, CommandLineUA: new command-line parameters: -p, --via-addr, -m, --username, --realm, --passwd, --from-url, --contact-url
+-change: GraphicalUA: the window title now reports the registered url (AOR), or (in case of registration failure) the contact url
+
+3/11/2005
+-change: a.cfg,b.cfg: bin_vic set to mbone/vic (inseted of mbone/rat!)
+-change: UserAgent,CommandLineUA,GraphicalUA: AudioInput.initAudioLine() moved from CommandLineUA,GraphicalUA to UserAgent
+-fix: Redirect: fixed a casting problem caused by a non-updated use of getTargets() method 
+-fix: UserAgent: patch to make rat working: in case of rat, do not load and play audio clips
+-fix: Makefile: 'make server' did not include the local.auth package; fixed   
+
 16/10/2005
 - fix: Registrar.java: myclass=Class.forName(authentication_service_class) in place of myclass=Class.forName(profile.authentication_service);
 - add: UserAgentProfile, UserAgent: added realm parameter; if not defined it is taken from contact_url

@@ -80,7 +80,7 @@ public class RtpSocket
 
    /** Closes this socket */      
    public void close()
-   {  socket.close();
+   {  //socket.close();
    }
 
 }

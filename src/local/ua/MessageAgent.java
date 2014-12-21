@@ -36,7 +36,8 @@ import java.io.*;
 /** Simple Message Agent.
   * It allows a user to send and receive short messages.
   */
-public class MessageAgent implements SipProviderListener, TransactionClientListener
+//public class MessageAgent implements SipProviderListener, TransactionClientListener
+public class MessageAgent implements SipInterfaceListener, TransactionClientListener
 {     
    /** Event logger. */
    protected Log log=null;
@@ -46,6 +47,9 @@ public class MessageAgent implements SipProviderListener, TransactionClientListe
 
    /** SipProvider */
    protected SipProvider sip_provider;
+
+   /** SipInterface to message MESSAGE. */
+   protected SipInterface sip_interface;
 
    /** UserProfile */
    protected MessageAgentListener listener;
@@ -57,9 +61,10 @@ public class MessageAgent implements SipProviderListener, TransactionClientListe
       this.log=sip_provider.getLog();
       this.user_profile=user_profile;
       this.listener=listener;
+      this.sip_interface=null;
       // if no contact_url and/or from_url has been set, create it now
       if (user_profile.contact_url==null)
-      {  user_profile.contact_url="sip:"+user_profile.contact_user+"@"+sip_provider.getViaAddress();
+      {  user_profile.contact_url="sip:"+user_profile.username+"@"+sip_provider.getViaAddress();
          if (sip_provider.getPort()!=SipStack.default_port) user_profile.contact_url+=":"+sip_provider.getPort();
          if (!sip_provider.getDefaultTransport().equals(SipProvider.PROTO_UDP)) user_profile.contact_url+=";transport="+sip_provider.getDefaultTransport();
       }
@@ -86,33 +91,52 @@ public class MessageAgent implements SipProviderListener, TransactionClientListe
 
    /** Waits for incoming message. */
    public void receive()
-   {  sip_provider.addSipProviderListener(new MethodIdentifier(SipMethods.MESSAGE),this);  
+   {  //sip_provider.addSipProviderListener(new MethodIdentifier(SipMethods.MESSAGE),this);
+      sip_interface=new SipInterface(sip_provider,new MethodIdentifier(SipMethods.MESSAGE),this);
    } 
    
 
    /** Stops receiving messages. */
    public void halt()
-   {  sip_provider.removeSipProviderListener(new MethodIdentifier(SipMethods.MESSAGE));  
+   {  //sip_provider.removeSipProviderListener(new MethodIdentifier(SipMethods.MESSAGE));  
+      sip_interface.close();
    } 
 
 
    // ******************* Callback functions implementation ********************
 
-   /** Inherited from class SipProviderListener
-     * Called when a new message is received (out of any ongoing transaction) */
-   public void onReceivedMessage(SipProvider provider, Message msg)
+   /** When a new Message is received by the SipProvider. */
+   /*public void onReceivedMessage(SipProvider provider, Message msg)
    {  //printLog("Message received: "+msg.getFirstLine().substring(0,msg.toString().indexOf('\r')));
       if (msg.isRequest() && msg.isMessage())
       {  (new TransactionServer(sip_provider,msg,null)).respondWith(MessageFactory.createResponse(msg,200,"OK",null,""));
          NameAddress sender=msg.getFromHeader().getNameAddress();
+         NameAddress recipient=msg.getToHeader().getNameAddress();
          String subject=null;
          if (msg.hasSubjectHeader()) subject=msg.getSubjectHeader().getSubject();
          String content_type=msg.getContentTypeHeader().getContentType();
          String content=msg.getBody();
-         if (listener!=null) listener.onMaReceivedMessage(this,sender,subject,content_type,content);
+         if (listener!=null) listener.onMaReceivedMessage(this,sender,recipient,subject,content_type,content);
+      }
+   }*/
+
+
+   /** When a new Message is received by the SipInterface. */
+   public void onReceivedMessage(SipInterface sip, Message msg)
+   {  //printLog("Message received: "+msg.getFirstLine().substring(0,msg.toString().indexOf('\r')));
+      if (msg.isRequest())
+      {  (new TransactionServer(sip_provider,msg,null)).respondWith(MessageFactory.createResponse(msg,200,"OK",null,""));
+         NameAddress sender=msg.getFromHeader().getNameAddress();
+         NameAddress recipient=msg.getToHeader().getNameAddress();
+         String subject=null;
+         if (msg.hasSubjectHeader()) subject=msg.getSubjectHeader().getSubject();
+         String content_type=msg.getContentTypeHeader().getContentType();
+         String content=msg.getBody();
+         if (listener!=null) listener.onMaReceivedMessage(this,sender,recipient,subject,content_type,content);
       }
    }
  
+
    /** When the TransactionClient goes into the "Completed" state receiving a 2xx response */
    public void onCltSuccessResponse(TransactionClient tc, Message resp) 
    {  onDeliverySuccess(tc,resp.getStatusLine().getReason());

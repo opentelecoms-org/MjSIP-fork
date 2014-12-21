@@ -152,16 +152,21 @@ public class TransactionServer extends Transaction
    /** Method derived from interface TimerListener.
      * It's fired from an active Timer. */
    public void onTimeout(Timer to)
-   {  if (to.equals(clearing_to))
-      {  printLog("Clearing timeout expired",LogLevel.HIGH);
-         if (statusIs(STATE_WAITING)) sip_provider.removeSipProviderListener(new TransactionIdentifier(method.getTransactionMethod()));
-         else sip_provider.removeSipProviderListener(transaction_id);
-         changeStatus(STATE_TERMINATED);
-         //if (transaction_listener!=null) transaction_listener.onSrvClearingTimeout(this);
-         // (CHANGE-040421) now it can free links to transaction_listener and timers
-         transaction_listener=null;
-         //clearing_to=null;
-      }  
+   {  try
+      {  if (to.equals(clearing_to))
+         {  printLog("Clearing timeout expired",LogLevel.HIGH);
+            if (statusIs(STATE_WAITING)) sip_provider.removeSipProviderListener(new TransactionIdentifier(method.getTransactionMethod()));
+            else sip_provider.removeSipProviderListener(transaction_id);
+            changeStatus(STATE_TERMINATED);
+            //if (transaction_listener!=null) transaction_listener.onSrvClearingTimeout(this);
+            // (CHANGE-040421) now it can free links to transaction_listener and timers
+            transaction_listener=null;
+            //clearing_to=null;
+         }
+      }
+      catch (Exception e)
+      {  printException(e,LogLevel.HIGH);
+      }
    }   
 
    /** Terminates the transaction. */

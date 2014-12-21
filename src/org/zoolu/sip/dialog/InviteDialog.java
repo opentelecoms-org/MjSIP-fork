@@ -109,13 +109,13 @@ public class InviteDialog extends Dialog implements TransactionClientListener, I
          case D_CLOSE      : return "D_CLOSE";
          default : return null;
       }
-   }      
+   }
 
    /** Gets the dialog state */
    public String getStatus()
    {  return getStatus(status);  
    }
-         
+
    /** Whether it is within a re-inviting procedure */   
    //public boolean isInCall() { return in_call; }
 
@@ -680,7 +680,7 @@ public class InviteDialog extends Dialog implements TransactionClientListener, I
          update(Dialog.T_SERVER,msg);
          printLog("dialog="+getDialogID(),LogLevel.HIGH);
          sip_provider.addSipProviderListener(getDialogID(),this);
-         listener.onDlgInvite(this,method.getFromHeader().getNameAddress(),method.getBody(),method);
+         listener.onDlgInvite(this,method.getFromHeader().getNameAddress(),method.getToHeader().getNameAddress(),method.getBody(),method);
       }
    }
       

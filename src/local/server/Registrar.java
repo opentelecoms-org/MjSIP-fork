@@ -56,14 +56,35 @@ import java.util.Enumeration;
   */
 public class Registrar extends ServerEngine
 {   
+   /** LocationService. */
    protected LocationService location_service;
+
+   /** AuthenticationService (i.e. the repository with authentication credentials). */
+   protected AuthenticationService authentication_service;
+
+   /** AuthenticationServer. */
    protected AuthenticationServer as;
    
-   //Hashtable location_service_domains;
-   
-   /** Costructs a void Registrar */
-   protected Registrar() {}
+   /** List of already supported location services */
+   protected static final String[] LOCATION_SERVICES={ "local", "ldap" };
+   /** List of location service Classes (ordered as in <i>LOCATION_SERVICES</i>) */
+   protected static final String[] LOCATION_SERVICE_CLASSES={ "local.server.LocationServiceImpl", "local.ldap.LdapLocationServiceImpl" };
 
+   /** List of already supported authentication services */
+   protected static final String[] AUTHENTICATION_SERVICES={ "local", "ldap" };
+   /** List of authentication service Classes (ordered as in <i>AUTHENTICATION_SERVICES</i>) */
+   protected static final String[] AUTHENTICATION_SERVICE_CLASSES={ "local.server.AuthenticationServiceImpl", "local.ldap.LdapAuthenticationServiceImpl" };
+
+   /** List of already supported authentication schemes */
+   protected static final String[] AUTHENTICATION_SCHEMES={ "Digest" };
+   /** List of authentication server Classes (ordered as in <i>AUTHENTICATION_SCHEMES</i>) */
+   protected static final String[] AUTHENTICATION_SERVER_CLASSES={ "local.server.AuthenticationServerImpl" };
+
+   
+   /** Costructs a void Registrar. */
+   protected Registrar() {}
+   
+   
    /** Costructs a new Registrar. The Location Service is stored within the file <i>db_name</i> */
    //public Registrar(SipProvider provider, String db_class, String db_name)
    public Registrar(SipProvider provider, ServerProfile profile)
@@ -71,41 +92,109 @@ public class Registrar extends ServerEngine
       printLog("Domains="+localDomains(),LogLevel.HIGH);
 
       // location service
-      location_service=new LocationServiceImpl(profile.location_db);
-      boolean changed=false;
+      String location_service_class=profile.location_service;
+      for (int i=0; i<LOCATION_SERVICES.length; i++)
+         if (LOCATION_SERVICES[i].equalsIgnoreCase(profile.location_service)) {  location_service_class=LOCATION_SERVICE_CLASSES[i];  break;  }
+      try
+      {  Class myclass=Class.forName(location_service_class);
+         Class[] parameter_types={ Class.forName("java.lang.String") };
+         Object[] parameters={ profile.location_db };
+         try 
+         {  java.lang.reflect.Constructor constructor=myclass.getConstructor(parameter_types);
+            location_service=(LocationService)constructor.newInstance(parameters);
+         }
+         catch (NoSuchMethodException e)
+         {  printException(e,LogLevel.MEDIUM);
+            location_service=(LocationService)myclass.newInstance();
+         }
+      }
+      catch (Exception e)
+      {  printException(e,LogLevel.HIGH);
+         printLog("Error trying to use location service '"+location_service_class+"': use default class.",LogLevel.HIGH);
+      }
+      // use default location service
+      if (location_service==null) location_service=new LocationServiceImpl(profile.location_db);   
       // do clean all?
       if (profile.clean_location_db) 
       {  printLog("LocationService \""+profile.location_db+"\": cleaned\r\n",LogLevel.MEDIUM);
          location_service.removeAllContacts();
-         changed=true;
+         location_service.sync();
       }
       else
       { // remove all expired contacts
+         boolean changed=false;    
          for (Enumeration u=location_service.getUsers(); u.hasMoreElements(); )
          {  String user=(String)u.nextElement();
-            for (Enumeration c=location_service.getUserContacts(user); c.hasMoreElements(); )
+            for (Enumeration c=location_service.getUserContactURLs(user); c.hasMoreElements(); )
             {  String contact=(String)c.nextElement();
-               UserBinding bind=((LocationServiceImpl)location_service).getUserBinding(user);
                if ((changed=location_service.isUserContactExpired(user,contact))==true) location_service.removeUserContact(user,contact);
             }
             // Note: uncomment the next line, if you want that 'unbound' users (i.e. without registered contacts) are automatically removed
             //if (!location_service.getUserContacts(user).hasMoreElements()) location_service.removeUser(user);   
          }
-      }
-      
-      if (changed) location_service.sync();
-      printLog("LocationService \""+profile.location_db+"\": size="+location_service.size()+"\r\n"+location_service.toString(),LogLevel.MEDIUM);
+         if (changed) location_service.sync();
+      }  
+      printLog("LocationService ("+profile.authentication_service+"): size="+location_service.size()+"\r\n"+location_service.toString(),LogLevel.MEDIUM);
 
       // authentication server
       if (server_profile.do_authentication)
-      {  String realm=(server_profile.authentication_realm!=null)? server_profile.authentication_realm : sip_provider.getViaAddress();
-         as=new AuthenticationServer(realm,server_profile.authentication_db,sip_provider.getLog());
+      {  // first, init the proper authentication service
+         String realm=(server_profile.authentication_realm!=null)? server_profile.authentication_realm : sip_provider.getViaAddress();
+         String authentication_service_class=profile.authentication_service;
+         for (int i=0; i<AUTHENTICATION_SERVICES.length; i++)
+            if (AUTHENTICATION_SERVICES[i].equalsIgnoreCase(profile.authentication_service)) {  authentication_service_class=AUTHENTICATION_SERVICE_CLASSES[i];  break;  }
+         try
+         {  Class myclass=Class.forName(authentication_service_class);
+            Class[] parameter_types={ Class.forName("java.lang.String") };
+            Object[] parameters={ profile.authentication_db };
+            try 
+            {  java.lang.reflect.Constructor constructor=myclass.getConstructor(parameter_types);
+               authentication_service=(AuthenticationService)constructor.newInstance(parameters);
+            }
+            catch (NoSuchMethodException e)
+            {  printException(e,LogLevel.MEDIUM);
+               authentication_service=(AuthenticationService)myclass.newInstance();
+            }
+         }
+         catch (Exception e)
+         {  printException(e,LogLevel.HIGH);
+            printLog("Error trying to use authentication service '"+authentication_service_class+"': use default class.",LogLevel.HIGH);
+         }
+         // use default authentication service
+         if (authentication_service==null) authentication_service=new AuthenticationServiceImpl(server_profile.authentication_db);
+         printLog("AuthenticationService ("+profile.authentication_service+"): size="+authentication_service.size()+"\r\n"+authentication_service.toString(),LogLevel.MEDIUM);
+         
+         // now, init the proper authentication server
+         String authentication_server_class=profile.authentication_scheme;
+         for (int i=0; i<AUTHENTICATION_SCHEMES.length; i++)
+            if (AUTHENTICATION_SCHEMES[i].equalsIgnoreCase(profile.authentication_scheme)) {  authentication_server_class=AUTHENTICATION_SERVER_CLASSES[i];  break;  }
+         try
+         {  Class myclass=Class.forName(authentication_server_class);
+            Class[] parameter_types={ Class.forName("java.lang.String"), Class.forName("local.server.AuthenticationService"), Class.forName("org.zoolu.tools.Log") };
+            Object[] parameters={ realm, authentication_service, sip_provider.getLog() };
+            try
+            {  java.lang.reflect.Constructor constructor=myclass.getConstructor(parameter_types);
+               as=(AuthenticationServer)constructor.newInstance(parameters);
+            }
+            catch (NoSuchMethodException e)
+            {  printException(e,LogLevel.MEDIUM);
+               as=(AuthenticationServer)myclass.newInstance();
+            }
+         }
+         catch (Exception e)
+         {  printException(e,LogLevel.HIGH);
+            printLog("Error trying to use authentication server '"+authentication_server_class+"': use default class.",LogLevel.HIGH);
+         }
+         // use default authentication service
+         if (as==null) as=new AuthenticationServerImpl(realm,authentication_service,sip_provider.getLog());
+         printLog("AuthenticationServer: scheme: "+profile.authentication_scheme,LogLevel.MEDIUM);
+         printLog("AuthenticationServer: realm: "+profile.authentication_realm,LogLevel.MEDIUM);
       }
       else as=null;
    }
  
    
-   /** When a new request is received for the local server */
+   /** When a new request is received for the local server. */
    public void processRequestToLocalServer(Message msg)
    {  
       printLog("inside processRequestToLocalServer(msg)",LogLevel.MEDIUM);
@@ -114,7 +203,8 @@ public class Registrar extends ServerEngine
          //t.listen();
    
          if (as!=null)
-         {  // check message authentication
+         { 
+            // check message authentication
             Message err_resp=as.authenticateRequest(msg);  
             if (err_resp!=null)
             {  t.respondWith(err_resp);
@@ -127,11 +217,7 @@ public class Registrar extends ServerEngine
          
          if (as!=null)
          {  // add Authentication-Info header field
-            AuthenticationInfoHeader aih=new AuthenticationInfoHeader();
-            aih.addRealmParam(as.getRealm());
-            aih.addQopOptionsParam(as.getQopOptions());
-            aih.addNextnonceParam(as.getRand());
-            resp.setAuthenticationInfoHeader(aih);
+            resp.setAuthenticationInfoHeader(as.getAuthenticationInfoHeader());
          }
          
          t.respondWith(resp);
@@ -145,7 +231,7 @@ public class Registrar extends ServerEngine
    }
 
 
-   /** When a new request message is received for a local user */
+   /** When a new request message is received for a local user. */
    public void processRequestToLocalUser(Message msg)
    {  printLog("inside processRequestToLocalUser(msg)",LogLevel.MEDIUM);
       // stateless-response (in order to avoid DoS attacks)
@@ -154,7 +240,7 @@ public class Registrar extends ServerEngine
    }
  
    
-   /** When a new request message is received for a remote UA */
+   /** When a new request message is received for a remote UA. */
    public void processRequestToRemoteUA(Message msg)
    {  printLog("inside processRequestToRemoteUA(msg)",LogLevel.MEDIUM);
       // stateless-response (in order to avoid DoS attacks)
@@ -163,7 +249,7 @@ public class Registrar extends ServerEngine
    }
 
 
-   /** When a new response message is received */
+   /** When a new response message is received. */
    public void processResponse(Message resp)
    {  printLog("inside processResponse(msg)",LogLevel.MEDIUM);
       // no actions..
@@ -171,9 +257,10 @@ public class Registrar extends ServerEngine
    }
    
    
-   /* **************************** protected methods **************************** */
+   // *********************** protected methods ***********************
 
-   /** Gets the request's targets */
+   /** Gets the request's targets as Vector of String.
+     * @return It returns a Vector of String representing the target URLs. */
    protected Vector getTargets(Message msg)
    {  printLog("inside getTargets(msg)",LogLevel.LOW);
 
@@ -194,6 +281,11 @@ public class Registrar extends ServerEngine
       printLog("user URI: "+user,LogLevel.MEDIUM);      
       if (!location_service.hasUser(user))
       {  printLog("user "+user+" not found",LogLevel.HIGH);
+         // try with tel URIs
+         if (isPhoneNumber(username) && server_profile.pstn_gw_addr!=null)
+         {  SipURL url=new SipURL(server_profile.pstn_gw_prefix+username,server_profile.pstn_gw_addr,server_profile.pstn_gw_port);
+            targets.addElement(url.toString());
+         }
          return targets;
       }
 
@@ -202,7 +294,7 @@ public class Registrar extends ServerEngine
       SipURL to_url=msg.getToHeader().getNameAddress().getAddress();
       //if (to_url.hasParameter("device")) app=to_url.getParameter("device");
       
-      Enumeration e=location_service.getUserContacts(user);
+      Enumeration e=location_service.getUserContactURLs(user);
       printLog("message targets: ",LogLevel.LOW);  
       for (int i=0; e.hasMoreElements(); i++)
       {  // if exipred, remove the contact url
@@ -247,11 +339,11 @@ public class Registrar extends ServerEngine
       // known user?
       if (!location_service.hasUser(user))
       {  if (server_profile.register_new_users)
-         {  location_service.addUser(user,null);
-            printLog("new user '"+user+"' added",LogLevel.HIGH);
+         {  location_service.addUser(user);
+            printLog("new user '"+user+"' added.",LogLevel.HIGH);
          } 
          else
-         {  printLog("user '"+user+"' unknown: message discarded",LogLevel.HIGH);
+         {  printLog("user '"+user+"' unknown: message discarded.",LogLevel.HIGH);
             int result=404;
             return MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null,null);  
          }
@@ -272,7 +364,7 @@ public class Registrar extends ServerEngine
          Message resp=MessageFactory.createResponse(msg,result,SipResponses.reasonOf(result),null,null);  
          // add current contacts
          Vector v=new Vector();
-         for (Enumeration e=location_service.getUserContacts(user); e.hasMoreElements(); )
+         for (Enumeration e=location_service.getUserContactURLs(user); e.hasMoreElements(); )
          {  String url=(String)e.nextElement();
             int expires=(int)(location_service.getUserContactExpirationDate(user,url).getTime()-System.currentTimeMillis())/1000;
             if (expires>0)
@@ -295,7 +387,7 @@ public class Registrar extends ServerEngine
       if (contact_0.isStar())
       {  printLog("DEBUG: ContactHeader is star",LogLevel.LOW);
          Vector resp_contacts=new Vector();
-         for (Enumeration e=location_service.getUserContacts(user); e.hasMoreElements();) 
+         for (Enumeration e=location_service.getUserContactURLs(user); e.hasMoreElements();) 
          {  String url=(String)(e.nextElement());
             NameAddress name_address=location_service.getUserContactNameAddress(user,url);
             // update db
@@ -347,13 +439,31 @@ public class Registrar extends ServerEngine
    }
 
 
+   // ************************ private methods ************************
+
+   /** Gets the request's targets. */
+   private boolean isPhoneNumber(String str)
+   {  if (str==null || str.length()==0) return false;
+      for (int i=0; i<str.length(); i++)
+      {  char c=str.charAt(i);
+         if (c!='+' && c!='-' && (c<'0' || c>'9')) return false;
+      }
+      return true;
+   }   
+
+
    // ****************************** Logs *****************************
 
-   /** Adds a new string to the default Log */
+   /** Adds a new string to the default Log. */
    private void printLog(String str, int level)
    {  if (log!=null) log.println("Registrar: "+str,level+SipStack.LOG_LEVEL_UA);  
    }
 
+   /** Adds the Exception message to the default Log */
+   private final void printException(Exception e, int level)
+   {  if (log!=null) log.printException(e,level+SipStack.LOG_LEVEL_UA);
+   }
+  
 
    // ****************************** MAIN *****************************
 

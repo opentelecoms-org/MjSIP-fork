@@ -36,14 +36,15 @@ import java.net.DatagramSocket;
 public class RtpStreamReceiver extends Thread
 {
 
-   /** Whether debug mode */
-   private static final boolean DEBUG=true;
+   /** Whether working in debug mode. */
+   //private static final boolean DEBUG=true;
+   public static boolean DEBUG=false;
 
    /** Size of the read buffer */
-   private static final int BUFFER_SIZE=32768;
+   public static final int BUFFER_SIZE=32768;
 
    /** Maximum blocking time, spent waiting for reading new bytes [milliseconds] */
-   private static final int SO_TIMEOUT=200;
+   public static final int SO_TIMEOUT=200;
 
    /** The OutputStream */
    OutputStream output_stream=null;
@@ -138,7 +139,7 @@ public class RtpStreamReceiver extends Thread
             catch (java.io.InterruptedIOException e) { }
          }
       }
-      catch (Exception e) {  running=false; e.printStackTrace();  }
+      catch (Exception e) {  running=false;  e.printStackTrace();  }
 
       // close RtpSocket and local DatagramSocket
       DatagramSocket socket=rtp_socket.getDatagramSocket();

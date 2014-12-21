@@ -2,7 +2,6 @@ package local.ua;
 
 
 import org.zoolu.sip.address.*;
-import org.zoolu.sip.provider.SipStack;
 import org.zoolu.tools.Configure;
 import org.zoolu.tools.Parser;
 
@@ -17,16 +16,24 @@ public class UserAgentProfile extends Configure
        
    // ********************** user configurations *********************
 
-   /** User's URL (From URL).
-     * If not defined (default), it equals the <i>contact_url</i> */
+   /** User's AOR (Address Of Record), used also as From URL.
+     * <p/>
+     * The AOR is the SIP address used to register with the user's registrar server
+     * (if requested).
+     * <br/> The address of the registrar is taken from the hostport field of the AOR,
+     * i.e. the value(s) host[:port] after the '@' character.
+     * <p/>
+     * If not defined (default), it equals the <i>contact_url</i> attribute. */
    public String from_url=null;
-   /** User's passwd. */
-   public String passwd=null;
    /** Contact URL.
      * If not defined (default), it is formed by sip:local_user@host_address:host_port */
    public String contact_url=null;
-   /** Local user name (used to build the contact url if not explitely defined) */
-   public String contact_user="user";
+   /** User's name (used to build the contact_url if not explitely defined) */
+   public String username=null;
+   /** User's realm. */
+   public String realm=null;
+   /** User's passwd. */
+   public String passwd=null;
    /** Path for the 'ua.jar' lib, used to retrive various UA media (gif, wav, etc.)
      * By default, it is used the "lib/ua.jar" folder */
    public static String ua_jar="lib/ua.jar";
@@ -46,25 +53,28 @@ public class UserAgentProfile extends Configure
    /** Automatic call a remote user secified by the 'call_to' value.
      * Use value 'NONE' for manual calls (or let it undefined).  */
    public String call_to=null;      
-   /** Whether it is in automatic respond mode */
-   public boolean auto_accept=false;        
-   /** Automatic hangup time (call duartion) in seconds.
-     * time=0 corresponds to manual hangup mode */
-   public int hangup_time=0;
+   /** Automatic answer time in seconds; time<0 corresponds to manual answer mode. */
+   public int accept_time=-1;        
+   /** Automatic hangup time (call duartion) in seconds; time<=0 corresponds to manual hangup mode. */
+   public int hangup_time=-1;
+   /** Automatic call transfer time in seconds; time<0 corresponds to no auto transfer mode. */
+   public int transfer_time=-1;
+   /** Automatic re-inviting time in seconds; time<0 corresponds to no auto re-invite mode.  */
+   public int re_invite_time=-1;
+
    /** Redirect incoming call to the secified url.
      * Use value 'NONE' for not redirecting incoming calls (or let it undefined). */
    public String redirect_to=null;
-   /** No offer in the invite */
-   public boolean no_offer=false;
-   
+
    /** Transfer calls to the secified url.
      * Use value 'NONE' for not transferring calls (or let it undefined). */
    public String transfer_to=null;
-   /** Time waited beafore tranferring the call. Value '0' means no transfer. */
-   public int transfer_time=0;
-   /** Time waited beafore reinviting the remote party. Value '0' means no re-invite.  */
-   public int re_invite_time=0;
 
+   /** No offer in the invite */
+   public boolean no_offer=false;
+   /** Do not use prompt */
+   public boolean no_prompt=false;
+   
    /** Whether using audio */
    public boolean audio=false;
    /** Whether using video */
@@ -82,13 +92,17 @@ public class UserAgentProfile extends Configure
    public String recv_file=null;
 
    /** Audio port */
-   public int audio_port=21068;
+   public int audio_port=21000;
    /** Audio avp */
    public int audio_avp=0;
    /** Audio codec */
    public String audio_codec="PCMU";
-   /** Audio rate */
-   public int audio_rate=8000;
+   /** Audio sample rate */
+   public int audio_sample_rate=8000;
+   /** Audio sample size */
+   public int audio_sample_size=1;
+   /** Audio frame size */
+   public int audio_frame_size=500;
    
    /** Video port */
    public int video_port=21070;
@@ -109,18 +123,22 @@ public class UserAgentProfile extends Configure
    // ************************** costructors *************************
    
    /** Costructs a void UserProfile */
-   /*protected UserAgentProfile()
-   {  // load SipStack first
-      if (!SipStack.isInit()) SipStack.init();
-   }*/
+   public UserAgentProfile()
+   {  init();
+   }
 
-   /** Costructs a new UserProfile */
+   /** Costructs a new UserAgentProfile */
    public UserAgentProfile(String file)
-   {  // load SipStack first
-      if (!SipStack.isInit()) SipStack.init();
-      // load configuration
-      loadFile(file);    
+   {  // load configuration
+      loadFile(file);
       // post-load manipulation     
+      init();
+   }
+
+   /** Inits the UserAgentProfile */
+   private void init()
+   {  if (realm==null && contact_url!=null) realm=new NameAddress(contact_url).getAddress().getHost();
+      if (username==null) username=(contact_url!=null)? new NameAddress(contact_url).getAddress().getUserName() : "user";
       if (call_to!=null && call_to.equalsIgnoreCase(Configure.NONE)) call_to=null;
       if (redirect_to!=null && redirect_to.equalsIgnoreCase(Configure.NONE)) redirect_to=null;
       if (transfer_to!=null && transfer_to.equalsIgnoreCase(Configure.NONE)) transfer_to=null;
@@ -139,9 +157,10 @@ public class UserAgentProfile extends Configure
       else {  attribute=line; par=new Parser("");  }
               
       if (attribute.equals("from_url"))       { from_url=par.getRemainingString().trim(); return; }
-      if (attribute.equals("passwd"))         { passwd=par.getRemainingString().trim(); return; }
       if (attribute.equals("contact_url"))    { contact_url=par.getRemainingString().trim(); return; }
-      if (attribute.equals("contact_user"))   { contact_user=par.getString(); return; } 
+      if (attribute.equals("username"))       { username=par.getString(); return; } 
+      if (attribute.equals("realm"))          { realm=par.getRemainingString().trim(); return; }
+      if (attribute.equals("passwd"))         { passwd=par.getRemainingString().trim(); return; }
       if (attribute.equals("ua_jar"))         { ua_jar=par.getStringUnquoted(); return; }      
       if (attribute.equals("contacts_file"))  { contacts_file=par.getStringUnquoted(); return; }      
 
@@ -151,13 +170,14 @@ public class UserAgentProfile extends Configure
       //if (attribute.equals("expires"))        { expires=par.getInt(); return; } 
 
       if (attribute.equals("call_to"))     { call_to=par.getRemainingString().trim(); return; }
-      if (attribute.equals("auto_accept"))    { auto_accept=(par.getString().toLowerCase().startsWith("y")); return; }
+      if (attribute.equals("accept_time"))    { accept_time=par.getInt(); return; }
       if (attribute.equals("hangup_time"))    { hangup_time=par.getInt(); return; } 
-      if (attribute.equals("redirect_to"))   { redirect_to=par.getRemainingString().trim(); return; }
-      if (attribute.equals("no_offer"))       { no_offer=(par.getString().toLowerCase().startsWith("y")); return; }
-      if (attribute.equals("transfer_to"))    { transfer_to=par.getRemainingString().trim(); return; }
       if (attribute.equals("transfer_time"))  { transfer_time=par.getInt(); return; } 
       if (attribute.equals("re_invite_time")) { re_invite_time=par.getInt(); return; } 
+      if (attribute.equals("redirect_to"))    { redirect_to=par.getRemainingString().trim(); return; }
+      if (attribute.equals("transfer_to"))    { transfer_to=par.getRemainingString().trim(); return; }
+      if (attribute.equals("no_offer"))       { no_offer=(par.getString().toLowerCase().startsWith("y")); return; }
+      if (attribute.equals("no_prompt"))      { no_prompt=(par.getString().toLowerCase().startsWith("y")); return; }
 
       if (attribute.equals("audio"))          { audio=(par.getString().toLowerCase().startsWith("y")); return; }
       if (attribute.equals("video"))          { video=(par.getString().toLowerCase().startsWith("y")); return; }
@@ -170,7 +190,9 @@ public class UserAgentProfile extends Configure
       if (attribute.equals("audio_port"))     { audio_port=par.getInt(); return; } 
       if (attribute.equals("audio_avp"))      { audio_avp=par.getInt(); return; } 
       if (attribute.equals("audio_codec"))    { audio_codec=par.getString(); return; } 
-      if (attribute.equals("audio_rate"))     { audio_rate=par.getInt(); return; } 
+      if (attribute.equals("audio_sample_rate"))     { audio_sample_rate=par.getInt(); return; } 
+      if (attribute.equals("audio_sample_size"))     { audio_sample_size=par.getInt(); return; } 
+      if (attribute.equals("audio_frame_size"))      { audio_frame_size=par.getInt(); return; } 
       if (attribute.equals("video_port"))     { video_port=par.getInt(); return; } 
       if (attribute.equals("video_avp"))      { video_avp=par.getInt(); return; } 
 
@@ -179,6 +201,10 @@ public class UserAgentProfile extends Configure
       if (attribute.equals("bin_rat"))        { bin_rat=par.getStringUnquoted(); return; }
       if (attribute.equals("use_vic"))        { use_vic=(par.getString().toLowerCase().startsWith("y")); return; }
       if (attribute.equals("bin_vic"))        { bin_vic=par.getStringUnquoted(); return; }      
+
+      // for backward compatibily
+      if (attribute.equals("contact_user"))   { username=par.getString(); return; } 
+      if (attribute.equals("auto_accept"))    { accept_time=((par.getString().toLowerCase().startsWith("y")))? 0 : -1; return; } 
    }
 
 

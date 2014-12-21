@@ -30,6 +30,7 @@ import org.zoolu.sip.header.ViaHeader;
 import org.zoolu.sip.header.ContactHeader;
 import org.zoolu.sip.header.MultipleHeader;
 import org.zoolu.sip.header.RouteHeader;
+import org.zoolu.sip.header.SipHeaders;
 import org.zoolu.sip.message.Message;
 import org.zoolu.sip.message.MessageFactory;
 import org.zoolu.tools.LogLevel;
@@ -64,7 +65,7 @@ public class Redirect extends Registrar
                 
       printLog("message will be redirect to all user's contacts",LogLevel.MEDIUM);         
       // create the response with all contact urls, and send it 
-      MultipleHeader mc=new MultipleHeader(contacts);
+      MultipleHeader mc=new MultipleHeader(SipHeaders.Contact,contacts);
       mc.setCommaSeparated(true);
       Message resp=MessageFactory.createResponse(msg,302,"Moved Temporarily",null,null);
       resp.setContacts(mc);

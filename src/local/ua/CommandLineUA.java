@@ -22,28 +22,12 @@
 package local.ua;
 
 
-import local.media.AudioClipPlayer;
-import org.zoolu.sip.call.*;
 import org.zoolu.sip.address.*;
 import org.zoolu.sip.provider.SipStack;
 import org.zoolu.sip.provider.SipProvider;
-import org.zoolu.sip.header.ExpiresHeader;
-import org.zoolu.sip.header.ContactHeader;
-import org.zoolu.sip.header.CallIdHeader;
-import org.zoolu.sip.header.StatusLine;
-import org.zoolu.sip.transaction.TransactionClient;
-import org.zoolu.sip.transaction.TransactionClientListener;
-import org.zoolu.sip.call.*;
-import org.zoolu.sip.message.*;
-import org.zoolu.sdp.*;
 import org.zoolu.tools.Log;
 import org.zoolu.tools.LogLevel;
-import org.zoolu.tools.Parser;
-import org.zoolu.tools.Archive;
 
-//import java.util.Iterator;
-import java.util.Enumeration;
-import java.util.Vector;
 import java.io.*;
 
 
@@ -66,20 +50,25 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
    
    /** UserAgentProfile */
    UserAgentProfile user_profile;
+         
+   /** Standard input */
+   BufferedReader stdin=null; 
+         
+   /** Standard output */
+   PrintStream stdout=null; 
 
-   
+        
    /** Costructs a UA with a default media port */
    public CommandLineUA(SipProvider sip_provider, UserAgentProfile user_profile)
    {  log=sip_provider.getLog();
       this.user_profile=user_profile;
 
       ua=new UserAgent(sip_provider,user_profile,this);      
+      ra=new RegisterAgent(sip_provider,user_profile.from_url,user_profile.contact_url,user_profile.username,user_profile.realm,user_profile.passwd,this);
 
-      SipURL AOR=(new NameAddress(user_profile.from_url)).getAddress();
-      String username=AOR.getUserName();
-      String realm=AOR.getHost();
-      ra=new RegisterAgent(sip_provider,user_profile.from_url,user_profile.contact_url,username,realm,user_profile.passwd,this);
-
+      if (!user_profile.no_prompt) stdin=new BufferedReader(new InputStreamReader(System.in)); 
+      if (!user_profile.no_prompt) stdout=System.out;
+      
       run();
    }
 
@@ -126,7 +115,7 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
    {  ua.printLog("UAS: WAITING FOR INCOMING CALL");
       if (!ua.user_profile.audio && !ua.user_profile.video) ua.printLog("ONLY SIGNALING, NO MEDIA");       
       ua.listen(); 
-      System.out.println("digit the callee's URL to make a call or press 'enter' to exit");
+      printOut("digit the callee's URL to make a call or press 'enter' to exit");
    } 
 
 
@@ -134,9 +123,7 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
    void run()
    {
       try
-      {  BufferedReader in=new BufferedReader(new InputStreamReader(System.in)); 
-         
-         // Set the re-invite
+      {  // Set the re-invite
          if (user_profile.re_invite_time>0)
          {  ua.reInvite(user_profile.contact_url,user_profile.re_invite_time);
          }
@@ -164,27 +151,24 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
             loopRegister(user_profile.expires,user_profile.expires/2);
          }         
          
-         if (ua.user_profile.hangup_time>0)   
-         {  Thread.sleep(ua.user_profile.hangup_time*1000);
-            ua.hangup();
-         }
-
          if (user_profile.call_to!=null)
          {  // UAC
             call(user_profile.call_to); 
-            System.out.println("press 'enter' to hangup");
-            in.readLine();
+            printOut("press 'enter' to hangup");
+            readLine();
             ua.hangup();
             exit();
          }
          else
          {  // UAS
-            if (user_profile.auto_accept) ua.printLog("UAS: AUTO ACCEPT MODE");
+            if (user_profile.accept_time>=0) ua.printLog("UAS: AUTO ACCEPT MODE");
             listen();
-            while (true)
-            {  String line=in.readLine();
+            while (stdin!=null)
+            {  String line=readLine();
                if (ua.statusIs(UserAgent.UA_INCOMING_CALL))
-               {  if (line.toLowerCase().startsWith("n")) ua.hangup();
+               {  if (line.toLowerCase().startsWith("n"))
+                  {  ua.hangup();
+                  }
                   else
                   {  ua.accept();             
                   }
@@ -201,7 +185,6 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
                else
                if (ua.statusIs(UserAgent.UA_ONCALL))
                {  ua.hangup();
-                  listen();
                }
             }
          }
@@ -220,19 +203,20 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
    // ******************* UserAgent callback functions ******************
 
    /** When a new call is incoming */
-   public void onUaCallIncoming(UserAgent ua, NameAddress caller)
+   public void onUaCallIncoming(UserAgent ua, NameAddress caller, NameAddress callee)
    {  if (ua.user_profile.redirect_to!=null) // redirect the call
       {  ua.redirect(ua.user_profile.redirect_to);
-         System.out.println("call redirected to "+ua.user_profile.redirect_to);
+         printOut("call redirected to "+ua.user_profile.redirect_to);
       }         
       else
-      if (ua.user_profile.auto_accept) // automatically accept the call
-      {  ua.accept();
-         System.out.println("press 'enter' to hangup"); 
+      if (ua.user_profile.accept_time>=0) // automatically accept the call
+      {  //ua.accept();
+         //printOut("press 'enter' to hangup"); 
+         ua.automaticAccept(ua.user_profile.accept_time);
       }
       else         
-      {  System.out.println("incoming call from "+caller.toString());
-         System.out.println("accept? [yes/no]");
+      {  printOut("incoming call from "+caller.toString());
+         printOut("accept? [yes/no]");
       }
    }
    
@@ -253,7 +237,7 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
 
    /** When an incoming call has been cancelled */
    public void onUaCallCancelled(UserAgent ua)
-   {  
+   {  listen();
    }
 
    /** When an ougoing call has been refused or timeout */
@@ -262,8 +246,8 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
       else listen();
    }
 
-   /** When a call is beeing remotly closed */
-   public void onUaCallClosing(UserAgent ua)
+   /** When a call has been locally or remotely closed */
+   public void onUaCallClosed(UserAgent ua)
    {  if (ua.user_profile.call_to!=null) exit();
       else listen();     
    }
@@ -294,22 +278,34 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
       boolean opt_unregist_all=false;
       int     opt_expires=0;
       String  opt_call_to=null;      
-      boolean opt_auto_accept=false;      
-      int     opt_hangup_time=0;
+      int     opt_accept_time=-1;      
+      int     opt_hangup_time=-1;
       boolean opt_no_offer=false;
       String  opt_redirect_to=null;
       boolean opt_audio=false;
       boolean opt_video=false;
+      int     opt_media_port=0;
       boolean opt_recv_only=false;
       boolean opt_send_only=false;
       boolean opt_send_tone=false;
       String  opt_send_file=null;
       String  opt_recv_file=null;
-      int     opt_media_port=21068;
       String  opt_transfer_to=null;
-      int     opt_transfer_time=0;
-      int     opt_re_invite_time=0;
+      int     opt_transfer_time=-1;
+      int     opt_re_invite_time=-1;
+      boolean opt_no_prompt=false;
  
+      String opt_from_url=null;
+      String opt_contact_url=null;
+      String opt_username=null;
+      String opt_realm=null;
+      String opt_passwd=null;
+
+      int opt_debug_level=-1;
+      String opt_log_path=null;
+      String opt_via_addr=SipProvider.AUTO_CONFIGURATION;
+      int opt_host_port=SipStack.default_port;
+
       try
       {  
          for (int i=0; i<args.length; i++)
@@ -318,16 +314,8 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
             {  file=args[++i];
                continue;
             }
-            if (args[i].equals("-c") && args.length>(i+1)) // make a call with a remote user (url)
-            {  opt_call_to=args[++i];
-               continue;
-            }
-            if (args[i].equals("-s")) // automatic accept incoming call
-            {  opt_auto_accept=true;
-               continue;
-            }
-            if (args[i].equals("-p") && args.length>(i+1)) // set the local port
-            {  opt_media_port=Integer.parseInt(args[++i]);
+            if (args[i].equals("-s") && args.length>(i+1)) // set automatic accept time
+            {  opt_accept_time=Integer.parseInt(args[++i]);
                continue;
             }
             if (args[i].equals("-g") && args.length>(i+1)) // registrate the contact url
@@ -353,12 +341,8 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
             {  opt_re_invite_time=Integer.parseInt(args[++i]);
                continue;
             }
-            if (args[i].equals("-o")) // no offer in the invite
-            {  opt_no_offer=true;
-               continue;
-            }
             if (args[i].equals("-r") && args.length>(i+1)) // redirect the call to a new url
-            {  opt_auto_accept=true;
+            {  opt_accept_time=0;
                opt_redirect_to=args[++i];
                continue;
             }
@@ -367,12 +351,48 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
                opt_transfer_time=Integer.parseInt(args[++i]);
                continue;
             }
+            if (args[i].equals("-o")) // no offer in the invite
+            {  opt_no_offer=true;
+               continue;
+            }
             if (args[i].equals("-a")) // use audio
             {  opt_audio=true;
                continue;
             }
             if (args[i].equals("-v")) // use video
             {  opt_video=true;
+               continue;
+            }
+            if (args[i].equals("-m") && args.length>(i+1)) // set the local media port
+            {  opt_media_port=Integer.parseInt(args[++i]);
+               continue;
+            }
+            if (args[i].equals("--via-addr") && args.length>(i+1)) // via addr
+            {  opt_via_addr=args[++i];
+               continue;
+            }
+            if (args[i].equals("-p") && args.length>(i+1)) // set the local sip port
+            {  opt_host_port=Integer.parseInt(args[++i]);
+               continue;
+            }
+            if (args[i].equals("--from-url") && args.length>(i+1)) // user's AOR
+            {  opt_from_url=args[++i];
+               continue;
+            }
+            if (args[i].equals("--contact-url") && args.length>(i+1)) // user's contact_url
+            {  opt_contact_url=args[++i];
+               continue;
+            }
+            if (args[i].equals("--username") && args.length>(i+1)) // username
+            {  opt_username=args[++i];
+               continue;
+            }
+            if (args[i].equals("--realm") && args.length>(i+1)) // realm
+            {  opt_realm=args[++i];
+               continue;
+            }
+            if (args[i].equals("--passwd") && args.length>(i+1)) // passwd
+            {  opt_passwd=args[++i];
                continue;
             }
             if (args[i].equals("--recv-only")) // receive only mode
@@ -388,12 +408,28 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
                opt_send_tone=true;
                continue;
             }
-            if (args[i].equals("--send-file")) // send audio file
+            if (args[i].equals("--send-file") && args.length>(i+1)) // send audio file
             {  opt_send_file=args[++i];
                continue;
             }
-            if (args[i].equals("--recv-file")) // receive audio file
+            if (args[i].equals("--recv-file") && args.length>(i+1)) // receive audio file
             {  opt_recv_file=args[++i];
+               continue;
+            }
+            if (args[i].equals("--debug-level") && args.length>(i+1)) // debug level
+            {  opt_debug_level=Integer.parseInt(args[++i]);
+               continue;
+            }
+            if (args[i].equals("--log-path") && args.length>(i+1)) // log path
+            {  opt_log_path=args[++i];
+               continue;
+            }
+            if (args[i].equals("--no-prompt")) // do not prompt
+            {  opt_no_prompt=true;
+               continue;
+            }
+            if (args[i].equals("-c") && args.length>(i+1)) // make a call with a remote user (url)
+            {  opt_call_to=args[++i];
                continue;
             }
             
@@ -401,67 +437,81 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
             if (!args[i].equals("-h"))
                System.out.println("unrecognized param '"+args[i]+"'\n");
             
-            System.out.println("usage:\n   java UserAgent [options]");
+            System.out.println("usage:\n   java CommandLineUA [options]");
             System.out.println("   options:");
-            System.out.println("   -h                 this help");
-            System.out.println("   -f <config_file>   specifies a configuration file");
-            System.out.println("   -c <call_to>       calls a remote user");
-            System.out.println("   -s                 auto accept incoming calls");
-            System.out.println("   -t <secs>          specipies the call duration (0 means manual hangup)");
-            System.out.println("   -p <port>          local media port");
-            System.out.println("   -i <secs>          re-invite after <secs> seconds");
-            System.out.println("   -g <time>          registers the contact URL with the registrar server");
-            System.out.println("                      where time is the duration of the registration, and can be");
-            System.out.println("                      in seconds (default) or hours ( -r 7200 is the same as -r 2h )");
-            System.out.println("   -u                 unregisters the contact URL with the registrar server");
-            System.out.println("                      (is the same as -r 0)");
-            System.out.println("   -z                 unregisters ALL the contact URLs");
-            System.out.println("   -r <url>           redirects the call to a new user");
-            System.out.println("   -q <url> <secs>    transfers the call to a new user (REFER) after <secs> seconds");
-            System.out.println("   -o                 no offer in invite (offer/answer in 2xx/ack)");
-            System.out.println("   -a                 audio");
-            System.out.println("   -v                 video");
-            System.out.println("   --recv-only        receive only mode, no media is sent");
-            System.out.println("   --send-only        send only mode, no media is received");
-            System.out.println("   --send-tone        send only mode, an audio test tone is generated");
-            System.out.println("   --send-file <file> audio is played from the specified file");
-            System.out.println("   --recv-file <file> audio is recorded to the specified file");
+            System.out.println("   -h              this help");
+            System.out.println("   -f <file>       specifies a configuration file");
+            System.out.println("   -c <call_to>    calls a remote user");
+            System.out.println("   -s <secs>       auto answer time");
+            System.out.println("   -t <secs>       auto hangup time (0 means manual hangup)");
+            System.out.println("   -g <time>       registers the contact URL with the registrar server");
+            System.out.println("                   where time is the duration of the registration, and can be");
+            System.out.println("                   in seconds (default) or hours (-g 7200 is the same as -g 2h)");
+            System.out.println("   -u              unregisters the contact URL with the registrar server");
+            System.out.println("                   (is the same as -g 0)");
+            System.out.println("   -z              unregisters ALL the contact URLs");
+            System.out.println("   -i <secs>       re-invite after <secs> seconds");
+            System.out.println("   -r <url>        redirects the call to new user <url>");
+            System.out.println("   -q <url> <secs> transfers the call to <url> after <secs> seconds");
+            System.out.println("   -o              no offer in invite (offer/answer in 2xx/ack)");
+            System.out.println("   -a              audio");
+            System.out.println("   -v              video");
+            System.out.println("   -m <port>       (first) local media port");
+            System.out.println("   -p <port>       local SIP port, used ONLY without -f option");
+            System.out.println("   --via-addr <addr>   host via address, used ONLY without -f option");
+            System.out.println("   --from-url <url>    user's address-of-record (AOR)");
+            System.out.println("   --contact-url <url> user's contact url");
+            System.out.println("   --username <addr>   user name used for authentication");
+            System.out.println("   --real <addr>       realm used for authentication");
+            System.out.println("   --passwd <addr>     passwd used for authentication");
+            System.out.println("   --recv-only         receive only mode, no media is sent");
+            System.out.println("   --send-only         send only mode, no media is received");
+            System.out.println("   --send-tone         send only mode, an audio test tone is generated");
+            System.out.println("   --send-file <file>  audio is played from the specified file");
+            System.out.println("   --recv-file <file>  audio is recorded to the specified file");
+            System.out.println("   --debug-level <n>   debug level (level=0 means no log)");
+            System.out.println("   --log-path <path>   base path for all logs (./log is the default value)");
+            System.out.println("   --no-prompt         do not prompt");
             System.exit(0);
          }
                      
          SipStack.init(file);
-         SipProvider sip_provider=new SipProvider(file);
+         if (opt_debug_level>=0) SipStack.debug_level=opt_debug_level;
+         if (opt_log_path!=null) SipStack.log_path=opt_log_path;
+         SipProvider sip_provider;
+         if (file!=null) sip_provider=new SipProvider(file); else sip_provider=new SipProvider(opt_via_addr,opt_host_port);
          UserAgentProfile user_profile=new UserAgentProfile(file);
          
          if (opt_regist) user_profile.do_register=true;
          if (opt_unregist) user_profile.do_unregister=true;
          if (opt_unregist_all) user_profile.do_unregister_all=true;
          if (opt_expires>0) user_profile.expires=opt_expires;
-         if (opt_call_to!=null) user_profile.call_to=opt_call_to;
-         if (opt_auto_accept) user_profile.auto_accept=true;
+         if (opt_accept_time>=0) user_profile.accept_time=opt_accept_time;
          if (opt_hangup_time>0) user_profile.hangup_time=opt_hangup_time;
          if (opt_redirect_to!=null) user_profile.redirect_to=opt_redirect_to;
          if (opt_re_invite_time>0) user_profile.re_invite_time=opt_re_invite_time;
+         if (opt_transfer_to!=null) user_profile.transfer_to=opt_transfer_to;
+         if (opt_transfer_time>0) user_profile.transfer_time=opt_transfer_time;
          if (opt_no_offer) user_profile.no_offer=true;
-         if (opt_media_port!=21068) user_profile.video_port=(user_profile.audio_port=opt_media_port)+2;
          if (opt_audio) user_profile.audio=true;
          if (opt_video) user_profile.video=true;
+         if (opt_media_port>0) user_profile.video_port=(user_profile.audio_port=opt_media_port)+2;
+         if (opt_from_url!=null) user_profile.from_url=opt_from_url;
+         if (opt_contact_url!=null) user_profile.contact_url=opt_contact_url;
+         if (opt_username!=null) user_profile.username=opt_username;
+         if (opt_realm!=null) user_profile.realm=opt_realm;
+         if (opt_passwd!=null) user_profile.passwd=opt_passwd;
          if (opt_recv_only) user_profile.recv_only=true;
          if (opt_send_only) user_profile.send_only=true;             
          if (opt_send_tone) user_profile.send_tone=true;
          if (opt_send_file!=null) user_profile.send_file=opt_send_file;
          if (opt_recv_file!=null) user_profile.recv_file=opt_recv_file;
+         if (opt_no_prompt) user_profile.no_prompt=true;
+         if (opt_call_to!=null) user_profile.call_to=opt_call_to;
+         
+         // use audio as default media in case of..
+         if ((opt_recv_only || opt_send_only || opt_send_tone || opt_send_file!=null || opt_recv_file!=null) && !opt_video) user_profile.audio=true;
 
-         // ################# patch to make audio working with javax.sound.. #################
-         // # currently AudioSender must be started before any AudioClipPlayer is initialized,
-         // # since there is a problem with the definition of the audio format
-         // ##################################################################################
-         if (!user_profile.use_rat && !user_profile.use_jmf)
-         //{  if (user_profile.audio && !user_profile.recv_only) local.media.AudioInput.initAudioLine();
-         {  if (user_profile.audio && !user_profile.recv_only && user_profile.send_file==null && !user_profile.send_tone) local.media.AudioInput.initAudioLine();
-            if (user_profile.audio && !user_profile.send_only && user_profile.recv_file==null) local.media.AudioOutput.initAudioLine();
-         }
-     
          new CommandLineUA(sip_provider,user_profile);
       }
       catch (Exception e)  {  e.printStackTrace(); System.exit(0);  }
@@ -469,6 +519,17 @@ public class CommandLineUA implements UserAgentListener, RegisterAgentListener
    
 
    // ****************************** Logs *****************************
+
+   /** Read a new line from stantard input. */
+   protected String readLine()
+   {  try { if (stdin!=null) return stdin.readLine(); } catch (IOException e) {}
+      return null;
+   }
+
+   /** Print to stantard output. */
+   protected void printOut(String str)
+   {  if (stdout!=null) System.out.println(str);
+   }
 
    /** Adds a new string to the default Log */
    void printLog(String str)

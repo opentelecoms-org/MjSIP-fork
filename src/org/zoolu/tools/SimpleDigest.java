@@ -41,6 +41,9 @@ public class SimpleDigest extends MessageDigest
    /** Index within the message_digest. */
    int index;
 
+   /** Add term */
+   byte add_term;
+
    
    // *********************** Public methods ***********************
 
@@ -75,8 +78,9 @@ public class SimpleDigest extends MessageDigest
    private void init(int size)
    {  is_done=false;
       message_digest=new byte[size];
-      for (int i=0; i<size; i++) message_digest[i]=(byte)(i*(i+1));
+      for (int i=0; i<size; i++) message_digest[i]=(byte)(i);
       index=0;
+      add_term=0;
    }
 
 
@@ -90,7 +94,8 @@ public class SimpleDigest extends MessageDigest
        
       for (int i=0; i<len; i++)
       {  if (index==message_digest.length) index=0;
-         message_digest[index]=(byte)(message_digest[index]^buffer[offset+i]);
+         add_term+=buffer[offset+i];
+         message_digest[index]=(byte)(message_digest[index]^add_term);
          index++;
       }
       return this;
@@ -106,10 +111,12 @@ public class SimpleDigest extends MessageDigest
 
       int k=message_digest.length-index;
       while (index<message_digest.length)
-      {  message_digest[index]=(byte)(message_digest[index]^(k*(k+1)));
+      {  message_digest[index]=(byte)(message_digest[index]^(k));
          index++;
          k++;
-      }
+      }     
+      for (int i=0; i<message_digest.length; i++) message_digest[i]=(byte)(message_digest[i]^add_term);    
+
       return message_digest;
    }
 

@@ -24,46 +24,25 @@
 package org.zoolu.sip.provider;
 
 
+import org.zoolu.sip.message.Message;
+import org.zoolu.net.IpAddress;
+import java.io.IOException;
 
 
-/** Generic Identifier.
+/** ConnectedTransport is a generic CO transport service for SIP.
   */
-public class Identifier
+interface ConnectedTransport extends Transport
 {
-   /** The actual id */   
-   String id=null;
+   /** Gets the remote IpAddress */
+   public IpAddress getRemoteAddress();
    
-   /** Costructs a new void Identifier. */
-   Identifier()
-   {
-   }
+   /** Gets the remote port */
+   public int getRemotePort();
 
-   /** Costructs a new Identifier. */
-   Identifier(String id)
-   {  this.id=id;
-   }
+   /** Gets the last time the ConnectedTransport has been used (in millisconds) */
+   public long getLastTimeMillis();
 
-   /** Costructs a new Identifier. */
-   Identifier(Identifier i)
-   {  this.id=i.id;
-   }
+   /** Sends a Message */      
+   public void sendMessage(Message msg) throws IOException;
 
-   /** Whether the Identifier equals to <i>obj</i>. */
-   public boolean equals(Object obj)
-   {  try
-      {  Identifier i=(Identifier)obj;
-         return id.equals(i.id);
-      }
-      catch (Exception e) {  return false;  }
-   }
-
-   /** Gets an int hashCode for the Identifier. */
-   public int hashCode()
-   {  return id.hashCode();
-   }
-
-   /** Gets a String value for the Identifier */ 
-   public String toString()
-   {  return id;
-   }
 }

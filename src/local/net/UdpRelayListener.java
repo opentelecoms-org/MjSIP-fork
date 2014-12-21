@@ -5,8 +5,8 @@ package local.net;
   */
 public interface UdpRelayListener
 {
-   /** When source address changes. */
-   public void onUdpRelaySourceChanged(UdpRelay udp_relay, String src_addr, int src_port);
+   /** When the remote source address changes. */
+   public void onUdpRelaySourceChanged(UdpRelay udp_relay, String remote_src_addr, int remote_src_port);
 
    /** When UdpRelay stops relaying UDP datagrams. */
    public void onUdpRelayTerminated(UdpRelay udp_relay);   

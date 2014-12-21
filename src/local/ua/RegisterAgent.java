@@ -26,18 +26,18 @@ import org.zoolu.sip.address.*;
 import org.zoolu.sip.provider.SipStack;
 import org.zoolu.sip.provider.SipProvider;
 import org.zoolu.sip.header.*;
+import org.zoolu.sip.message.*;
 import org.zoolu.sip.transaction.TransactionClient;
 import org.zoolu.sip.transaction.TransactionClientListener;
-import org.zoolu.sip.message.*;
+import org.zoolu.sip.authentication.DigestAuthentication;
 import org.zoolu.tools.Log;
 import org.zoolu.tools.LogLevel;
-import local.auth.DigestAuthentication;
 
 
 /** Register User Agent.
   * It registers (one time or periodically) a contact address with a registrar server.
   */
-class RegisterAgent implements Runnable, TransactionClientListener
+public class RegisterAgent implements Runnable, TransactionClientListener
 {
    /** RegisterAgent listener */
    RegisterAgentListener listener;
@@ -81,6 +81,12 @@ class RegisterAgent implements Runnable, TransactionClientListener
    /** Event logger. */
    Log log;
 
+   /** Max number of registration attempts. */
+   static final int MAX_ATTEMPTS=3;
+
+   /** Number of registration attempts. */
+   int attempts=0;
+
       
    /** Creates a new RegisterAgent. */
    public RegisterAgent(SipProvider sip_provider, String target_url, String contact_url, RegisterAgentListener listener)
@@ -123,7 +129,8 @@ class RegisterAgent implements Runnable, TransactionClientListener
 
    /** Registers with the registrar server for <i>expire_time</i> seconds. */
    public void register(int expire_time)
-   {  if (expire_time>0) this.expire_time=expire_time;
+   {  attempts=0;
+      if (expire_time>0) this.expire_time=expire_time;
       Message req=MessageFactory.createRegisterRequest(sip_provider,target,target,contact);
       req.setExpiresHeader(new ExpiresHeader(String.valueOf(expire_time)));
       if (next_nonce!=null)
@@ -134,7 +141,7 @@ class RegisterAgent implements Runnable, TransactionClientListener
          ah.addNonceParam(next_nonce);
          ah.addUriParam(req.getRequestLine().getAddress().toString());
          ah.addQopParam(qop);
-         String response=(new DigestAuthentication(SipMethods.REGISTER,ah,null,passwd)).calcResponse();
+         String response=(new DigestAuthentication(SipMethods.REGISTER,ah,null,passwd)).getResponse();
          ah.addResponseParam(response);
          req.setAuthorizationHeader(ah);
       }
@@ -153,7 +160,8 @@ class RegisterAgent implements Runnable, TransactionClientListener
 
    /** Unregister all contacts with the registrar server */
    public void unregisterall()
-   {  NameAddress user=new NameAddress(target);
+   {  attempts=0;
+      NameAddress user=new NameAddress(target);
       Message req=MessageFactory.createRegisterRequest(sip_provider,target,target,null);
       //ContactHeader contact_star=new ContactHeader(); // contact is *
       //req.setContactHeader(contact_star);
@@ -222,17 +230,18 @@ class RegisterAgent implements Runnable, TransactionClientListener
    {  if (transaction.getTransactionMethod().equals(SipMethods.REGISTER))
       {  StatusLine status=resp.getStatusLine();
          int code=status.getCode();
-         if (code==401 && resp.hasWwwAuthenticateHeader() && resp.getWwwAuthenticateHeader().getRealmParam().equalsIgnoreCase(realm))
-         {  Message req=MessageFactory.createRegisterRequest(sip_provider,target,target,contact);
+         if (code==401 && attempts<MAX_ATTEMPTS && resp.hasWwwAuthenticateHeader() && resp.getWwwAuthenticateHeader().getRealmParam().equalsIgnoreCase(realm))
+         {  attempts++;
+            Message req=transaction.getMethodMessage();
+            req.setCSeqHeader(req.getCSeqHeader().incSequenceNumber());
             WwwAuthenticateHeader wah=resp.getWwwAuthenticateHeader();
             String qop_options=wah.getQopOptionsParam();
             //printLog("DEBUG: qop-options: "+qop_options,LogLevel.MEDIUM);
             qop=(qop_options!=null)? "auth" : null;
-            AuthorizationHeader ah=(new DigestAuthentication(SipMethods.REGISTER,req.getRequestLine().getAddress().toString(),wah,qop,null,username,passwd)).calcAuthorizationHeader();
+            AuthorizationHeader ah=(new DigestAuthentication(SipMethods.REGISTER,req.getRequestLine().getAddress().toString(),wah,qop,null,username,passwd)).getAuthorizationHeader();
             req.setAuthorizationHeader(ah);
-            req.setExpiresHeader(new ExpiresHeader(String.valueOf(expire_time)));            
             TransactionClient t=new TransactionClient(sip_provider,req,this);
-            t.request();        
+            t.request();
          }
          else
          {  String result=code+" "+status.getReason();

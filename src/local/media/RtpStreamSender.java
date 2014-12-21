@@ -35,8 +35,9 @@ import java.net.DatagramSocket;
   */
 public class RtpStreamSender extends Thread
 {
-   /** Whether debug mode */
-   private static final boolean DEBUG=true;  
+   /** Whether working in debug mode. */
+   //private static final boolean DEBUG=true;
+   public static boolean DEBUG=false;
    
    /** The InputStream */
    InputStream input_stream=null;
@@ -183,12 +184,12 @@ public class RtpStreamSender extends Thread
             }
             else
             if (num<0)
-            {  println("Error reading from InputStream");
-               running=false;
+            {  running=false;
+               if (DEBUG) println("Error reading from InputStream");
             }
          }
       }
-      catch (Exception e) {  running=false; e.printStackTrace();  }     
+      catch (Exception e) {  running=false;  e.printStackTrace();  }     
 
       //if (DEBUG) println("rtp time:  "+time);
       //if (DEBUG) println("real time: "+(System.currentTimeMillis()-start_time));

@@ -25,15 +25,23 @@ package org.zoolu.sip.provider;
 
 
 import org.zoolu.sip.message.Message;
+import org.zoolu.net.IpAddress;
+import java.io.IOException;
 
 
-/** Listener for SipTransport events.
+/** Transport is a generic transport service for SIP.
   */
-interface SipTransportListener
+interface Transport
 {
-   /** When a new SIP message is received. */
-   public void onReceivedMessage(SipTransport transport, Message msg);
+   /** Gets protocol type */ 
+   public String getProtocol();
 
-   /** When SipTransport terminates. */
-   public void onSipTransportTerminated(SipTransport transport, Exception error);
+   /** Stops running */
+   public void halt();
+
+   /** Sends a Message to a destination address and port */
+   public void sendMessage(Message msg, IpAddress dest_ipaddr, int dest_port) throws IOException;
+
+   /** Gets a String representation of the Object */
+   public String toString();
 }

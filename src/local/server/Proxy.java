@@ -94,6 +94,19 @@ public class Proxy extends Registrar
    
       if (call_logger!=null) call_logger.update(msg);
 
+      if (!server_profile.is_open_proxy)
+      {  SipURL from_url=msg.getFromHeader().getNameAddress().getAddress();
+         String username=from_url.getUserName();
+         String hostaddr=from_url.getHost();
+         String user;
+         if (username==null) user=hostaddr; else user=username+"@"+hostaddr;
+         if (!location_service.hasUser(user))
+         {  printLog("user "+user+" not found: proxy denied.",LogLevel.HIGH);
+            sip_provider.sendMessage(MessageFactory.createResponse(msg,503,"Service Unavailable",null,null));
+            return;
+         }
+      }
+
       updateProxingRequest(msg);      
       sip_provider.sendMessage(msg);
    }
@@ -133,6 +146,7 @@ public class Proxy extends Registrar
       }
       else proto=msg.getRequestLine().getAddress().getTransport();
       if (proto==null) proto=sip_provider.getDefaultTransport();
+      
       // add Via
       ViaHeader via=new ViaHeader(proto,sip_provider.getViaAddress(),sip_provider.getPort());
       if (sip_provider.isRportSet()) via.setRport();

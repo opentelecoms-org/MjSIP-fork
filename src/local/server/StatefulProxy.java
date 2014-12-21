@@ -149,6 +149,19 @@ public class StatefulProxy extends Proxy implements TransactionClientListener
       else ts=new TransactionServer(sip_provider_server,msg,null);
       //ts.listen();
 
+      if (!server_profile.is_open_proxy)
+      {  SipURL from_url=msg.getFromHeader().getNameAddress().getAddress();
+         String username=from_url.getUserName();
+         String hostaddr=from_url.getHost();
+         String user;
+         if (username==null) user=hostaddr; else user=username+"@"+hostaddr;
+         if (!location_service.hasUser(user))
+         {  printLog("user "+user+" not found: proxy denied.",LogLevel.HIGH);
+            statefulServerResponse(ts,MessageFactory.createResponse(msg,503,"Service Unavailable",null,null));
+            return;
+         }
+      }
+
       updateProxingRequest(msg);         
 
       TransactionClient tc;
