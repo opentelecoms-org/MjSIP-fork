@@ -128,6 +128,12 @@ public class TcpSocket {
 		return sslContext;
 	}
 	
+	private static boolean useRecentTlsVersions = false;
+	
+	public static void setUseRecentTLSVersions(boolean useRecentTlsVersions) {
+		TcpSocket.useRecentTlsVersions = useRecentTlsVersions;
+	}
+	
 	/** Creates a new UdpSocket */
 	public TcpSocket(IpAddress ipaddr, int port, boolean _useTls) throws java.io.IOException {
 //		socket = new Socket(ipaddr.getInetAddress(), port); modified
@@ -165,7 +171,7 @@ public class TcpSocket {
 			try {
 				SSLSocketFactory socketFactory = getSSLContext().getSocketFactory();
 				SSLSocket _socket = (SSLSocket)socketFactory.createSocket();
-                if(android.os.Build.VERSION.SDK_INT >= 16) {
+                if(useRecentTlsVersions) {
                     // FIXME: could also do this for BouncyCastle
                 	try {
                 		_socket.setEnabledProtocols(new String[] { "SSLv2Hello", "TLSv1", "TLSv1.1", "TLSv1.2" });
