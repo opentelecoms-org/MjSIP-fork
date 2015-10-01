@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="MjSIP-fork" basedir="." default="jar">
+
+    <property name="dest" value="classes"/>
+    <property name="lib" value="lib"/>
+    <property name="src" value="src"/>
+    <property name="MjSIP-fork.jar" value="MjSIP-fork.jar"/>
+
+    <path id="project.class.path">
+        <pathelement location="${dest}"/>
+        <pathelement location="${lib}/opentelecoms.org-util.jar"/>
+    </path>
+
+    <target name="init">
+        <mkdir dir="${dest}"/>
+    </target>
+
+    <target name="compile" depends="init">
+        <javac classpathref="project.class.path"
+               debug="true"
+               deprecation="true"
+               destdir="${dest}"
+               nowarn="false"
+               target="1.6"
+               source="1.6">
+            <src path="${src}"/>
+            <exclude name="local/**"/>
+        </javac>
+    </target>
+
+    <target name="jar" depends="compile">
+        <jar compress="true" destfile="${MjSIP-fork.jar}">
+            <fileset dir="${dest}"/>
+        </jar>
+    </target>
+
+</project>
