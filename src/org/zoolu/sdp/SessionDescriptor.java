@@ -175,10 +175,13 @@ public class SessionDescriptor {
 	public SessionDescriptor(String owner, String address) {
 		if (address == null)
 			address = IpAddress.localIpAddress;
+		String ipVersion = "IP4";
+		if(address.indexOf(':') > -1)
+			ipVersion = "IP6";
 		if (owner == null)
 			owner = "user@" + address;
 		init(new OriginField(owner, "0", "0", address), new SessionNameField(
-				"Session SIP/SDP"), new ConnectionField("IP4", address),
+				"Session SIP/SDP"), new ConnectionField(ipVersion, address),
 				new TimeField());
 	}
 
@@ -189,9 +192,12 @@ public class SessionDescriptor {
 	 */
 	public SessionDescriptor() {
 		String address = IpAddress.localIpAddress;
+		String ipVersion = "IP4";
+		if(address.indexOf(':') > -1)
+			ipVersion = "IP6";
 		String owner = "user@" + address;
 		init(new OriginField(owner, "0", "0", address), new SessionNameField(
-				"Session SIP/SDP"), new ConnectionField("IP4", address),
+				"Session SIP/SDP"), new ConnectionField(ipVersion, address),
 				new TimeField());
 	}
 
