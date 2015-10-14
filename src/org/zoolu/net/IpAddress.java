@@ -177,6 +177,10 @@ public class IpAddress {
 		}
 		if(inetAddress != null) {
 			localIpAddress = inetAddress.getHostAddress().toString();
+			int i = localIpAddress.indexOf('%');
+			if(i > -1) {
+				localIpAddress = localIpAddress.substring(0, i);
+			}
 		}
 		logger.fine("Selected localIpAddress: " + localIpAddress);
 	}
