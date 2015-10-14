@@ -5,7 +5,7 @@
   <artifactId>mjsip-fork</artifactId>
   <name>MjSIP-fork</name>
   <packaging>jar</packaging>
-  <version>1.6+lumicall.1</version>
+  <version>1.6+lumicall.2</version>
   <description>Fork of MjSIP SIP stack</description>
   <url>https://github.com/opentelecoms-org/MjSIP-fork</url>
   <licenses>
