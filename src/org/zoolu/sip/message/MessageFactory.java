@@ -150,16 +150,18 @@ public class MessageFactory extends org.zoolu.sip.message.BaseMessageFactory {
 		return req;
 	}
 	 
-	public Message createPublishRequest(SipProvider sip_provider, NameAddress from, String event, int expires, String contentType, String body ) 
-	   {  SipURL request_uri=from.getAddress(); 
-	      String callid=sip_provider.pickCallId(); 
-	      int cseq=SipProvider.pickInitialCSeq(); 
-	      String localtag=SipProvider.pickTag(); 
-	     Message req=createRequest(sip_provider,SipMethods.PUBLISH,request_uri,from,from,null,callid,cseq,localtag,null,null,body, null); 
-	      req.setEventHeader(new EventHeader(event)); 
-	      req.setBody(contentType, body);
-	        req.setExpiresHeader(new ExpiresHeader(expires));
-	      return req; 
-	   } 
+	public Message createPublishRequest(SipProvider sip_provider, NameAddress from, String event, int expires,
+			String contentType, String body) {
+		SipURL request_uri = from.getAddress();
+		String callid = sip_provider.pickCallId();
+		int cseq = SipProvider.pickInitialCSeq();
+		String localtag = SipProvider.pickTag();
+		Message req = createRequest(sip_provider, SipMethods.PUBLISH, request_uri, from, from, null, callid, cseq,
+				localtag, null, null, body, null);
+		req.setEventHeader(new EventHeader(event));
+		req.setBody(contentType, body);
+		req.setExpiresHeader(new ExpiresHeader(expires));
+		return req;
+	}
 
 }
