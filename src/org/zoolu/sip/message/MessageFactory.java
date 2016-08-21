@@ -28,6 +28,7 @@ import org.zoolu.sip.header.SubjectHeader;
 import org.zoolu.sip.header.ReferToHeader;
 import org.zoolu.sip.header.ReferredByHeader;
 import org.zoolu.sip.header.EventHeader;
+import org.zoolu.sip.header.ExpiresHeader;
 import org.zoolu.sip.dialog.Dialog;
 import org.zoolu.sip.provider.SipProvider;
 
@@ -146,6 +147,20 @@ public class MessageFactory extends org.zoolu.sip.message.BaseMessageFactory {
 		req.removeExpiresHeader();
 		req.setEventHeader(new EventHeader(event, id));
 		req.setBody("message/sipfrag;version=2.0", sipfragment);
+		return req;
+	}
+	 
+	public Message createPublishRequest(SipProvider sip_provider, NameAddress from, String event, int expires,
+			String contentType, String body) {
+		SipURL request_uri = from.getAddress();
+		String callid = sip_provider.pickCallId();
+		int cseq = SipProvider.pickInitialCSeq();
+		String localtag = SipProvider.pickTag();
+		Message req = createRequest(sip_provider, SipMethods.PUBLISH, request_uri, from, from, null, callid, cseq,
+				localtag, null, null, body, null);
+		req.setEventHeader(new EventHeader(event));
+		req.setBody(contentType, body);
+		req.setExpiresHeader(new ExpiresHeader(expires));
 		return req;
 	}
 
