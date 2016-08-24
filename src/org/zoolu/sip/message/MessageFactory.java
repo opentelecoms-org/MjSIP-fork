@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2005 Luca Veltri - University of Parma - Italy
+ * Copyright (C) 2016 Pranav Jain
  * 
  * This file is part of MjSip (http://www.mjsip.org)
  * 
@@ -19,6 +20,7 @@
  * 
  * Author(s):
  * Luca Veltri (luca.veltri@unipr.it)
+ * Pranav Jain (contact@pranavjain.me)
  */
 
 package org.zoolu.sip.message;
