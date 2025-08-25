@@ -177,14 +177,14 @@ public class TcpSocket {
                 		_socket.setEnabledProtocols(new String[] { "SSLv2Hello", "TLSv1", "TLSv1.1", "TLSv1.2" });
                 	} catch (Exception ex) {
                 		logger.warning("Exception while trying setEnabledProtocols with SSLv2Hello, trying without it (useRecentTlsVersions true): " + ex.toString());
-                		_socket.setEnabledProtocols(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" });
+                		_socket.setEnabledProtocols(new String[] { "TLS" });
                 	}
                 } else {
                 	try {
                 		_socket.setEnabledProtocols(new String[] { "SSLv2Hello", "TLSv1" });
                 	} catch (Exception ex) {
                 		logger.warning("Exception while trying setEnabledProtocols with SSLv2Hello, trying without it (useRecentTlsVersions false)");
-                		_socket.setEnabledProtocols(new String[] { "TLSv1" });
+                		_socket.setEnabledProtocols(new String[] { "TLS" });
                 	}
                 }
                 socket = _socket;
