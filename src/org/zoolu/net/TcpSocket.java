@@ -128,7 +128,7 @@ public class TcpSocket {
 		return sslContext;
 	}
 	
-	private static boolean useRecentTlsVersions = false;
+	private static boolean useRecentTlsVersions = true;
 	
 	public static void setUseRecentTLSVersions(boolean useRecentTlsVersions) {
 		TcpSocket.useRecentTlsVersions = useRecentTlsVersions;
