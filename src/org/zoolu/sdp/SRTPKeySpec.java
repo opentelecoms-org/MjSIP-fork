@@ -29,9 +29,29 @@ public class SRTPKeySpec {
 	} */
 	
 	public static byte[] makeKey(int bits) throws NoSuchAlgorithmException {
+            int _bits = bits;
+            if(bits < 128) {
+		// Some Security Providers, such as Conscript on Android,
+		// are unable to generate arbitrary key sizes.
+		// On the other hand, there are certain use cases,
+		// such as generating a salt for SRTP, where a non-standard
+		// key size must be specified.  The SRTP salt is 112 bits.
+		// We generate a 128 bit key and then take the portion of
+		// the key that is required by the calling application.
+                _bits = 128;
+            }
 	    KeyGenerator kgen = KeyGenerator.getInstance("AES");
-	    kgen.init(bits);
+	    kgen.init(_bits);
 	    SecretKey key = kgen.generateKey();
+	    if(bits != _bits) {
+		if(bits == 112) {
+		    int lenBytes = bits / 8;  // 14 * 8 = 112
+		    byte[] _key = new byte[lenBytes];
+		    System.arraycopy(key.getEncoded(), 0, _key, 0, lenBytes);
+		    return _key;
+		}
+		throw new RuntimeException("unexpected key size: " + bits);
+	    }
 	    return key.getEncoded();
 	}
 	
