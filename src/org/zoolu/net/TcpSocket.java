@@ -174,9 +174,9 @@ public class TcpSocket {
                 if(useRecentTlsVersions) {
                     // FIXME: could also do this for BouncyCastle
                 	try {
-                		_socket.setEnabledProtocols(new String[] { "SSLv2Hello", "TLSv1", "TLSv1.1", "TLSv1.2" });
+                		_socket.setEnabledProtocols(new String[] { "TLSv1.3" });
                 	} catch (Exception ex) {
-                		logger.warning("Exception while trying setEnabledProtocols with SSLv2Hello, trying without it (useRecentTlsVersions true): " + ex.toString());
+                		logger.warning("Exception while trying setEnabledProtocols with TLSv1.3, trying without it (useRecentTlsVersions true): " + ex.toString());
                 		_socket.setEnabledProtocols(new String[] { "TLS" });
                 	}
                 } else {
