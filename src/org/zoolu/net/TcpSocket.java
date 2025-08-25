@@ -181,7 +181,7 @@ public class TcpSocket {
                 	}
                 } else {
                 	try {
-                		_socket.setEnabledProtocols(new String[] { "SSLv2Hello", "TLSv1" });
+                		_socket.setEnabledProtocols(new String[] { "SSLv2Hello", "TLS" });
                 	} catch (Exception ex) {
                 		logger.warning("Exception while trying setEnabledProtocols with SSLv2Hello, trying without it (useRecentTlsVersions false)");
                 		_socket.setEnabledProtocols(new String[] { "TLS" });
